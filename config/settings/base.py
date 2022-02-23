@@ -75,6 +75,8 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "hpcaccess.users",
+    "usersec",
+    "adminsec",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -95,9 +97,9 @@ AUTHENTICATION_BACKENDS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
-LOGIN_REDIRECT_URL = "users:redirect"
+LOGIN_REDIRECT_URL = "home"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
-LOGIN_URL = "account_login"
+LOGIN_URL = "login"
 
 # PASSWORDS
 # ------------------------------------------------------------------------------
@@ -111,9 +113,7 @@ PASSWORD_HASHERS = [
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -235,8 +235,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s "
-            "%(process)d %(thread)d %(message)s"
+            "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
         }
     },
     "handlers": {
@@ -271,3 +270,97 @@ SOCIALACCOUNT_FORMS = {"signup": "hpcaccess.users.forms.UserSocialSignupForm"}
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+
+# SENTRY CONFIGURATION
+# ------------------------------------------------------------------------------
+if env.bool("ENABLE_SENTRY", default=False):
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+    SENTRY_DSN = "%s?verify_ssl=0" % env.str("SENTRY_DSN")
+    sentry_sdk.init(
+        SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+    )
+
+
+# LDAP configuration
+# ------------------------------------------------------------------------------
+
+# Enable LDAP if configured
+ENABLE_LDAP = env.bool("ENABLE_LDAP", False)
+ENABLE_LDAP_SECONDARY = env.bool("ENABLE_LDAP_SECONDARY", False)
+
+# Alternative domains for detecting LDAP access by email address
+LDAP_ALT_DOMAINS = env.list("LDAP_ALT_DOMAINS", None, [])
+
+if ENABLE_LDAP:
+    import itertools
+    import ldap
+    from django_auth_ldap.config import LDAPSearch
+
+    # Default values
+    LDAP_DEFAULT_CONN_OPTIONS = {ldap.OPT_REFERRALS: 0}
+    LDAP_DEFAULT_FILTERSTR = "(sAMAccountName=%(user)s)"
+    LDAP_DEFAULT_ATTR_MAP = {
+        "first_name": "givenName",
+        "last_name": "sn",
+        "email": "mail",
+    }
+
+    # Primary LDAP server
+    AUTH_LDAP_SERVER_URI = env.str("AUTH_LDAP_SERVER_URI", None)
+    AUTH_LDAP_BIND_DN = env.str("AUTH_LDAP_BIND_DN", None)
+    AUTH_LDAP_BIND_PASSWORD = env.str("AUTH_LDAP_BIND_PASSWORD", None)
+    AUTH_LDAP_CONNECTION_OPTIONS = LDAP_DEFAULT_CONN_OPTIONS
+
+    AUTH_LDAP_USER_SEARCH = LDAPSearch(
+        env.str("AUTH_LDAP_USER_SEARCH_BASE", None),
+        ldap.SCOPE_SUBTREE,
+        LDAP_DEFAULT_FILTERSTR,
+    )
+    AUTH_LDAP_USER_ATTR_MAP = LDAP_DEFAULT_ATTR_MAP
+    AUTH_LDAP_USERNAME_DOMAIN = env.str("AUTH_LDAP_USERNAME_DOMAIN", None)
+    AUTH_LDAP_DOMAIN_PRINTABLE = env.str("AUTH_LDAP_DOMAIN_PRINTABLE", AUTH_LDAP_USERNAME_DOMAIN)
+
+    AUTHENTICATION_BACKENDS = tuple(
+        itertools.chain(
+            ("hpcaccess.auth_backends.PrimaryLDAPBackend",),
+            AUTHENTICATION_BACKENDS,
+        )
+    )
+
+    # Secondary LDAP server (optional)
+    if ENABLE_LDAP_SECONDARY:
+        AUTH_LDAP2_SERVER_URI = env.str("AUTH_LDAP2_SERVER_URI", None)
+        AUTH_LDAP2_BIND_DN = env.str("AUTH_LDAP2_BIND_DN", None)
+        AUTH_LDAP2_BIND_PASSWORD = env.str("AUTH_LDAP2_BIND_PASSWORD", None)
+        AUTH_LDAP2_CONNECTION_OPTIONS = LDAP_DEFAULT_CONN_OPTIONS
+
+        AUTH_LDAP2_USER_SEARCH = LDAPSearch(
+            env.str("AUTH_LDAP2_USER_SEARCH_BASE", None),
+            ldap.SCOPE_SUBTREE,
+            LDAP_DEFAULT_FILTERSTR,
+        )
+        AUTH_LDAP2_USER_ATTR_MAP = LDAP_DEFAULT_ATTR_MAP
+        AUTH_LDAP2_USERNAME_DOMAIN = env.str("AUTH_LDAP2_USERNAME_DOMAIN")
+        AUTH_LDAP2_DOMAIN_PRINTABLE = env.str(
+            "AUTH_LDAP2_DOMAIN_PRINTABLE", AUTH_LDAP2_USERNAME_DOMAIN
+        )
+
+        AUTHENTICATION_BACKENDS = tuple(
+            itertools.chain(
+                ("projectroles.auth_backends.SecondaryLDAPBackend",),
+                AUTHENTICATION_BACKENDS,
+            )
+        )
+
+SITE_TITLE = "HPC Access"
+SITE_SUBTITLE = "Beta"
+SITE_PACKAGE = "hpcaccess"

@@ -1,21 +1,40 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
+from django.http import HttpResponse
+from django.shortcuts import render
 from django.urls import include, path
 from django.views import defaults as default_views
-from django.views.generic import TemplateView
+from sentry_sdk import last_event_id
+
+from usersec import views
+
+
+def handler500(request, *args, **argv):
+    if request.user and "User" in str(type(request.user)):
+        return render(request, "500.html", {"sentry_event_id": last_event_id()}, status=500)
+    else:
+        return HttpResponse(status=500)
+
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
-    path(
-        "about/", TemplateView.as_view(template_name="pages/about.html"), name="about"
-    ),
+    path("", views.HomeView.as_view(), name="home"),
+    # UserSec URLs
+    path(r"^usersec/", include("usersec.urls")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("hpcaccess.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
+    # Login and logout
+    path(
+        r"login/",
+        auth_views.LoginView.as_view(template_name="pages/login.html"),
+        name="login",
+    ),
+    path(r"logout/", auth_views.logout_then_login, name="logout"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

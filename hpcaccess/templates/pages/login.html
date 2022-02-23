@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+<div class="container-fluid">
+  <form class="form-signin" method="post" id="form-login">
+    {% csrf_token %}
+    {% get_django_setting 'ENABLE_LDAP' as ENABLE_LDAP %}
+    <input type="text" name="username"
+           id="login-username" class="form-control"
+           placeholder="{% if ENABLE_LDAP %}username@DOMAIN{% else %}username{% endif %}"
+           required autofocus>
+    <input type="password" name="password" id="login-password"
+           class="form-control my-sm-2 mb-sm-2" placeholder="password"
+           required>
+    <button class="btn btn-md btn-primary btn-block" type="submit"
+            id="login-submit">
+      <i class="iconify" data-icon="mdi:login-variant"></i> Login
+    </button>
+  </form>
+</div>
+{% endblock content %}

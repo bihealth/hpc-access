@@ -1,10 +1,14 @@
-{% load static i18n %}<!DOCTYPE html>
+{% load static i18n common %}
+
 {% get_current_language as LANGUAGE_CODE %}
+{% get_django_setting 'SITE_TITLE' as SITE_TITLE %}
+
+<!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>{% block title %}hpcaccess{% endblock title %}</title>
+    <title>{% block title %}{{ SITE_TITLE }}{% endblock title %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Managing the access to the BIH HPC cluster">
     <meta name="author" content="Oliver Stolpe">
@@ -25,63 +29,34 @@
     {% block javascript %}
       <!-- Bootstrap JS -->
       <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js" integrity="sha512-OvBgP9A2JBgiRad/mM36mkzXSXaJE9BEIENnVEmeZdITvwT09xnxLtT4twkCa8m/loMbPHsvPl0T8lRGVBwjlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <!-- Sentry SDK for browsers -->
+      <script src="https://browser.sentry-cdn.com/6.2.5/bundle.tracing.min.js" integrity="sha384-xd/W0P7puokZpoEqk4srLDzK5R0WV2B2IZVlA0T4MEU4Fojxk+o+5KF6u43wkTL6" crossorigin="anonymous"></script>
       <!-- Your stuff: Third-party javascript libraries go here -->
-
+      <script type="text/javascript" src="{% static 'js/iconify.min.js' %}"></script>
       <!-- place project specific Javascript in this file -->
       <script defer src="{% static 'js/project.js' %}"></script>
 
+      {% get_django_setting 'SENTRY_DSN' as sentry_dsn %}
+
+      {% if sentry_dsn %}
+      {% site_version as site_version %}
+      <script type="text/javascript">
+        Sentry.init({
+          dsn: "{{ sentry_dsn }}",
+          release: "hpc-access@{% site_version %}",
+          integrations: [new Sentry.Integrations.BrowserTracing()]
+        })
+      </script>
+      {% endif %}
     {% endblock javascript %}
 
   </head>
 
   <body>
 
-    <div class="mb-1">
-      <nav class="navbar navbar-expand-md navbar-light bg-light">
-        <div class="container-fluid">
-          <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <a class="navbar-brand" href="{% url 'home' %}">hpcaccess</a>
+    {% include '_titlebar.html' %}
 
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-              <li class="nav-item active">
-                <a class="nav-link" href="{% url 'home' %}">Home <span class="visually-hidden">(current)</span></a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'about' %}">About</a>
-              </li>
-              {% if request.user.is_authenticated %}
-                <li class="nav-item">
-                  {# URL provided by django-allauth/account/urls.py #}
-                  <a class="nav-link" href="{% url 'users:detail' request.user.username  %}">{% translate "My Profile" %}</a>
-                </li>
-                <li class="nav-item">
-                  {# URL provided by django-allauth/account/urls.py #}
-                  <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
-                </li>
-              {% else %}
-                {% if ACCOUNT_ALLOW_REGISTRATION %}
-              <li class="nav-item">
-                {# URL provided by django-allauth/account/urls.py #}
-                <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
-              </li>
-              {% endif %}
-                <li class="nav-item">
-                  {# URL provided by django-allauth/account/urls.py #}
-                  <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
-                </li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-      </nav>
-
-    </div>
-
-    <div class="container">
-
+    <div class="container-fluid p-0">
       {% if messages %}
         {% for message in messages %}
           <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
@@ -91,22 +66,17 @@
         {% endfor %}
       {% endif %}
 
+      <div class="container">
       {% block content %}
         <p>Use this document as a way to quick start any new project.</p>
       {% endblock content %}
-
+      </div>
     </div> <!-- /container -->
 
-    {% block modal %}{% endblock modal %}
+    {% block modal %}
+    {% endblock modal %}
 
     {% block inline_javascript %}
-    {% comment %}
-    Script tags with only code, no src (defer by default). To run
-    with a "defer" so that you run inline code:
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {/* Run whatever you want */});
-    </script>
-    {% endcomment %}
     {% endblock inline_javascript %}
   </body>
 </html>
