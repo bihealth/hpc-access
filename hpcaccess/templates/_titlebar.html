@@ -1,0 +1,84 @@
+{% load static common %}
+
+{% get_django_setting 'SITE_TITLE' as SITE_TITLE %}
+{% get_django_setting 'SITE_SUBTITLE' as SITE_SUBTITLE %}
+
+<div class="container-fluid p-0">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark ps-3">
+    <img width=24 height=24 src="{% static 'images/lock-white.svg' %}">
+    <div class="container-fluid">
+      {# Site title #}
+      <a class="navbar-brand" href="{% url 'home' %}">
+        {{ SITE_TITLE }}
+        {% if SITE_SUBTITLE %}<span class="text-warning small">{{ SITE_SUBTITLE }}</span>{% endif %}
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          {# Manual link #}
+          <li class="nav-item">
+            <a href="#" class="nav-link" id="manualLink" target="_blank">
+              <i class="iconify" data-icon="mdi:book-open-page-variant"></i> Manual
+            </a>
+          </li>
+
+          {# Actual user dropdown #}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              {% if request.user.is_superuser %}
+                <i class="iconify" data-icon="mdi:shield-account"></i>
+              {% elif request.user.is_authenticated %}
+                <i class="iconify" data-icon="mdi:user"></i>
+              {% else %}
+                <i class="iconify" data-icon="mdi:incognito"></i>
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="navbarDropdown">
+              <li>
+                <h6 class="dropdown-header">
+                  {% if request.user.is_authenticated %}
+                    {% if request.user.name %}
+                      {{ request.user.name }}<br />
+                    {% endif %}
+                    {{ request.user.username }}
+                  {% else %}
+                    Anonymous
+                  {% endif %}
+                </h6>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+
+              {# Admin link #}
+              <li>
+                {% if request.user.is_superuser %}
+                  <a class="dropdown-item" href="{% url 'admin:index' %}"
+                     target="_blank">
+                    <i class="iconify" data-icon="mdi:cogs"></i> Django Admin
+                  </a>
+                {% endif %}
+              </li>
+
+              {# Log out / log in links #}
+              <li>
+                {% if request.user.is_authenticated %}
+                  <a class="dropdown-item text-danger"
+                     href="{% url 'logout' %}">
+                    <i class="iconify" data-icon="mdi:logout-variant"></i> Logout
+                  </a>
+                {% else %}
+                  <a class="dropdown-item text-primary"
+                     href="{% url 'login' %}">
+                    <i class="iconify" data-icon="mdi:login-variant"></i> Login
+                  </a>
+                {% endif %}
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+</div>
