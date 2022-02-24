@@ -63,6 +63,7 @@ RUN mkdir -p /usr/src/app/local-static/local/css && \
 
 # Get icons
 #RUN cd /usr/src/app && \
+#    DJANGO_ADMIN_URL=for-build-only \
 #    DJANGO_SECRET_KEY=for-build-only \
 #    DJANGO_SETTINGS_MODULE=config.settings.production \
 #    DATABASE_URL=postgres://hpcaccess:hpcaccess@fake/sodar \
@@ -71,6 +72,7 @@ RUN mkdir -p /usr/src/app/local-static/local/css && \
 # Prepare static files
 #    mkdir -p /usr/src/app/hpc-access/vueapp/dist && \
 RUN cd /usr/src/app && \
+    DJANGO_ADMIN_URL=for-build-only \
     DJANGO_SECRET_KEY=for-build-only \
     DJANGO_SETTINGS_MODULE=config.settings.production \
     DATABASE_URL=postgres://hpcaccess:hpcaccess@fake/varfish \
