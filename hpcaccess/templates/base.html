@@ -2,6 +2,7 @@
 
 {% get_current_language as LANGUAGE_CODE %}
 {% get_django_setting 'SITE_TITLE' as SITE_TITLE %}
+{% get_django_setting 'DISABLE_CDN_INCLUDES' as disable_cdn_includes %}
 
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
@@ -17,7 +18,14 @@
 
     {% block css %}
     <!-- Latest compiled and minified Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" integrity="sha512-GQGU0fMMi238uA+a/bdWJfpUGKUkBdgfFdgBm72SUQ6BeyWjoY/ton0tEjH+OSH9iP4Dfh+7HM0I9f5eR0L/4w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    {% if not disable_cdn_includes %}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css"
+          integrity="sha512-GQGU0fMMi238uA+a/bdWJfpUGKUkBdgfFdgBm72SUQ6BeyWjoY/ton0tEjH+OSH9iP4Dfh+7HM0I9f5eR0L/4w=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer"
+    />
+    {% endif %}
 
     <!-- Your stuff: Third-party CSS libraries go here -->
     <!-- This file stores project-specific CSS -->
@@ -28,13 +36,28 @@
     {# Placed at the top of the document so pages load faster with defer #}
     {% block javascript %}
       <!-- Bootstrap JS -->
-      <script defer src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js" integrity="sha512-OvBgP9A2JBgiRad/mM36mkzXSXaJE9BEIENnVEmeZdITvwT09xnxLtT4twkCa8m/loMbPHsvPl0T8lRGVBwjlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      {% if not disable_cdn_includes %}
+      <script defer
+              src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"
+              integrity="sha512-OvBgP9A2JBgiRad/mM36mkzXSXaJE9BEIENnVEmeZdITvwT09xnxLtT4twkCa8m/loMbPHsvPl0T8lRGVBwjlQ=="
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"
+      ></script>
       <!-- Sentry SDK for browsers -->
-      <script src="https://browser.sentry-cdn.com/6.2.5/bundle.tracing.min.js" integrity="sha384-xd/W0P7puokZpoEqk4srLDzK5R0WV2B2IZVlA0T4MEU4Fojxk+o+5KF6u43wkTL6" crossorigin="anonymous"></script>
-      <!-- Your stuff: Third-party javascript libraries go here -->
-      <script type="text/javascript" src="{% static 'js/iconify.min.js' %}"></script>
+      <script defer
+              src="https://browser.sentry-cdn.com/6.17.9/bundle.tracing.min.js"
+              integrity="sha384-FItuQ+AF7gqljIq5rozCj0vTwFbFlxfi7HCL/AHpP6jtDXICPcQyHXOceH/poGUw"
+              crossorigin="anonymous"
+      ></script>
+      {% endif %}
+      <script
+              type="text/javascript"
+              src="{% static 'js/iconify.min.js' %}"
+      ></script>
       <!-- place project specific Javascript in this file -->
-      <script defer src="{% static 'js/project.js' %}"></script>
+      <script defer
+              src="{% static 'js/project.js' %}"
+      ></script>
 
       {% get_django_setting 'SENTRY_DSN' as sentry_dsn %}
 
