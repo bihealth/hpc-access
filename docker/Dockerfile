@@ -9,6 +9,10 @@ ARG app_git_depth=1
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV CUSTOM_STATIC_DIR /usr/src/app/local-static
+ENV DJANGO_ADMIN_URL for-build-only
+ENV DJANGO_SECRET_KEY for-build-only
+ENV DJANGO_SETTINGS_MODULE config.settings.production
+ENV DATABASE_URL postgres://hpcaccess:hpcaccess@fake/varfish
 
 ## Add the wait script to the image
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.7.3/wait /usr/local/bin/wait
@@ -71,12 +75,7 @@ RUN mkdir -p /usr/src/app/local-static/local/css && \
 
 # Prepare static files
 #    mkdir -p /usr/src/app/hpc-access/vueapp/dist && \
-RUN cd /usr/src/app && \
-    DJANGO_ADMIN_URL=for-build-only \
-    DJANGO_SECRET_KEY=for-build-only \
-    DJANGO_SETTINGS_MODULE=config.settings.production \
-    DATABASE_URL=postgres://hpcaccess:hpcaccess@fake/varfish \
-    python manage.py collectstatic --no-input
+RUN cd /usr/src/app && python manage.py collectstatic --no-input
 
 # Define the entry point.
 COPY docker-entrypoint.sh /usr/local/bin

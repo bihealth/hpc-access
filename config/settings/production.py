@@ -123,8 +123,6 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"]
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
 # Add optional custom directory for static includes at deployment stage
 STATICFILES_DIRS = env.list("CUSTOM_STATIC_DIR", default=[])
 
