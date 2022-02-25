@@ -121,7 +121,7 @@ LOGGING = {
 
 # Static Assets
 # ------------------------------------------------------------------------------
-MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"]
+MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
 
 # Add optional custom directory for static includes at deployment stage
 STATICFILES_DIRS = env.list("CUSTOM_STATIC_DIR", default=[])

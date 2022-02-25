@@ -21,7 +21,7 @@ def handler500(request, *args, **argv):
 urlpatterns = [
     path("", views.HomeView.as_view(), name="home"),
     # UserSec URLs
-    path(r"^usersec/", include("usersec.urls")),
+    path("usersec/", include("usersec.urls")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
