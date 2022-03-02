@@ -71,6 +71,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "rules.apps.AutodiscoverRulesConfig",
 ]
 
 LOCAL_APPS = [
@@ -91,6 +92,7 @@ MIGRATION_MODULES = {"sites": "hpcaccess.contrib.sites.migrations"}
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
+    "rules.permissions.ObjectPermissionBackend",
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]

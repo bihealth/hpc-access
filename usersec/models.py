@@ -2,9 +2,13 @@ from django.contrib.auth import user_logged_in
 from django.db import models
 import uuid as uuid_object
 
-#: Object is set active.
 from hpcaccess.users.models import User
 
+
+#: Object is initialized.
+OBJECT_STATUS_INITIAL = "INITIAL"
+
+#: Object is set active.
 OBJECT_STATUS_ACTIVE = "ACTIVE"
 
 #: Object marked as deleted.
@@ -15,6 +19,7 @@ OBJECT_STATUS_EXPIRED = "EXPIRED"
 
 #: Group, project and user statuses.
 OBJECT_STATUS_CHOICES = [
+    (OBJECT_STATUS_INITIAL, OBJECT_STATUS_INITIAL),
     (OBJECT_STATUS_ACTIVE, OBJECT_STATUS_ACTIVE),
     (OBJECT_STATUS_DELETED, OBJECT_STATUS_DELETED),
     (OBJECT_STATUS_EXPIRED, OBJECT_STATUS_EXPIRED),
@@ -172,6 +177,9 @@ class HpcGroupAbstract(HpcObjectAbstract):
     owner = models.ForeignKey(
         HpcUser,
         related_name="%(class)s_owner",
+        # Must be nullable because user and group reference each other
+        # TODO: make sure there are no permanent owner-less groups
+        null=True,
         help_text="User registered as owner of the group",
         on_delete=models.CASCADE,
     )

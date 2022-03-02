@@ -21,3 +21,6 @@ python-ldap==3.4.0
 
 # Sentry client
 sentry-sdk==1.5.6
+
+# Rule system
+rules==3.1
