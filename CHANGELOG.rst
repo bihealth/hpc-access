@@ -14,6 +14,7 @@ General
 - Django 4 codebase created, using Bootstrap 5 and Python 3.10
 - Added Sentry support
 - Added Docker support
+- Added ``rules`` package dependency (#9)
 
 UserSec
 -------
@@ -21,6 +22,7 @@ UserSec
 - App created
 - Created login page with LDAP support (#2)
 - Created models for users, groups and requests (#3)
+- Created rules and permissions (#9)
 
 AdminSec
 --------
