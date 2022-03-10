@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <div class="row">
+    <h2>You group request is pending!</h2>
+  </div>
+
+  <div class="row">
+    <ul>
+      <li><strong>Resources:</strong> {{ object.resources_requested }}</li>
+      <li><strong>Status:</strong> {{ object.status }}</li>
+      <li><strong>Description:</strong> {{ object.description }}</li>
+      <li><strong>Expiration:</strong> {{ object.expiration }}</li>
+      <li><strong>Comment:</strong> {{ object.comment }}</li>
+      <li><strong>Delegate email:</strong> {{ object.delegate_email }}</li>
+      <li><strong>Member emails:</strong> {{ object.member_emails }}</li>
+    </ul>
+  </div>
+
+  <div class="row">
+    <a class="btn btn-danger disabled">Retract Request</a>
+    <p>Please write to hpc-helpdesk@bih-charite.de to retract the request.</p>
+  </div>
+
+{% endblock content %}
