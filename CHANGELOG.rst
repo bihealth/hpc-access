@@ -23,6 +23,7 @@ UserSec
 - Created login page with LDAP support (#2)
 - Created models for users, groups and requests (#3)
 - Created rules and permissions (#9)
+- Created orphan view, added factories and tests (#4)
 
 AdminSec
 --------

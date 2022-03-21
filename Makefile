@@ -10,3 +10,8 @@ serve:
 
 black:
 	black -l 100 --exclude '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.?v?env|_build|buck-out|build|dist|src)/' .
+
+
+test:
+	$(manage) test -v2 --settings=config.settings.test
+
