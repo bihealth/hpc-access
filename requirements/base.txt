@@ -15,10 +15,6 @@ django-crispy-forms==1.14.0  # https://github.com/django-crispy-forms/django-cri
 crispy-bootstrap5==0.6  # https://github.com/django-crispy-forms/crispy-bootstrap5
 django-redis==5.2.0  # https://github.com/jazzband/django-redis
 
-# LDAP
-django-auth-ldap==4.0.0
-python-ldap==3.4.0
-
 # Sentry client
 sentry-sdk==1.5.6
 

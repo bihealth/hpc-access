@@ -1,19 +1,29 @@
 import rules
-from django.contrib import messages
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
-from django.http import HttpResponseRedirect, Http404, HttpResponseNotFound
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView, FormView, CreateView, DetailView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    TemplateView,
+    UpdateView,
+)
+from django.views.generic.detail import SingleObjectMixin
 from rules.contrib.views import PermissionRequiredMixin
 
 from usersec.forms import HpcGroupCreateRequestForm
-from usersec.models import HpcGroupCreateRequest
-
+from usersec.models import (
+    HpcGroupCreateRequest,
+    REQUEST_STATUS_RETRACTED,
+    REQUEST_STATUS_DENIED,
+    REQUEST_STATUS_ACTIVE,
+)
 
 MSG_NO_AUTH = "User not authorized for requested action"
 MSG_NO_AUTH_LOGIN = MSG_NO_AUTH + ", please log in"
@@ -45,9 +55,9 @@ class HomeView(LoginRequiredMixin, TemplateView):
         elif rules.test_rule("has_pending_group_request", request.user):
             return redirect(
                 reverse(
-                    "usersec:pending-group-request",
+                    "usersec:hpcgroupcreaterequest-detail",
                     kwargs={
-                        "hpcgrouprequest": request.user.hpcgroupcreaterequest_requester.first().uuid
+                        "hpcgroupcreaterequest": request.user.hpcgroupcreaterequest_requester.first().uuid
                     },
                 )
             )
@@ -58,16 +68,20 @@ class HomeView(LoginRequiredMixin, TemplateView):
 class OrphanUserView(HpcPermissionMixin, CreateView):
     """Orphan user view"""
 
-    template_name = "usersec/orphan.html"
+    template_name = "usersec/hpcgroupcreaterequest_form.html"
     form_class = HpcGroupCreateRequestForm
     permission_required = "usersec.create_hpcgroupcreaterequest"
 
     def get_success_url(self, uuid):
-        return reverse("usersec:pending-group-request", kwargs={"hpcgrouprequest": uuid})
+        return reverse(
+            "usersec:hpcgroupcreaterequest-detail",
+            kwargs={"hpcgroupcreaterequest": uuid},
+        )
 
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
+        obj.status = REQUEST_STATUS_ACTIVE
         obj = obj.save_with_version()
 
         if not obj:
@@ -78,14 +92,114 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url(obj.uuid))
 
 
-class PendingGroupRequestView(HpcPermissionMixin, DetailView):
-    """Pending group request view"""
+class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
+    """Pending group request detail view."""
 
-    template_name = "usersec/pending.html"
+    template_name = "usersec/hpcgroupcreaterequest_detail.html"
     model = HpcGroupCreateRequest
     slug_field = "uuid"
-    slug_url_kwarg = "hpcgrouprequest"
+    slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "usersec.view_hpcgroupcreaterequest"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["comment_history"] = obj.get_comment_history()
+        context["is_denied"] = obj.status == REQUEST_STATUS_DENIED
+        context["is_retracted"] = obj.status == REQUEST_STATUS_RETRACTED
+        return context
+
+
+class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
+    """Pending group request update view."""
+
+    template_name = "usersec/hpcgroupcreaterequest_form.html"
+    model = HpcGroupCreateRequest
+    fields = [
+        "resources_requested",
+        "description",
+        "expiration",
+        "comment",
+    ]
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupcreaterequest"
+    permission_required = "usersec.view_hpcgroupcreaterequest"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["update"] = True
+        context["comment_history"] = obj.get_comment_history()
+        return context
+
+    def get_success_url(self):
+        return reverse(
+            "usersec:hpcgroupcreaterequest-detail",
+            kwargs={"hpcgroupcreaterequest": self.get_object().uuid},
+        )
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.requester = self.request.user
+        obj = obj.save_with_version()
+
+        if not obj:
+            messages.error(self.request, "Couldn't update group request.")
+            return HttpResponseRedirect(reverse("usersec:orphan-user"))
+
+        messages.success(self.request, "Group request updated.")
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+    """Pending group request update view."""
+
+    template_name_suffix = "_retract_confirm"
+    model = HpcGroupCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupcreaterequest"
+    permission_required = "usersec.view_hpcgroupcreaterequest"
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = ""
+        obj.retract_with_version()
+        messages.success(self.request, "Request successfully retracted.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcgroupcreaterequest-detail",
+                kwargs={"hpcgroupcreaterequest": obj.uuid},
+            )
+        )
+
+
+class HpcGroupCreateRequestReactivateView(
+    HpcPermissionMixin, SingleObjectMixin, View
+):
+    """Pending group request update view."""
+
+    model = HpcGroupCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupcreaterequest"
+    permission_required = "usersec.view_hpcgroupcreaterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ACTIVE
+        obj.comment = ""
+        obj.save_with_version()
+        messages.success(self.request, "Request successfully re-activated.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcgroupcreaterequest-detail",
+                kwargs={"hpcgroupcreaterequest": obj.uuid},
+            )
+        )
 
 
 class DummyView(LoginRequiredMixin, TemplateView):

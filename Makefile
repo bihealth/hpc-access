@@ -3,13 +3,16 @@
 
 manage = python manage.py
 
+# Argument passed from commandline, optional for some rules, mandatory for others.
+arg =
+
 
 serve:
 	$(manage) runserver
 
 
 black:
-	black -l 100 --exclude '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.?v?env|_build|buck-out|build|dist|src)/' .
+	black . -l 80 --exclude '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.?v?env|_build|buck-out|build|dist|src)/' $(arg)
 
 
 test:

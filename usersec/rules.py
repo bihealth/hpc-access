@@ -1,8 +1,5 @@
 import rules
 
-from config.settings.base import ENABLE_LDAP, ENABLE_LDAP_SECONDARY
-
-
 # ------------------------------------------------------------------------------
 # Predicates
 # ------------------------------------------------------------------------------
@@ -48,7 +45,9 @@ can_view_hpcgroup = is_group_owner | is_group_delegate | is_group_member
 can_view_hpcgroupcreaterequest = is_group_requester
 can_view_hpcgroupchangerequest = is_group_owner | is_group_delegate
 can_view_hpcuser = is_group_owner | is_group_delegate
-can_create_hpcgroupcreaterequest = ~is_cluster_user & ~_has_pending_group_request
+can_create_hpcgroupcreaterequest = (
+    ~is_cluster_user & ~_has_pending_group_request
+)
 
 # ------------------------------------------------------------------------------
 # Rules
@@ -65,6 +64,10 @@ rules.add_rule("has_pending_group_request", has_pending_group_request)
 
 
 rules.add_perm("usersec.view_hpcgroup", can_view_hpcgroup)
-rules.add_perm("usersec.view_hpcgroupcreaterequest", can_view_hpcgroupcreaterequest)
+rules.add_perm(
+    "usersec.view_hpcgroupcreaterequest", can_view_hpcgroupcreaterequest
+)
 rules.add_perm("usersec.view_hpcuser", can_view_hpcuser)
-rules.add_perm("usersec.create_hpcgroupcreaterequest", can_create_hpcgroupcreaterequest)
+rules.add_perm(
+    "usersec.create_hpcgroupcreaterequest", can_create_hpcgroupcreaterequest
+)

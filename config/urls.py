@@ -13,7 +13,12 @@ from usersec import views
 
 def handler500(request, *args, **argv):
     if request.user and "User" in str(type(request.user)):
-        return render(request, "500.html", {"sentry_event_id": last_event_id()}, status=500)
+        return render(
+            request,
+            "500.html",
+            {"sentry_event_id": last_event_id()},
+            status=500,
+        )
     else:
         return HttpResponse(status=500)
 
@@ -62,4 +67,6 @@ if settings.DEBUG:
     if "debug_toolbar" in settings.INSTALLED_APPS:
         import debug_toolbar
 
-        urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+        urlpatterns = [
+            path("__debug__/", include(debug_toolbar.urls))
+        ] + urlpatterns

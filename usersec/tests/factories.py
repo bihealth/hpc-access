@@ -1,23 +1,20 @@
 import json
-from datetime import datetime
-
 import factory
+
+from datetime import datetime
 from django.forms import model_to_dict
 from django.utils.timezone import utc
 
 from usersec.models import (
-    HpcUser,
     HpcGroup,
     HpcGroupChangeRequest,
     HpcGroupCreateRequest,
     HpcGroupDeleteRequest,
-    HpcUserCreateRequest,
+    HpcUser,
     HpcUserChangeRequest,
+    HpcUserCreateRequest,
     HpcUserDeleteRequest,
-    OBJECT_STATUS_ACTIVE,
-    REQUEST_STATUS_INITIAL,
 )
-
 
 # ------------------------------------------------------------------------------
 # Helpers
@@ -80,7 +77,6 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     resources_used = {"null": "null"}
     description = "this is a group"
     creator = None  # User
-    status = OBJECT_STATUS_ACTIVE
     gid = 2000
     name = factory.Sequence(lambda n: f"hpc-group{n}")
     folder = "/data/group"
@@ -98,7 +94,6 @@ class HpcUserFactory(HpcObjectFactoryBase):
     resources_requested = {"null": "null"}
     resources_used = {"null": "null"}
     creator = None  # User
-    status = OBJECT_STATUS_ACTIVE
     description = "this is a user"
     uid = 2000
     username = factory.Sequence(lambda n: f"user{n}_c")
@@ -116,7 +111,6 @@ class HpcRequestFactoryBase(HpcObjectFactoryBase):
         abstract = True
 
     requester = None  # User
-    status = REQUEST_STATUS_INITIAL
     comment = "some comment"
 
 
