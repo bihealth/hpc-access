@@ -13,6 +13,4 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
             "description",
             "expiration",
             "comment",
-            "delegate_email",
-            "member_emails",
         ]

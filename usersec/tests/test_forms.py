@@ -16,7 +16,9 @@ class TestHpcGroupCreateRequestForm(TestCase):
     def test_form_invalid_resources_requested_missing(self):
         data_invalid = {**self.data_valid, "resources_requested": {}}
         form = HpcGroupCreateRequestForm(data_invalid)
-        self.assertEqual(form.errors["resources_requested"], ["This field is required."])
+        self.assertEqual(
+            form.errors["resources_requested"], ["This field is required."]
+        )
 
     def test_form_invalid_expiration_missing(self):
         data_invalid = {**self.data_valid, "expiration": ""}
@@ -26,4 +28,6 @@ class TestHpcGroupCreateRequestForm(TestCase):
     def test_form_invalid_description_missing(self):
         data_invalid = {**self.data_valid, "description": {}}
         form = HpcGroupCreateRequestForm(data_invalid)
-        self.assertEqual(form.errors["description"], ["This field is required."])
+        self.assertEqual(
+            form.errors["description"], ["This field is required."]
+        )

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="row">
+    <h2>Retracting group request</h2>
+  </div>
+
+  <div class="row">
+    <form method="post">
+      {% csrf_token %}
+      <p>
+        Are you sure you want to retract the group request?
+      </p>
+      {{ form }}
+      <input class="btn btn-danger" type="submit" value="Confirm">
+      <a class="btn btn-secondary" href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}">Cancel</a>
+    </form>
+  </div>
+{% endblock content %}

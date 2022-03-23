@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="row">
+    <h2>You group request is pending!</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="float-start">
+        Request
+        <span class="badge bg-{{ object.status|colorize_request_status }}">{{ object.status|lower }}</span>
+      </h4>
+      {% if not is_denied %}
+        <span class="float-end">
+          <a class="btn btn-primary" href="{% url 'usersec:hpcgroupcreaterequest-update' hpcgroupcreaterequest=object.uuid %}">Update</a>
+          {% if is_retracted %}
+            <a class="btn btn-success" href="{% url 'usersec:hpcgroupcreaterequest-reactivate' hpcgroupcreaterequest=object.uuid %}">Activate</a>
+          {% else %}
+            <a class="btn btn-danger" href="{% url 'usersec:hpcgroupcreaterequest-retract' hpcgroupcreaterequest=object.uuid %}">Retract</a>
+          {% endif %}
+        </span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-sm-6">
+          <dl class="row">
+            <dt class="col-sm-3">Resources</dt>
+            <dd class="col-sm-9">
+              <dl class="row">
+                {% for key, value in object.resources_requested.items %}
+                  <dt class="col-sm-2 text-muted">{{ key }}</dt>
+                  <dd class="col-sm-10">{{ value }}</dd>
+                {% endfor %}
+              </dl>
+            </dd>
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">{{ object.description }}</dd>
+
+            <dt class="col-sm-3">Expiration</dt>
+            <dd class="col-sm-9">{{ object.expiration }}</dd>
+          </dl>
+        </div>
+        <div class="col-sm-6">
+          {% if comment_history %}
+            <div class="alert alert-info">
+              <h5 class="alert-heading">Comments</h5>
+              <hr>
+              <ul class="list-unstyled">
+                {% for comment in comment_history %}
+                  <li><strong>{{ comment.0 }}</strong> <span class="small">({{ comment.1|date:"Y-d-m H:i" }})</span>: <em>{{ comment.2 }}</em></li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}

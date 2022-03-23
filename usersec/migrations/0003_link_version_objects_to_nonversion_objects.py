@@ -48,7 +48,10 @@ class Migration(migrations.Migration):
             model_name="hpcgroupcreaterequest",
             name="delegate_email",
             field=models.CharField(
-                blank=True, help_text="Email address of the delegate", max_length=64, null=True
+                blank=True,
+                help_text="Email address of the delegate",
+                max_length=64,
+                null=True,
             ),
         ),
         migrations.AddField(
@@ -75,7 +78,10 @@ class Migration(migrations.Migration):
             model_name="hpcgroupcreaterequestversion",
             name="delegate_email",
             field=models.CharField(
-                blank=True, help_text="Email address of the delegate", max_length=64, null=True
+                blank=True,
+                help_text="Email address of the delegate",
+                max_length=64,
+                null=True,
             ),
         ),
         migrations.AddField(
@@ -223,19 +229,24 @@ class Migration(migrations.Migration):
             model_name="hpcgroup",
             name="folder",
             field=models.CharField(
-                help_text="Path to the group folder on the cluster", max_length=64
+                help_text="Path to the group folder on the cluster",
+                max_length=64,
             ),
         ),
         migrations.AlterField(
             model_name="hpcgroup",
             name="name",
-            field=models.CharField(help_text="Name of the group on the cluster", max_length=64),
+            field=models.CharField(
+                help_text="Name of the group on the cluster", max_length=64
+            ),
         ),
         migrations.AlterField(
             model_name="hpcgroupchangerequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -264,7 +275,9 @@ class Migration(migrations.Migration):
             model_name="hpcgroupchangerequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -293,7 +306,9 @@ class Migration(migrations.Migration):
             model_name="hpcgroupcreaterequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -322,7 +337,9 @@ class Migration(migrations.Migration):
             model_name="hpcgroupcreaterequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -351,7 +368,9 @@ class Migration(migrations.Migration):
             model_name="hpcgroupdeleterequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -380,7 +399,9 @@ class Migration(migrations.Migration):
             model_name="hpcgroupdeleterequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -409,19 +430,24 @@ class Migration(migrations.Migration):
             model_name="hpcgroupversion",
             name="folder",
             field=models.CharField(
-                help_text="Path to the group folder on the cluster", max_length=64
+                help_text="Path to the group folder on the cluster",
+                max_length=64,
             ),
         ),
         migrations.AlterField(
             model_name="hpcgroupversion",
             name="name",
-            field=models.CharField(help_text="Name of the group on the cluster", max_length=64),
+            field=models.CharField(
+                help_text="Name of the group on the cluster", max_length=64
+            ),
         ),
         migrations.AlterField(
             model_name="hpcuserchangerequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -439,7 +465,9 @@ class Migration(migrations.Migration):
             model_name="hpcuserchangerequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -457,7 +485,9 @@ class Migration(migrations.Migration):
             model_name="hpcusercreaterequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -475,7 +505,9 @@ class Migration(migrations.Migration):
             model_name="hpcusercreaterequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -493,7 +525,9 @@ class Migration(migrations.Migration):
             model_name="hpcuserdeleterequest",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(
@@ -511,7 +545,9 @@ class Migration(migrations.Migration):
             model_name="hpcuserdeleterequestversion",
             name="comment",
             field=models.TextField(
-                blank=True, help_text="Comment on request or revision", null=True
+                blank=True,
+                help_text="Comment on request or revision",
+                null=True,
             ),
         ),
         migrations.AlterField(

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+  <div class="row">
+    <h2>
+      {% if update %}
+        Update HPC group request
+      {% else %}
+        Request HPC group
+      {% endif %}
+    </h2>
+  </div>
+
+  {% if comment_history %}
+    <div class="alert alert-info">
+      <h4 class="alert-heading">Comments</h4>
+      <hr>
+      <ul class="list-unstyled">
+        {% for comment in comment_history %}
+          <li><strong>{{ comment.0 }}</strong> <span class="small">({{ comment.1|date:"Y-d-m H:i" }})</span>: <em>{{ comment.2 }}</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="container-fluid">
+    <form method="post">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <button class="btn btn-primary" type="submit">
+        {% if update %}
+          Update
+        {% else %}
+          Submit
+        {% endif %}
+      </button>
+      {% if update %}
+        <a class="btn btn-secondary" href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}">Cancel</a>
+      {% endif %}
+    </form>
+  </div>
+
+{% endblock content %}

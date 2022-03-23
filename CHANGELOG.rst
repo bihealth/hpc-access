@@ -15,6 +15,8 @@ General
 - Added Sentry support
 - Added Docker support
 - Added ``rules`` package dependency (#9)
+- Added codacy integration (#6)
+- Reworked github CI workflow (#6)
 
 UserSec
 -------
@@ -23,7 +25,9 @@ UserSec
 - Created login page with LDAP support (#2)
 - Created models for users, groups and requests (#3)
 - Created rules and permissions (#9)
-- Created orphan view, added factories and tests (#4)
+- Created orphan view, added factories and tests (#5)
+- Created progressing user view (#6)
+- Created group request view (#7)
 
 AdminSec
 --------
