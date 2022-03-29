@@ -4,6 +4,26 @@
 
 {% block content %}
 <div class="container-fluid">
+
+  <p>
+    Welcome to <hb>HPC Access</hb>.
+  </p>
+  <p>
+    This web app allows <strong>principal investigators and group leaders</strong>
+  </p>
+  <ul>
+    <li>to bring their group to the cluster and create projects for collaboration on the cluster</li>
+    <li>onboard their group members onto the cluster</li>
+    <li>manage (add/remove) users in their groups and projects</li>
+  </ul>
+  <hr />
+  <p>
+    Login with the user name and the &quot;email password&quot; of your home organization.
+  </p>
+  <p>
+    For example: <b>user@CHARITE</b> or <b>user@MDC-BERLIN</b>
+  </p>
+
   <form class="form-signin" method="post" id="form-login">
     {% csrf_token %}
     {% get_django_setting 'ENABLE_LDAP' as ENABLE_LDAP %}
