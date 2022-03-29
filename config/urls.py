@@ -27,6 +27,7 @@ urlpatterns = [
     path("", views.HomeView.as_view(), name="home"),
     # UserSec URLs
     path("usersec/", include("usersec.urls", namespace="usersec")),
+    path("adminsec/", include("adminsec.urls", namespace="adminsec")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management

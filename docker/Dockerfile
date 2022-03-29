@@ -38,7 +38,8 @@ RUN apt-get update && \
 # Install Python dependencies.
 RUN cd /usr/src/app && \
     pip install --no-cache-dir -r requirements/production.txt && \
-    pip install --no-cache-dir -r requirements/local.txt
+    pip install --no-cache-dir -r requirements/local.txt && \
+    pip install --no-cache-dir -r requirements/ldap.txt
 
 # Build sphinx manual.
 #RUN cd /usr/src/app/docs && \

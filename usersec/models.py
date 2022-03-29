@@ -61,21 +61,6 @@ REQUEST_STATUS_CHOICES = [
 ]
 
 
-class CommentHistoryMixin:
-    """Mixin for collecting history of comments."""
-
-    def get_comment_history(self):
-        history = self.version_history.exclude(comment__exact="").exclude(
-            comment__isnull=True
-        )
-        comments = []
-
-        for h in history:
-            comments.append((h.requester.username, h.date_created, h.comment))
-
-        return comments
-
-
 class VersionManager(models.Manager):
     """Functions for creating, updating and deleting objects with version objects."""
 
@@ -113,7 +98,22 @@ class VersionManager(models.Manager):
     #     pass
 
 
+class VersionRequestManager(VersionManager):
+
+    """Custom manager for requests."""
+
+    def active(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(status__in=(REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED))
+        )
+
+
 class VersionManagerMixin:
+
+    """Mixin for version functionality."""
+
     def get_latest_version(self):
         max_obj = None
 
@@ -162,19 +162,37 @@ class VersionManagerMixin:
         """Mark object as deleted and create new version object."""
 
         self.status = OBJECT_STATUS_DELETED
-        self.save_with_version()
+        return self.save_with_version()
 
     def retract_with_version(self):
-        """Mark object as deleted and create new version object."""
+        """Mark object as retracted and create new version object."""
 
         self.status = REQUEST_STATUS_RETRACTED
-        self.save_with_version()
+        return self.save_with_version()
 
     def deny_with_version(self):
-        """Mark object as deleted and create new version object."""
+        """Mark object as denied and create new version object."""
 
         self.status = REQUEST_STATUS_DENIED
-        self.save_with_version()
+        return self.save_with_version()
+
+    def approve_with_version(self):
+        """Mark object as approved and create new version object."""
+
+        self.status = REQUEST_STATUS_APPROVED
+        return self.save_with_version()
+
+    def revision_with_version(self):
+        """Mark object as revision and create new version object."""
+
+        self.status = REQUEST_STATUS_REVISION
+        return self.save_with_version()
+
+    def revised_with_version(self):
+        """Mark object as revised and create new version object."""
+
+        self.status = REQUEST_STATUS_REVISED
+        return self.save_with_version()
 
     # def create_or_update_with_version(self):
     #     """Create or update with version"""
@@ -202,6 +220,7 @@ class VersionManagerMixin:
 
 
 class HpcObjectAbstract(models.Model):
+
     """Common fields for HPC models"""
 
     class Meta:
@@ -219,6 +238,7 @@ class HpcObjectAbstract(models.Model):
 
 
 class HpcUserAbstract(HpcObjectAbstract):
+
     """HpcUser abstract base class"""
 
     class Meta:
@@ -306,6 +326,7 @@ class HpcUserAbstract(HpcObjectAbstract):
 
 
 class HpcUser(VersionManagerMixin, HpcUserAbstract):
+
     """HpcUser model"""
 
     #: Set custom manager
@@ -321,6 +342,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
 
 
 class HpcUserVersion(HpcUserAbstract):
+
     """HpcUserVersion model"""
 
     class Meta:
@@ -340,6 +362,7 @@ class HpcUserVersion(HpcUserAbstract):
 
 
 class HpcGroupAbstract(HpcObjectAbstract):
+
     """HpcGroup abstract base class"""
 
     class Meta:
@@ -414,6 +437,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
 
 
 class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
+
     """HpcGroup model"""
 
     #: Set custom manager
@@ -429,6 +453,7 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
 
 
 class HpcGroupVersion(HpcGroupAbstract):
+
     """HpcGroupVersion model"""
 
     class Meta:
@@ -449,17 +474,27 @@ class HpcGroupVersion(HpcGroupAbstract):
     )
 
 
-class HpcRequestAbstract(CommentHistoryMixin, HpcObjectAbstract):
+class HpcRequestAbstract(HpcObjectAbstract):
+
     """HpcRequest abstract base class"""
 
     class Meta:
         abstract = True
 
-    #: User creating the object.
+    #: User creating the object. Should never change.
     requester = models.ForeignKey(
         User,
         related_name="%(class)s_requester",
         help_text="User creating the request",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+
+    #: User editing the object.
+    editor = models.ForeignKey(
+        User,
+        related_name="%(class)s_editor",
+        help_text="User editing the request",
         null=True,
         on_delete=models.SET_NULL,
     )
@@ -477,8 +512,46 @@ class HpcRequestAbstract(CommentHistoryMixin, HpcObjectAbstract):
         null=True, blank=True, help_text="Comment on request or revision"
     )
 
+    def get_comment_history(self):
+        history = self.version_history.exclude(comment__exact="").exclude(
+            comment__isnull=True
+        )
+        comments = []
+
+        for h in history:
+            comments.append((h.editor.username, h.date_created, h.comment))
+
+        return comments
+
+    def is_decided(self):
+        return self.status in (
+            REQUEST_STATUS_INITIAL,
+            REQUEST_STATUS_DENIED,
+            REQUEST_STATUS_RETRACTED,
+            REQUEST_STATUS_APPROVED,
+        )
+
+    def is_denied(self):
+        return self.status == REQUEST_STATUS_DENIED
+
+    def is_retracted(self):
+        return self.status == REQUEST_STATUS_RETRACTED
+
+    def is_approved(self):
+        return self.status == REQUEST_STATUS_APPROVED
+
+    def is_active(self):
+        return self.status == REQUEST_STATUS_ACTIVE
+
+    def is_revised(self):
+        return self.status == REQUEST_STATUS_REVISED
+
+    def is_revision(self):
+        return self.status == REQUEST_STATUS_REVISION
+
 
 class HpcGroupRequestAbstract(HpcRequestAbstract):
+
     """HpcGroupRequest abstract base class"""
 
     class Meta:
@@ -495,6 +568,7 @@ class HpcGroupRequestAbstract(HpcRequestAbstract):
 
 
 class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
+
     """HpcGroupChangeRequest abstract base class"""
 
     class Meta:
@@ -508,10 +582,11 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
 
 
 class HpcGroupChangeRequest(VersionManagerMixin, HpcGroupChangeRequestAbstract):
+
     """HpcGroupChangeRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the group change request object.
     current_version = models.IntegerField(
@@ -520,6 +595,7 @@ class HpcGroupChangeRequest(VersionManagerMixin, HpcGroupChangeRequestAbstract):
 
 
 class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
+
     """HpcGroupChangeRequestVersion model"""
 
     class Meta:
@@ -541,6 +617,7 @@ class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
 
 
 class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
+
     """HpcGroupCreateRequest abstract base class"""
 
     class Meta:
@@ -559,10 +636,11 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
 
 
 class HpcGroupCreateRequest(VersionManagerMixin, HpcGroupCreateRequestAbstract):
+
     """HpcGroupCreateRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the group create request object.
     current_version = models.IntegerField(
@@ -571,6 +649,7 @@ class HpcGroupCreateRequest(VersionManagerMixin, HpcGroupCreateRequestAbstract):
 
 
 class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
+
     """HpcGroupCreateRequestVersion model"""
 
     class Meta:
@@ -592,10 +671,11 @@ class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
 
 
 class HpcGroupDeleteRequest(VersionManagerMixin, HpcGroupRequestAbstract):
+
     """HpcGroupDeleteRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the group delete request object.
     current_version = models.IntegerField(
@@ -604,6 +684,7 @@ class HpcGroupDeleteRequest(VersionManagerMixin, HpcGroupRequestAbstract):
 
 
 class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
+
     """HpcGroupDeleteRequestVersion model"""
 
     class Meta:
@@ -625,6 +706,7 @@ class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
 
 
 class HpcUserRequestAbstract(HpcRequestAbstract):
+
     """HpcUserRequest abstract base class"""
 
     class Meta:
@@ -641,6 +723,7 @@ class HpcUserRequestAbstract(HpcRequestAbstract):
 
 
 class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
+
     """HpcUserChangeRequest abstract base class"""
 
     class Meta:
@@ -654,10 +737,11 @@ class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
 
 
 class HpcUserChangeRequest(VersionManagerMixin, HpcUserChangeRequestAbstract):
+
     """HpcUserChangeRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the user change request object.
     current_version = models.IntegerField(
@@ -666,6 +750,7 @@ class HpcUserChangeRequest(VersionManagerMixin, HpcUserChangeRequestAbstract):
 
 
 class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
+
     """HpcUserChangeRequestVersion model"""
 
     class Meta:
@@ -687,6 +772,7 @@ class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
 
 
 class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
+
     """HpcUserCreateRequest abstract base class"""
 
     class Meta:
@@ -700,10 +786,11 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
 
 
 class HpcUserCreateRequest(VersionManagerMixin, HpcUserCreateRequestAbstract):
+
     """HpcUserCreateRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the user create request object.
     current_version = models.IntegerField(
@@ -712,6 +799,7 @@ class HpcUserCreateRequest(VersionManagerMixin, HpcUserCreateRequestAbstract):
 
 
 class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
+
     """HpcUserCreateRequestVersion model"""
 
     #: Version number of the user create request object.
@@ -730,10 +818,11 @@ class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
 
 
 class HpcUserDeleteRequest(VersionManagerMixin, HpcUserRequestAbstract):
+
     """HpcUserDeleteRequest model"""
 
     #: Set custom manager
-    objects = VersionManager()
+    objects = VersionRequestManager()
 
     #: Currently active version of the user delete request object.
     current_version = models.IntegerField(
@@ -742,6 +831,7 @@ class HpcUserDeleteRequest(VersionManagerMixin, HpcUserRequestAbstract):
 
 
 class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
+
     """HpcUserDeleteRequestVersion model"""
 
     class Meta:

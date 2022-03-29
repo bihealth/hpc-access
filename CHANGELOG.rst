@@ -28,8 +28,13 @@ UserSec
 - Created orphan view, added factories and tests (#5)
 - Created progressing user view (#6)
 - Created group request view (#7)
+- Added ``editor`` field to request models (#37)
 
 AdminSec
 --------
 
 - App created
+- Created overview view (#37)
+- Created functionality to accept group create requests (#37)
+- Created hpc admin flag for user and added permission (#37)
+

@@ -362,7 +362,7 @@ if ENABLE_LDAP:
 
         AUTHENTICATION_BACKENDS = tuple(
             itertools.chain(
-                ("projectroles.auth_backends.SecondaryLDAPBackend",),
+                ("hpcaccess.auth_backends.SecondaryLDAPBackend",),
                 AUTHENTICATION_BACKENDS,
             )
         )

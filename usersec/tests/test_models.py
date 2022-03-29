@@ -22,6 +22,10 @@ from usersec.models import (
     REQUEST_STATUS_INITIAL,
     REQUEST_STATUS_RETRACTED,
     REQUEST_STATUS_DENIED,
+    REQUEST_STATUS_APPROVED,
+    REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_REVISED,
+    REQUEST_STATUS_REVISION,
 )
 from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
@@ -37,8 +41,9 @@ from usersec.tests.factories import (
 )
 
 
-class CommentHistoryTesterMixin:
-    """Mixin for testing comment history methods of request objects."""
+class RequestTesterMixin:
+
+    """Mixin for testing methods of request objects."""
 
     model = None
     version_model = None
@@ -69,8 +74,86 @@ class CommentHistoryTesterMixin:
 
         self.assertEqual(history, obj.get_comment_history())
 
+    def _test_is_decided(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
+        self.assertTrue(obj.is_decided())
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
+        self.assertTrue(obj.is_decided())
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
+        self.assertTrue(obj.is_decided())
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        self.assertFalse(obj.is_decided())
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
+        self.assertFalse(obj.is_decided())
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
+        self.assertFalse(obj.is_decided())
+
+    def _test_is_denied(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
+        self.assertTrue(obj.is_denied())
+        self.assertFalse(obj.is_retracted())
+        self.assertFalse(obj.is_approved())
+        self.assertFalse(obj.is_active())
+        self.assertFalse(obj.is_revised())
+        self.assertFalse(obj.is_revision())
+
+    def _test_is_retracted(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
+        self.assertTrue(obj.is_retracted())
+        self.assertFalse(obj.is_denied())
+        self.assertFalse(obj.is_approved())
+        self.assertFalse(obj.is_active())
+        self.assertFalse(obj.is_revised())
+        self.assertFalse(obj.is_revision())
+
+    def _test_is_approved(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
+        self.assertTrue(obj.is_approved())
+        self.assertFalse(obj.is_denied())
+        self.assertFalse(obj.is_retracted())
+        self.assertFalse(obj.is_active())
+        self.assertFalse(obj.is_revised())
+        self.assertFalse(obj.is_revision())
+
+    def _test_is_active(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        self.assertTrue(obj.is_active())
+        self.assertFalse(obj.is_denied())
+        self.assertFalse(obj.is_retracted())
+        self.assertFalse(obj.is_approved())
+        self.assertFalse(obj.is_revised())
+        self.assertFalse(obj.is_revision())
+
+    def _test_is_revised(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
+        self.assertTrue(obj.is_revised())
+        self.assertFalse(obj.is_denied())
+        self.assertFalse(obj.is_retracted())
+        self.assertFalse(obj.is_approved())
+        self.assertFalse(obj.is_active())
+        self.assertFalse(obj.is_revision())
+
+    def _test_is_revision(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
+        self.assertTrue(obj.is_revision())
+        self.assertFalse(obj.is_denied())
+        self.assertFalse(obj.is_retracted())
+        self.assertFalse(obj.is_approved())
+        self.assertFalse(obj.is_active())
+        self.assertFalse(obj.is_revised())
+
+    def _test_active(self):
+        obj1 = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        obj2 = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
+        self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
+        self.assertEqual(list(self.model.objects.active()), [obj1, obj2])
+
 
 class VersionTesterMixin:
+
     """Mixin for testing version-related methods."""
 
     model = None
@@ -201,6 +284,24 @@ class VersionTesterMixin:
         obj.deny_with_version()
         self.__assert_save_or_update_base(status=REQUEST_STATUS_DENIED)
 
+    def _test_approve_with_version(self):
+        obj = self.factory()
+        self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
+        obj.approve_with_version()
+        self.__assert_save_or_update_base(status=REQUEST_STATUS_APPROVED)
+
+    def _test_revision_with_version(self):
+        obj = self.factory()
+        self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
+        obj.revision_with_version()
+        self.__assert_save_or_update_base(status=REQUEST_STATUS_REVISION)
+
+    def _test_revised_with_version(self):
+        obj = self.factory()
+        self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
+        obj.revised_with_version()
+        self.__assert_save_or_update_base(status=REQUEST_STATUS_REVISED)
+
     def _test_get_latest_version(self, **update):
         obj = self.factory()
         obj.update_with_version(**update)
@@ -214,6 +315,7 @@ class VersionTesterMixin:
 
 
 class TestHpcUser(VersionTesterMixin, TestCase):
+
     """Tests for HpcUser model"""
 
     model = HpcUser
@@ -253,6 +355,7 @@ class TestHpcUser(VersionTesterMixin, TestCase):
 
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
+
     """Tests for HpcGroup model"""
 
     model = HpcGroup
@@ -289,8 +392,9 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
 
 
 class TestHpcGroupChangeRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcGroupChangeRequest model"""
 
     model = HpcGroupChangeRequest
@@ -320,6 +424,15 @@ class TestHpcGroupChangeRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -331,10 +444,35 @@ class TestHpcGroupChangeRequest(
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
 
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
 
 class TestHpcGroupCreateRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcGroupCreateRequest model"""
 
     model = HpcGroupCreateRequest
@@ -364,6 +502,15 @@ class TestHpcGroupCreateRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -375,10 +522,35 @@ class TestHpcGroupCreateRequest(
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
 
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
 
 class TestHpcGroupDeleteRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcGroupDeleteRequest model"""
 
     model = HpcGroupDeleteRequest
@@ -408,6 +580,15 @@ class TestHpcGroupDeleteRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -419,10 +600,35 @@ class TestHpcGroupDeleteRequest(
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
 
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
 
 class TestHpcUserChangeRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcUserChangeRequest model"""
 
     model = HpcUserChangeRequest
@@ -452,6 +658,15 @@ class TestHpcUserChangeRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -463,10 +678,35 @@ class TestHpcUserChangeRequest(
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
 
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
 
 class TestHpcUserCreateRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcUserCreateRequest model"""
 
     model = HpcUserCreateRequest
@@ -496,6 +736,15 @@ class TestHpcUserCreateRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -507,10 +756,35 @@ class TestHpcUserCreateRequest(
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
 
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
 
 class TestHpcUserDeleteRequest(
-    CommentHistoryTesterMixin, VersionTesterMixin, TestCase
+    RequestTesterMixin, VersionTesterMixin, TestCase
 ):
+
     """Tests for HpcUserDeleteRequest model"""
 
     model = HpcUserDeleteRequest
@@ -540,6 +814,15 @@ class TestHpcUserDeleteRequest(
     def test_deny_with_version(self):
         self._test_deny_with_version()
 
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -550,3 +833,27 @@ class TestHpcUserDeleteRequest(
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
+
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()

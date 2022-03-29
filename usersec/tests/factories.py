@@ -40,7 +40,6 @@ HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
     "description": "some group description",
     "expiration": "2022-01-01",
     "comment": "nothing",
-    "current_version": 1,
 }
 
 
@@ -50,6 +49,7 @@ HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
 
 
 class HpcObjectFactoryBase(factory.django.DjangoModelFactory):
+
     """Base factory class for every Hpc object factory"""
 
     class Meta:
@@ -66,6 +66,7 @@ class HpcObjectFactoryBase(factory.django.DjangoModelFactory):
 
 
 class HpcGroupFactory(HpcObjectFactoryBase):
+
     """Factory for HpcGroup model"""
 
     class Meta:
@@ -84,6 +85,7 @@ class HpcGroupFactory(HpcObjectFactoryBase):
 
 
 class HpcUserFactory(HpcObjectFactoryBase):
+
     """Factory for HpcUser model"""
 
     class Meta:
@@ -105,16 +107,19 @@ class HpcUserFactory(HpcObjectFactoryBase):
 
 
 class HpcRequestFactoryBase(HpcObjectFactoryBase):
+
     """Base class for HpcRequest factories"""
 
     class Meta:
         abstract = True
 
     requester = None  # User
+    editor = factory.LazyAttribute(lambda o: o.requester)
     comment = "some comment"
 
 
 class HpcGroupRequestFactoryBase(HpcRequestFactoryBase):
+
     """Base class for HpcGroupRequest factories"""
 
     class Meta:
@@ -124,6 +129,7 @@ class HpcGroupRequestFactoryBase(HpcRequestFactoryBase):
 
 
 class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
+
     """Factory for HpcGroupChangeRequest model"""
 
     class Meta:
@@ -134,6 +140,7 @@ class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
 
 
 class HpcGroupCreateRequestFactory(HpcGroupRequestFactoryBase):
+
     """Factory for HpcGroupCreateRequest model"""
 
     class Meta:
@@ -142,10 +149,10 @@ class HpcGroupCreateRequestFactory(HpcGroupRequestFactoryBase):
     resources_requested = {"null": "null"}
     description = "some group create request"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
-    requester = None  # User
 
 
 class HpcGroupDeleteRequestFactory(HpcGroupRequestFactoryBase):
+
     """Factory for HpcGroupDeleteRequest model"""
 
     class Meta:
@@ -153,6 +160,7 @@ class HpcGroupDeleteRequestFactory(HpcGroupRequestFactoryBase):
 
 
 class HpcUserRequestFactoryBase(HpcRequestFactoryBase):
+
     """Base class for HpcUserRequest factories"""
 
     class Meta:
@@ -162,6 +170,7 @@ class HpcUserRequestFactoryBase(HpcRequestFactoryBase):
 
 
 class HpcUserChangeRequestFactory(HpcUserRequestFactoryBase):
+
     """Factory for HpcUserChangeRequest model"""
 
     class Meta:
@@ -172,6 +181,7 @@ class HpcUserChangeRequestFactory(HpcUserRequestFactoryBase):
 
 
 class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
+
     """Factory for HpcUserCreateRequest model"""
 
     class Meta:
@@ -182,6 +192,7 @@ class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
 
 
 class HpcUserDeleteRequestFactory(HpcUserRequestFactoryBase):
+
     """Factory for HpcUserDeleteRequest model"""
 
     class Meta:

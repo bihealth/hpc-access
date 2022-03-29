@@ -3,6 +3,7 @@ import rules
 # ------------------------------------------------------------------------------
 # Predicates
 # ------------------------------------------------------------------------------
+from adminsec.rules import is_hpcadmin
 
 
 @rules.predicate
@@ -35,19 +36,20 @@ def _is_group_delegate(user, group):
     return user.hpcuser_user.filter(hpcgroup_delegate=group).exists()
 
 
-has_pending_group_request = ~is_cluster_user & _has_pending_group_request
-is_group_requester = ~is_cluster_user & _is_group_requester
-is_group_member = is_cluster_user & _is_group_member
-is_group_owner = is_cluster_user & _is_group_owner
-is_group_delegate = is_cluster_user & _is_group_delegate
+has_pending_group_request = (
+    ~is_hpcadmin & ~is_cluster_user & _has_pending_group_request
+)
+is_orphan = ~is_hpcadmin & ~is_cluster_user & ~_has_pending_group_request
+is_group_requester = ~is_hpcadmin & ~is_cluster_user & _is_group_requester
+is_group_member = ~is_hpcadmin & is_cluster_user & _is_group_member
+is_group_owner = ~is_hpcadmin & is_cluster_user & _is_group_owner
+is_group_delegate = ~is_hpcadmin & is_cluster_user & _is_group_delegate
 
 can_view_hpcgroup = is_group_owner | is_group_delegate | is_group_member
 can_view_hpcgroupcreaterequest = is_group_requester
 can_view_hpcgroupchangerequest = is_group_owner | is_group_delegate
 can_view_hpcuser = is_group_owner | is_group_delegate
-can_create_hpcgroupcreaterequest = (
-    ~is_cluster_user & ~_has_pending_group_request
-)
+can_create_hpcgroupcreaterequest = is_orphan
 
 # ------------------------------------------------------------------------------
 # Rules

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="card w-25">
+    <div class="card-header">
+      <h5 class="float-start">
+        Open Group Requests
+      </h5>
+    </div>
+    <ul class="list-group list-group-flush">
+      {% for obj in hpcgroupcreaterequests %}
+        <li class="list-group-item">
+          <a href="{% url 'adminsec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=obj.uuid %}">
+            {{ obj.requester.username }}
+          </a>
+          <span class="badge bg-{{ obj.status|colorize_request_status }}">
+            {{ obj.status|lower }}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+{% endblock content %}
