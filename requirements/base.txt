@@ -7,7 +7,7 @@ hiredis==2.0.0  # https://github.com/redis/hiredis-py
 
 # Django
 # ------------------------------------------------------------------------------
-django==4.0.2  # pyup: < 4.0  # https://www.djangoproject.com/
+django==4.0.3  # pyup: < 4.0  # https://www.djangoproject.com/
 django-environ==0.8.1  # https://github.com/joke2k/django-environ
 django-model-utils==4.2.0  # https://github.com/jazzband/django-model-utils
 django-allauth==0.50.0  # https://github.com/pennersr/django-allauth
@@ -16,7 +16,7 @@ crispy-bootstrap5==0.6  # https://github.com/django-crispy-forms/crispy-bootstra
 django-redis==5.2.0  # https://github.com/jazzband/django-redis
 
 # Sentry client
-sentry-sdk==1.5.6
+sentry-sdk==1.5.8
 
 # Rule system
-rules==3.1
+rules==3.3
