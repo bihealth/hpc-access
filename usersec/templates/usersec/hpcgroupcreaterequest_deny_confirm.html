@@ -5,25 +5,25 @@
 {% block content %}
 
   <div class="row">
-    <h2>Retracting group request</h2>
+    <h2>Denying group request</h2>
   </div>
 
   <div class="row">
     <form method="post">
       {% csrf_token %}
       <p>
-        Are you sure you want to <strong>retract</strong> the group request?
+        Are you sure you want to <strong>deny</strong> the group request?
       </p>
       {{ form }}
       <a class="btn btn-secondary"
-         href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
+         href="{% url 'adminsec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
       >
         <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
         Cancel
       </a>
       <button class="btn btn-danger" type="submit">
-        <i class="iconify" data-icon="mdi:backspace"></i>
-        Retract
+        <i class="iconify" data-icon="mdi:circle-off-outline"></i>
+        Deny
       </button>
     </form>
   </div>

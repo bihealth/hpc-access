@@ -20,8 +20,6 @@ from rules.contrib.views import PermissionRequiredMixin
 from usersec.forms import HpcGroupCreateRequestForm
 from usersec.models import (
     HpcGroupCreateRequest,
-    REQUEST_STATUS_RETRACTED,
-    REQUEST_STATUS_DENIED,
     REQUEST_STATUS_ACTIVE,
 )
 
@@ -30,6 +28,7 @@ MSG_NO_AUTH_LOGIN = MSG_NO_AUTH + ", please log in"
 
 
 class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
+
     """Customized required login and permission mixin"""
 
     def handle_no_permission(self):
@@ -43,13 +42,15 @@ class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
             return redirect_to_login(self.request.get_full_path())
 
 
-class HomeView(LoginRequiredMixin, TemplateView):
-    """Home view"""
+class HomeView(LoginRequiredMixin, View):
 
-    template_name = "usersec/home.html"
+    """Home view."""
 
     def get(self, request, *args, **kwargs):
-        if rules.test_rule("is_cluster_user", request.user):
+        if request.user.is_hpcadmin:
+            return redirect(reverse("adminsec:overview"))
+
+        elif rules.test_rule("is_cluster_user", request.user):
             return redirect(reverse("usersec:dummy"))
 
         elif rules.test_rule("has_pending_group_request", request.user):
@@ -66,6 +67,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
 
 
 class OrphanUserView(HpcPermissionMixin, CreateView):
+
     """Orphan user view"""
 
     template_name = "usersec/hpcgroupcreaterequest_form.html"
@@ -81,6 +83,7 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
+        obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj = obj.save_with_version()
 
@@ -93,6 +96,7 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
 
 
 class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
+
     """Pending group request detail view."""
 
     template_name = "usersec/hpcgroupcreaterequest_detail.html"
@@ -105,12 +109,15 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["comment_history"] = obj.get_comment_history()
-        context["is_denied"] = obj.status == REQUEST_STATUS_DENIED
-        context["is_retracted"] = obj.status == REQUEST_STATUS_RETRACTED
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_decided"] = obj.is_decided()
         return context
 
 
 class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
+
     """Pending group request update view."""
 
     template_name = "usersec/hpcgroupcreaterequest_form.html"
@@ -145,7 +152,7 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
 
     def form_valid(self, form):
         obj = form.save(commit=False)
-        obj.requester = self.request.user
+        obj.editor = self.request.user
         obj = obj.save_with_version()
 
         if not obj:
@@ -157,6 +164,7 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
 
 
 class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+
     """Pending group request update view."""
 
     template_name_suffix = "_retract_confirm"
@@ -168,6 +176,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.comment = ""
+        obj.editor = self.request.user
         obj.retract_with_version()
         messages.success(self.request, "Request successfully retracted.")
         return HttpResponseRedirect(
@@ -181,6 +190,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 class HpcGroupCreateRequestReactivateView(
     HpcPermissionMixin, SingleObjectMixin, View
 ):
+
     """Pending group request update view."""
 
     model = HpcGroupCreateRequest
@@ -192,6 +202,7 @@ class HpcGroupCreateRequestReactivateView(
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
         obj.comment = ""
+        obj.editor = self.request.user
         obj.save_with_version()
         messages.success(self.request, "Request successfully re-activated.")
         return HttpResponseRedirect(

@@ -20,7 +20,11 @@
       <hr>
       <ul class="list-unstyled">
         {% for comment in comment_history %}
-          <li><strong>{{ comment.0 }}</strong> <span class="small">({{ comment.1|date:"Y-d-m H:i" }})</span>: <em>{{ comment.2 }}</em></li>
+          <li>
+            <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
+            <strong>{{ comment.0 }}</strong>:
+            {{ comment.2 }}
+          </li>
         {% endfor %}
       </ul>
     </div>
@@ -29,17 +33,55 @@
   <div class="container-fluid">
     <form method="post">
       {% csrf_token %}
+      {% if admin %}
+        <dl class="row">
+          <dt class="col-sm-3">Resources</dt>
+          <dd class="col-sm-9">
+            <dl class="row">
+              {% for key, value in object.resources_requested.items %}
+                <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                <dd class="col-sm-9">{{ value }}</dd>
+              {% endfor %}
+            </dl>
+          </dd>
+
+          <dt class="col-sm-3">Requester</dt>
+          <dd class="col-sm-9">{{ object.requester.username }}</dd>
+
+          <dt class="col-sm-3">Description</dt>
+          <dd class="col-sm-9">{{ object.description }}</dd>
+
+          <dt class="col-sm-3">Expiration</dt>
+          <dd class="col-sm-9">{{ object.expiration }}</dd>
+        </dl>
+      {% endif %}
       {{ form|crispy }}
+      {% if update %}
+        <a class="btn btn-secondary"
+          {% if admin %}
+           href="{% url 'adminsec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
+          {% else %}
+           href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
+          {% endif %}
+        >
+          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+          Cancel
+        </a>
+      {% endif %}
       <button class="btn btn-primary" type="submit">
         {% if update %}
-          Update
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:comment"></i>
+            Request Revision
+          {% else %}
+            <i class="iconify" data-icon="mdi:refresh"></i>
+            Update
+          {% endif %}
         {% else %}
+          <i class="iconify" data-icon="mdi:upload"></i>
           Submit
         {% endif %}
       </button>
-      {% if update %}
-        <a class="btn btn-secondary" href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}">Cancel</a>
-      {% endif %}
     </form>
   </div>
 

@@ -27,6 +27,7 @@ site = import_module(settings.SITE_PACKAGE)
 
 
 class TestCommon(TestCase):
+
     """Tests for templatetags/common.py"""
 
     def test_get_django_setting(self):
