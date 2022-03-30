@@ -16,11 +16,11 @@ from usersec.tests.factories import (
     HPCGROUPCREATEREQUESTFORM_DATA_VALID,
     HpcGroupCreateRequestFactory,
     HpcUserFactory,
+    HpcGroupFactory,
 )
 
 
 class TestViewBase(TestCase):
-
     """Test base for views."""
 
     def setUp(self):
@@ -30,12 +30,12 @@ class TestViewBase(TestCase):
         self.user_hpcadmin.save()
 
         # Init default user
-        self.user = self.make_user("user")
+        self.user = self.make_user("user@CHARITE")
+        self.user.name = "John Doe"
         self.user.save()
 
 
 class TestHomeView(TestViewBase):
-
     """Tests for HomeView."""
 
     def test_get_no_cluster_user(self):
@@ -44,11 +44,16 @@ class TestHomeView(TestViewBase):
             self.assertRedirects(response, reverse("usersec:orphan-user"))
 
     def test_get_cluster_user(self):
-        HpcUserFactory(user=self.user)
+        hpcuser = HpcUserFactory(user=self.user)
 
         with self.login(self.user):
             response = self.client.get(reverse("home"))
-            self.assertRedirects(response, reverse("usersec:dummy"))
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuser-overview", kwargs={"hpcuser": hpcuser.uuid}
+                ),
+            )
 
     def test_get_admin_user(self):
         with self.login(self.user_hpcadmin):
@@ -57,7 +62,6 @@ class TestHomeView(TestViewBase):
 
 
 class TestOrphanUserView(TestViewBase):
-
     """Tests for OrphanUserView."""
 
     def test_get(self):
@@ -97,7 +101,6 @@ class TestOrphanUserView(TestViewBase):
 
 
 class TestHpcGroupCreateRequestDetailView(TestViewBase):
-
     """Tests for HpcGroupCreateRequestDetailView."""
 
     def test_get(self):
@@ -182,7 +185,6 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
 
 
 class TestHpcGroupCreateRequestUpdateView(TestViewBase):
-
     """Tests for HpcGroupCreateRequestUpdateView."""
 
     def setUp(self):
@@ -282,7 +284,6 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
 
 
 class TestHpcGroupCreateRequestRetractView(TestViewBase):
-
     """Tests for HpcGroupCreateRequestRetractView."""
 
     def setUp(self):
@@ -329,7 +330,6 @@ class TestHpcGroupCreateRequestRetractView(TestViewBase):
 
 
 class TestPendingGroupRequestReactivateView(TestViewBase):
-
     """Tests for PendingGroupRequestReactivateView."""
 
     def setUp(self):
@@ -364,3 +364,26 @@ class TestPendingGroupRequestReactivateView(TestViewBase):
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcUserView(TestViewBase):
+    """Test for HpcUserView."""
+
+    def setUp(self):
+        super().setUp()
+        self.user_owner = self.make_user("owner")
+        hpc_owner = HpcUserFactory(user=self.user_owner)
+        hpc_group = HpcGroupFactory(owner=hpc_owner)
+        self.hpc_user = HpcUserFactory(user=self.user, primary_group=hpc_group)
+
+    def test_get(self):
+        with self.login(self.user):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": self.hpc_user.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.hpc_user)

@@ -99,10 +99,6 @@ class HpcUserFactory(HpcObjectFactoryBase):
     description = "this is a user"
     uid = 2000
     username = factory.Sequence(lambda n: f"user{n}_c")
-    first_names = "Test"
-    surname = "User"
-    email = "user@test.org"
-    phone = "+123456"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 

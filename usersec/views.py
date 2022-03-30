@@ -11,7 +11,6 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
-    TemplateView,
     UpdateView,
 )
 from django.views.generic.detail import SingleObjectMixin
@@ -21,6 +20,7 @@ from usersec.forms import HpcGroupCreateRequestForm
 from usersec.models import (
     HpcGroupCreateRequest,
     REQUEST_STATUS_ACTIVE,
+    HpcUser,
 )
 
 MSG_NO_AUTH = "User not authorized for requested action"
@@ -51,7 +51,12 @@ class HomeView(LoginRequiredMixin, View):
             return redirect(reverse("adminsec:overview"))
 
         elif rules.test_rule("is_cluster_user", request.user):
-            return redirect(reverse("usersec:dummy"))
+            return redirect(
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
+                )
+            )
 
         elif rules.test_rule("has_pending_group_request", request.user):
             return redirect(
@@ -175,7 +180,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = ""
+        obj.comment = "Request retracted"
         obj.editor = self.request.user
         obj.retract_with_version()
         messages.success(self.request, "Request successfully retracted.")
@@ -201,7 +206,7 @@ class HpcGroupCreateRequestReactivateView(
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = ""
+        obj.comment = "Request reactivated"
         obj.editor = self.request.user
         obj.save_with_version()
         messages.success(self.request, "Request successfully re-activated.")
@@ -213,5 +218,11 @@ class HpcGroupCreateRequestReactivateView(
         )
 
 
-class DummyView(LoginRequiredMixin, TemplateView):
-    template_name = "usersec/dummy.html"
+class HpcUserView(HpcPermissionMixin, DetailView):
+    """HpcUser view."""
+
+    model = HpcUser
+    template_name = "usersec/overview.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuser"
+    permission_required = "usersec.view_hpcuser"

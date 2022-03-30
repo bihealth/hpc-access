@@ -5,7 +5,6 @@ from usersec.tests.test_rules import TestRulesBase
 
 
 class TestPermissions(TestRulesBase):
-
     """Tests for permissions without views."""
 
     def test_hpcadmin_is_not_superuser(self):
@@ -29,7 +28,6 @@ class TestPermissions(TestRulesBase):
 
 
 class TestPermissionsInViews(TestRulesBase):
-
     """Tests for permissions in views."""
 
     def test_admin_view(self):

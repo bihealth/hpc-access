@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="card w-50">
+    <div class="card-header">
+      <h5 class="float-start">
+        {{ object.username }}
+        <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
+        {% if object.hpcgroup_owner.exists %}
+          <span class="badge bg-info">AG Owner</span>
+        {% elif object.hpcgroup_delegate.exists %}
+          <span class="badge bg-info">AG Delegate</span>
+        {% endif %}
+      </h5>
+    </div>
+    <dl class="card-body">
+      <dt class="col-sm-3">Resources</dt>
+      <dd class="col-sm-9">
+        <dl class="row">
+          {% for key, value in object.resources_requested.items %}
+            <dt class="col-sm-3 text-muted">{{ key }}</dt>
+            <dd class="col-sm-9">{{ value }}</dd>
+          {% endfor %}
+        </dl>
+      </dd>
+
+      <dt class="col-sm-3">Mail</dt>
+      <dd class="col-sm-9">{{ object.user.email }}</dd>
+
+      <dt class="col-sm-3">Phone</dt>
+      <dd class="col-sm-9">{{ object.user.phone }}</dd>
+
+      <dt class="col-sm-3">Expiration</dt>
+      <dd class="col-sm-9">{{ object.expiration }}</dd>
+
+      <dt class="col-sm-3">Member of</dt>
+      <dd class="col-sm-9">{{ object.primary_group.name }}</dd>
+    </dl>
+  </div>
+
+{% endblock content %}

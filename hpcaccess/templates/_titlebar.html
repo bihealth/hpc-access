@@ -5,7 +5,11 @@
 
 <div class="container-fluid p-0">
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark ps-3">
-    <img width=24 height=24 src="{% static 'images/lock-white.svg' %}">
+    {% if request.user.is_hpcadmin %}
+      <img width=24 height=24 src="{% static 'images/lock-red.svg' %}">
+    {% else %}
+      <img width=24 height=24 src="{% static 'images/lock-white.svg' %}">
+    {% endif %}
     <div class="container-fluid">
       {# Site title #}
       <a class="navbar-brand" href="{% url 'home' %}">
@@ -82,3 +86,12 @@
     </div>
   </nav>
 </div>
+
+{% if request.user.is_superuser %}
+  <div class="container-fluid bg-danger text-dark p-2">
+    You are logged in as <strong>superuser</strong>.
+    To perform actions intended for an HPC admin,
+      please create a distinguished user with flags <em>is_hpcadmin=<strong>True</strong></em>
+      and <em>is_superuser=<strong>False</strong></em>.
+  </div>
+{% endif %}

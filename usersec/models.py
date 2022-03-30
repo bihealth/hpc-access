@@ -99,7 +99,6 @@ class VersionManager(models.Manager):
 
 
 class VersionRequestManager(VersionManager):
-
     """Custom manager for requests."""
 
     def active(self):
@@ -111,7 +110,6 @@ class VersionRequestManager(VersionManager):
 
 
 class VersionManagerMixin:
-
     """Mixin for version functionality."""
 
     def get_latest_version(self):
@@ -220,7 +218,6 @@ class VersionManagerMixin:
 
 
 class HpcObjectAbstract(models.Model):
-
     """Common fields for HPC models"""
 
     class Meta:
@@ -238,7 +235,6 @@ class HpcObjectAbstract(models.Model):
 
 
 class HpcUserAbstract(HpcObjectAbstract):
-
     """HpcUser abstract base class"""
 
     class Meta:
@@ -265,7 +261,7 @@ class HpcUserAbstract(HpcObjectAbstract):
     resources_requested = models.JSONField()
 
     #: Users used resources as JSON.
-    resources_used = models.JSONField()
+    resources_used = models.JSONField(null=True, blank=True)
 
     #: Django user creating the object.
     creator = models.ForeignKey(
@@ -301,24 +297,6 @@ class HpcUserAbstract(HpcObjectAbstract):
         max_length=32, help_text="Username of the user on the cluster"
     )
 
-    #: First names of the user.
-    first_names = models.CharField(
-        max_length=32, help_text="First name(s) of the user"
-    )
-
-    #: Family name of the user.
-    surname = models.CharField(max_length=32, help_text="Surname of the user")
-
-    #: Institutional email address of the user.
-    email = models.CharField(
-        max_length=512, help_text="Email address of the user"
-    )
-
-    #: Institutional phone number of the user.
-    phone = models.CharField(
-        max_length=32, null=True, help_text="Telephone number of the user"
-    )
-
     #: Expiration date of the user account
     expiration = models.DateTimeField(
         help_text="Expiration date of the user account"
@@ -326,7 +304,6 @@ class HpcUserAbstract(HpcObjectAbstract):
 
 
 class HpcUser(VersionManagerMixin, HpcUserAbstract):
-
     """HpcUser model"""
 
     #: Set custom manager
@@ -342,7 +319,6 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
 
 
 class HpcUserVersion(HpcUserAbstract):
-
     """HpcUserVersion model"""
 
     class Meta:
@@ -362,7 +338,6 @@ class HpcUserVersion(HpcUserAbstract):
 
 
 class HpcGroupAbstract(HpcObjectAbstract):
-
     """HpcGroup abstract base class"""
 
     class Meta:
@@ -393,7 +368,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
     resources_requested = models.JSONField()
 
     #: Groups used resources as JSON.
-    resources_used = models.JSONField()
+    resources_used = models.JSONField(null=True, blank=True)
 
     #: Description of what the group is working on.
     description = models.CharField(
@@ -437,7 +412,6 @@ class HpcGroupAbstract(HpcObjectAbstract):
 
 
 class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
-
     """HpcGroup model"""
 
     #: Set custom manager
@@ -453,7 +427,6 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
 
 
 class HpcGroupVersion(HpcGroupAbstract):
-
     """HpcGroupVersion model"""
 
     class Meta:
@@ -475,7 +448,6 @@ class HpcGroupVersion(HpcGroupAbstract):
 
 
 class HpcRequestAbstract(HpcObjectAbstract):
-
     """HpcRequest abstract base class"""
 
     class Meta:
@@ -509,7 +481,7 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
     #: Comment for communication.
     comment = models.TextField(
-        null=True, blank=True, help_text="Comment on request or revision"
+        help_text="Comment request or summarize revision"
     )
 
     def get_comment_history(self):
@@ -551,7 +523,6 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
 
 class HpcGroupRequestAbstract(HpcRequestAbstract):
-
     """HpcGroupRequest abstract base class"""
 
     class Meta:
