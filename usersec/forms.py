@@ -18,7 +18,6 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user and user.is_hpcadmin:
-            self.fields["comment"].required = True
             self.fields["resources_requested"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["description"].widget = forms.HiddenInput()

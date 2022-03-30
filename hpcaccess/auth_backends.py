@@ -1,5 +1,6 @@
 from django.conf import settings
-from django_auth_ldap.backend import LDAPBackend, _LDAPUser
+from django.dispatch import receiver
+from django_auth_ldap.backend import LDAPBackend, _LDAPUser, populate_user
 
 # Username domains for primary and secondary LDAP backends
 # Optional
@@ -52,6 +53,7 @@ class SecondaryLDAPBackend(LDAPBackend):
             or username.split("@")[1].upper() != LDAP2_DOMAIN
         ):
             return None
+
         ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
         user = ldap_user.authenticate(password)
         return user
@@ -63,3 +65,19 @@ class SecondaryLDAPBackend(LDAPBackend):
     def django_to_ldap_username(self, username):
         """Override LDAPBackend function to get the real LDAP username"""
         return username.split("@")[0]
+
+
+@receiver(populate_user, sender=PrimaryLDAPBackend)
+def primary_ldap_auth_handler(user, ldap_user, **kwargs):
+    phone = ldap_user.attrs.get("telephoneNumber")
+
+    if phone:
+        user.phone = phone[0]
+
+
+@receiver(populate_user, sender=SecondaryLDAPBackend)
+def secondary_ldap_auth_handler(user, ldap_user, **kwargs):
+    phone = ldap_user.attrs.get("telephoneNumber")
+
+    if phone:
+        user.phone = phone[0]

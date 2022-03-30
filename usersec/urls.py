@@ -27,5 +27,9 @@ urlpatterns = [
         view=views.HpcGroupCreateRequestReactivateView.as_view(),
         name="hpcgroupcreaterequest-reactivate",
     ),
-    path("dummy/", view=views.DummyView.as_view(), name="dummy"),
+    path(
+        "hpcuser/<uuid:hpcuser>/overview",
+        view=views.HpcUserView.as_view(),
+        name="hpcuser-overview",
+    ),
 ]

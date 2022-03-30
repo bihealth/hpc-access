@@ -42,7 +42,6 @@ from usersec.tests.factories import (
 
 
 class RequestTesterMixin:
-
     """Mixin for testing methods of request objects."""
 
     model = None
@@ -153,7 +152,6 @@ class RequestTesterMixin:
 
 
 class VersionTesterMixin:
-
     """Mixin for testing version-related methods."""
 
     model = None
@@ -315,7 +313,6 @@ class VersionTesterMixin:
 
 
 class TestHpcUser(VersionTesterMixin, TestCase):
-
     """Tests for HpcUser model"""
 
     model = HpcUser
@@ -355,7 +352,6 @@ class TestHpcUser(VersionTesterMixin, TestCase):
 
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
-
     """Tests for HpcGroup model"""
 
     model = HpcGroup
@@ -394,7 +390,6 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
 class TestHpcGroupChangeRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcGroupChangeRequest model"""
 
     model = HpcGroupChangeRequest
@@ -472,7 +467,6 @@ class TestHpcGroupChangeRequest(
 class TestHpcGroupCreateRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcGroupCreateRequest model"""
 
     model = HpcGroupCreateRequest
@@ -550,7 +544,6 @@ class TestHpcGroupCreateRequest(
 class TestHpcGroupDeleteRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcGroupDeleteRequest model"""
 
     model = HpcGroupDeleteRequest
@@ -628,7 +621,6 @@ class TestHpcGroupDeleteRequest(
 class TestHpcUserChangeRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcUserChangeRequest model"""
 
     model = HpcUserChangeRequest
@@ -706,7 +698,6 @@ class TestHpcUserChangeRequest(
 class TestHpcUserCreateRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcUserCreateRequest model"""
 
     model = HpcUserCreateRequest
@@ -784,7 +775,6 @@ class TestHpcUserCreateRequest(
 class TestHpcUserDeleteRequest(
     RequestTesterMixin, VersionTesterMixin, TestCase
 ):
-
     """Tests for HpcUserDeleteRequest model"""
 
     model = HpcUserDeleteRequest

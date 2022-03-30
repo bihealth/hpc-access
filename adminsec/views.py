@@ -1,6 +1,10 @@
+import unicodedata
+from datetime import timedelta
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import (
     DetailView,
     UpdateView,
@@ -9,12 +13,53 @@ from django.views.generic import (
 )
 
 from usersec.forms import HpcGroupCreateRequestForm
-from usersec.models import HpcGroupCreateRequest
+from usersec.models import (
+    HpcGroupCreateRequest,
+    HpcGroup,
+    HpcUser,
+    OBJECT_STATUS_ACTIVE,
+)
 from usersec.views import HpcPermissionMixin
 
 
-class AdminView(HpcPermissionMixin, TemplateView):
+DOMAIN_MAPPING = {
+    "CHARITE": "c",
+    "MDC-BERLIN": "m",
+}
+AG_PREFIX = "ag_"
+LDAP_USERNAME_SEPARATOR = "@"
+HPC_USERNAME_SEPARATOR = "_"
 
+
+def generate_hpc_username(username):
+    fail_string = ""
+    data = username.split(LDAP_USERNAME_SEPARATOR)
+
+    if not len(data) == 2:
+        return fail_string
+
+    username, domain = data
+    ending = DOMAIN_MAPPING.get(domain)
+
+    if not ending:
+        return fail_string
+
+    return f"{username}{HPC_USERNAME_SEPARATOR}{ending}"
+
+
+def convert_to_posix(name):
+    return (
+        unicodedata.normalize("NFKD", name)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+
+
+def generate_hpc_groupname(name):
+    return f"{AG_PREFIX}{convert_to_posix(name).lower()}"
+
+
+class AdminView(HpcPermissionMixin, TemplateView):
     """Admin welcome view."""
 
     template_name = "adminsec/overview.html"
@@ -34,7 +79,6 @@ class AdminView(HpcPermissionMixin, TemplateView):
 
 
 class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
-
     """Pending group request detail view."""
 
     template_name = "usersec/hpcgroupcreaterequest_detail.html"
@@ -56,7 +100,6 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
 
 
 class HpcGroupCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
-
     """Pending group request revision view."""
 
     # Using template from usersec
@@ -105,7 +148,6 @@ class HpcGroupCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
 
 
 class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
-
     """HpcGroupCreateRequest approve view."""
 
     template_name_suffix = "_approve_confirm"
@@ -116,10 +158,39 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = ""
+        obj.comment = "Request approved"
         obj.editor = self.request.user
         obj.approve_with_version()
-        messages.success(self.request, "Request successfully approved.")
+        surname = obj.requester.name.rsplit(" ", 1)[1]
+
+        # Create HpcGroup object
+        hpcgroup = HpcGroup.objects.create_with_version(
+            resources_requested=obj.resources_requested,
+            description=obj.description,
+            creator=self.request.user,
+            name=generate_hpc_groupname(surname),
+            expiration=obj.expiration,
+        )
+
+        # Create HpcUser object
+        hpcuser = HpcUser.objects.create_with_version(
+            user=obj.requester,
+            primary_group=hpcgroup,
+            resources_requested={"some": "default"},
+            creator=self.request.user,
+            description="PI, created together with accepting the group request.",
+            username=generate_hpc_username(obj.requester.username),
+            expiration=timezone.now() + timedelta(weeks=52),
+            # TODO phone
+        )
+
+        hpcgroup.owner = hpcuser
+        hpcgroup.status = OBJECT_STATUS_ACTIVE
+        hpcgroup.save()  # We do not need another version for this action.
+
+        messages.success(
+            self.request, "Request approved and group and user created."
+        )
         return HttpResponseRedirect(
             reverse(
                 "adminsec:hpcgroupcreaterequest-detail",
@@ -129,7 +200,6 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
 
 class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
-
     """Pending group request update view."""
 
     template_name_suffix = "_deny_confirm"
@@ -138,9 +208,20 @@ class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcGroupCreateRequestForm(
+            user=self.request.user,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = ""
+        obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
         obj.deny_with_version()
         messages.success(self.request, "Request successfully denied.")

@@ -13,7 +13,6 @@ from usersec.tests.factories import (
 
 
 class TestRulesBase(TestCase):
-
     """Test base for rules."""
 
     def setUp(self):
@@ -95,6 +94,7 @@ class TestRulesBase(TestCase):
         redirect_url=None,
         req_kwargs=None,
         lazy_url_callback=None,
+        lazy_arg=None,
     ):
         if req_kwargs is None:
             req_kwargs = {}
@@ -113,7 +113,11 @@ class TestRulesBase(TestCase):
 
                 if status_code == 302:
                     if lazy_url_callback:
-                        redirect_url = lazy_url_callback()
+                        if lazy_arg == "user":
+                            redirect_url = lazy_url_callback(user)
+
+                        else:
+                            redirect_url = lazy_url_callback()
 
                     self.assertEqual(
                         response.url, redirect_url, msg=f"user={user.username}"
@@ -143,7 +147,6 @@ class TestRules(TestRulesBase):
 
 
 class TestPermissions(TestRulesBase):
-
     """Tests for permissions without views."""
 
     def test_view_hpcgroup(self):
@@ -189,20 +192,23 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_denied(perm, None, bad_users)
 
     def test_view_hpcuser(self):
-        good_users = [self.superuser, self.user_owner, self.user_delegate]
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+        ]
         bad_users = [
             self.user_hpcadmin,
-            self.user_member,
             self.user_no_group,
             self.user,
         ]
         perm = "usersec.view_hpcuser"
-        self.assert_permissions_granted(perm, self.hpc_group, good_users)
-        self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+        self.assert_permissions_granted(perm, self.hpc_member, good_users)
+        self.assert_permissions_denied(perm, self.hpc_member, bad_users)
 
 
 class TestPermissionsInViews(TestRulesBase):
-
     """Tests for permissions in views."""
 
     def test_home_view(self):
@@ -225,7 +231,15 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("usersec:orphan-user"),
         )
         self.assert_permissions_on_url(
-            hpc_users, url, "GET", 302, redirect_url=reverse("usersec:dummy")
+            hpc_users,
+            url,
+            "GET",
+            302,
+            lazy_url_callback=lambda user: reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
+            ),
+            lazy_arg="user",
         )
         self.assert_permissions_on_url(
             pending_users,
@@ -447,6 +461,29 @@ class TestPermissionsInViews(TestRulesBase):
                 kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
             ),
         )
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home")
+        )
+
+    def test_hpc_user_view(self):
+        url = reverse(
+            "usersec:hpcuser-overview",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_no_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(
             bad_users, url, "GET", 302, redirect_url=reverse("home")
         )

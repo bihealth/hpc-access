@@ -20,6 +20,7 @@ class User(AbstractUser):
         default=False,
         help_text=_("Designates whether the user is an HPC admin."),
     )
+    phone = CharField(_("Phone number of User"), blank=True, max_length=32)
 
     def get_absolute_url(self):
         """Get url for user's detail view.

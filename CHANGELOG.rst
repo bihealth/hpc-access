@@ -27,8 +27,9 @@ UserSec
 - Created rules and permissions (#9)
 - Created orphan view, added factories and tests (#5)
 - Created progressing user view (#6)
-- Created group request view (#7)
+- Created group create request view (#7)
 - Added ``editor`` field to request models (#37)
+- Created HPC user view (#13)
 
 AdminSec
 --------
@@ -36,5 +37,5 @@ AdminSec
 - App created
 - Created overview view (#37)
 - Created functionality to accept group create requests (#37)
-- Created hpc admin flag for user and added permission (#37)
-
+- Created HPC admin flag for user and added permission (#37)
+- Accepting group create request creates HPC user and group (#13)
