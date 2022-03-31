@@ -42,9 +42,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(
-            bad_users, url, "GET", 302, redirect_url=reverse("home")
-        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_approve_view(self):
         url = reverse(
@@ -61,9 +59,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(
-            bad_users, url, "GET", 302, redirect_url=reverse("home")
-        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_deny_view(self):
         url = reverse(
@@ -80,9 +76,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(
-            bad_users, url, "GET", 302, redirect_url=reverse("home")
-        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_revision_view_get(self):
         url = reverse(
@@ -99,9 +93,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(
-            bad_users, url, "GET", 302, redirect_url=reverse("home")
-        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_revision_view_post(self):
         url = reverse(
@@ -153,6 +145,4 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(
-            bad_users, url, "GET", 302, redirect_url=reverse("home")
-        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))

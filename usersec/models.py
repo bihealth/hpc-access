@@ -80,9 +80,7 @@ class VersionManager(models.Manager):
         obj = self.model(**kwargs, current_version=version)
         obj.save()
 
-        version_obj = self.version_model(
-            **kwargs, version=version, belongs_to=obj
-        )
+        version_obj = self.version_model(**kwargs, version=version, belongs_to=obj)
         version_obj.save()
 
         # TODO: look up when version passed and not 1 if the version history is ok
@@ -118,9 +116,7 @@ class VersionManagerMixin:
         if not self.current_version:
             return max_obj
 
-        for obj in self.version_history.filter(
-            version__gte=self.current_version
-        ):
+        for obj in self.version_history.filter(version__gte=self.current_version):
             if max_obj is None or max_obj.version > obj.version:
                 max_obj = obj
 
@@ -224,14 +220,10 @@ class HpcObjectAbstract(models.Model):
         abstract = True
 
     #: Uuid
-    uuid = models.UUIDField(
-        default=uuid_object.uuid4, unique=True, help_text="Record UUID"
-    )
+    uuid = models.UUIDField(default=uuid_object.uuid4, unique=True, help_text="Record UUID")
 
     #: Date created
-    date_created = models.DateTimeField(
-        auto_now_add=True, help_text="DateTime of creation"
-    )
+    date_created = models.DateTimeField(auto_now_add=True, help_text="DateTime of creation")
 
 
 class HpcUserAbstract(HpcObjectAbstract):
@@ -288,19 +280,13 @@ class HpcUserAbstract(HpcObjectAbstract):
     )
 
     #: POSIX id of the user on the cluster.
-    uid = models.IntegerField(
-        null=True, help_text="Id of the user on the cluster"
-    )
+    uid = models.IntegerField(null=True, help_text="Id of the user on the cluster")
 
     #: POSIX username on the cluster.
-    username = models.CharField(
-        max_length=32, help_text="Username of the user on the cluster"
-    )
+    username = models.CharField(max_length=32, help_text="Username of the user on the cluster")
 
     #: Expiration date of the user account
-    expiration = models.DateTimeField(
-        help_text="Expiration date of the user account"
-    )
+    expiration = models.DateTimeField(help_text="Expiration date of the user account")
 
 
 class HpcUser(VersionManagerMixin, HpcUserAbstract):
@@ -313,9 +299,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         unique_together = ("username",)
 
     #: Currently active version of the user object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the user object"
-    )
+    current_version = models.IntegerField(help_text="Currently active version of the user object")
 
 
 class HpcUserVersion(HpcUserAbstract):
@@ -371,9 +355,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
     resources_used = models.JSONField(null=True, blank=True)
 
     #: Description of what the group is working on.
-    description = models.CharField(
-        max_length=512, help_text="Description of the groups work"
-    )
+    description = models.CharField(max_length=512, help_text="Description of the groups work")
 
     #: Django User creating the object.
     creator = models.ForeignKey(
@@ -393,19 +375,13 @@ class HpcGroupAbstract(HpcObjectAbstract):
     )
 
     #: POSIX id of the group on the cluster.
-    gid = models.IntegerField(
-        null=True, help_text="Id of the group on the cluster"
-    )
+    gid = models.IntegerField(null=True, help_text="Id of the group on the cluster")
 
     #: POSIX name of the group on the cluster.
-    name = models.CharField(
-        max_length=64, help_text="Name of the group on the cluster"
-    )
+    name = models.CharField(max_length=64, help_text="Name of the group on the cluster")
 
     #: Folder ot the group on the cluster.
-    folder = models.CharField(
-        max_length=64, help_text="Path to the group folder on the cluster"
-    )
+    folder = models.CharField(max_length=64, help_text="Path to the group folder on the cluster")
 
     #: Expiration date of the group
     expiration = models.DateTimeField(help_text="Expiration date of the group")
@@ -421,9 +397,7 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
         unique_together = ("name",)
 
     #: Currently active version of the group object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group object"
-    )
+    current_version = models.IntegerField(help_text="Currently active version of the group object")
 
 
 class HpcGroupVersion(HpcGroupAbstract):
@@ -433,9 +407,7 @@ class HpcGroupVersion(HpcGroupAbstract):
         unique_together = ("name", "version")
 
     #: Version number of the group object.
-    version = models.IntegerField(
-        help_text="Version number of this group object"
-    )
+    version = models.IntegerField(help_text="Version number of this group object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -480,14 +452,10 @@ class HpcRequestAbstract(HpcObjectAbstract):
     )
 
     #: Comment for communication.
-    comment = models.TextField(
-        help_text="Comment request or summarize revision"
-    )
+    comment = models.TextField(help_text="Comment request or summarize revision")
 
     def get_comment_history(self):
-        history = self.version_history.exclude(comment__exact="").exclude(
-            comment__isnull=True
-        )
+        history = self.version_history.exclude(comment__exact="").exclude(comment__isnull=True)
         comments = []
 
         for h in history:
@@ -573,9 +541,7 @@ class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
         unique_together = ("belongs_to", "version")
 
     #: Version number of the group change request object.
-    version = models.IntegerField(
-        help_text="Version number of this group change request object"
-    )
+    version = models.IntegerField(help_text="Version number of this group change request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -598,9 +564,7 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     resources_requested = models.JSONField()
 
     #: Description of what the group is working on.
-    description = models.CharField(
-        max_length=512, help_text="Description of the groups work"
-    )
+    description = models.CharField(max_length=512, help_text="Description of the groups work")
 
     #: Expiration date of the group.
     expiration = models.DateTimeField(help_text="Expiration date of the group")
@@ -627,9 +591,7 @@ class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
         unique_together = ("belongs_to", "version")
 
     #: Version number of the group create request object.
-    version = models.IntegerField(
-        help_text="Version number of this group create request object"
-    )
+    version = models.IntegerField(help_text="Version number of this group create request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -662,9 +624,7 @@ class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
         unique_together = ("belongs_to", "version")
 
     #: Version number of the group delete request object.
-    version = models.IntegerField(
-        help_text="Version number of this group delete request object"
-    )
+    version = models.IntegerField(help_text="Version number of this group delete request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -728,9 +688,7 @@ class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
         unique_together = ("belongs_to", "version")
 
     #: Version number of the user change request object.
-    version = models.IntegerField(
-        help_text="Version number of this user change request object"
-    )
+    version = models.IntegerField(help_text="Version number of this user change request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -774,9 +732,7 @@ class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
     """HpcUserCreateRequestVersion model"""
 
     #: Version number of the user create request object.
-    version = models.IntegerField(
-        help_text="Version number of this user create request object"
-    )
+    version = models.IntegerField(help_text="Version number of this user create request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -809,9 +765,7 @@ class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
         unique_together = ("belongs_to", "version")
 
     #: Version number of the user delete request object.
-    version = models.IntegerField(
-        help_text="Version number of this user delete request object"
-    )
+    version = models.IntegerField(help_text="Version number of this user delete request object")
 
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
@@ -834,10 +788,7 @@ def handle_ldap_login(sender, user, **kwargs):
     if hasattr(user, "ldap_username"):
 
         # Make domain in username uppercase
-        if (
-            user.username.find("@") != -1
-            and user.username.split("@")[1].islower()
-        ):
+        if user.username.find("@") != -1 and user.username.split("@")[1].islower():
             u_split = user.username.split("@")
             user.username = u_split[0] + "@" + u_split[1].upper()
             user.save()
@@ -845,9 +796,7 @@ def handle_ldap_login(sender, user, **kwargs):
         # Save user name from first_name and last_name into name
         if user.name in ["", None]:
             if user.first_name != "":
-                user.name = user.first_name + (
-                    " " + user.last_name if user.last_name != "" else ""
-                )
+                user.name = user.first_name + (" " + user.last_name if user.last_name != "" else "")
                 user.save()
 
 

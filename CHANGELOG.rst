@@ -30,6 +30,8 @@ UserSec
 - Created group create request view (#7)
 - Added ``editor`` field to request models (#37)
 - Created HPC user view (#13)
+- Created HPC group detail view (#53)
+- Registered models with admin site (#53)
 
 AdminSec
 --------

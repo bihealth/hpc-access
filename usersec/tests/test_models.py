@@ -177,9 +177,7 @@ class VersionTesterMixin:
         version_obj = self.version_model.objects.first()
 
         self.assertEqual(obj, version_obj.belongs_to)
-        self.assertEqual(
-            hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj)
-        )
+        self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_create_with_version_two(self):
         obj1 = self.factory()
@@ -192,14 +190,10 @@ class VersionTesterMixin:
         version_obj2 = self.version_model.objects.last()
 
         self.assertEqual(obj1, version_obj1.belongs_to)
-        self.assertEqual(
-            hpc_obj_to_dict(obj1), hpc_version_obj_to_dict(version_obj1)
-        )
+        self.assertEqual(hpc_obj_to_dict(obj1), hpc_version_obj_to_dict(version_obj1))
 
         self.assertEqual(obj2, version_obj2.belongs_to)
-        self.assertEqual(
-            hpc_obj_to_dict(obj2), hpc_version_obj_to_dict(version_obj2)
-        )
+        self.assertEqual(hpc_obj_to_dict(obj2), hpc_version_obj_to_dict(version_obj2))
 
     def __assert_save_or_update_base(self, **update):
         self.assertEqual(self.model.objects.count(), 1)
@@ -237,9 +231,7 @@ class VersionTesterMixin:
 
     def _test_save_with_version_new(self, **supplementaries):
         obj = self.model()
-        data = {
-            k: v for k, v in vars(self.factory).items() if not k.startswith("_")
-        }
+        data = {k: v for k, v in vars(self.factory).items() if not k.startswith("_")}
 
         if supplementaries:
             data.update(supplementaries)
@@ -255,9 +247,7 @@ class VersionTesterMixin:
         version_obj = self.version_model.objects.first()
 
         self.assertEqual(obj, version_obj.belongs_to)
-        self.assertEqual(
-            hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj)
-        )
+        self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_update_with_version(self, **update):
         obj = self.factory()
@@ -303,9 +293,7 @@ class VersionTesterMixin:
     def _test_get_latest_version(self, **update):
         obj = self.factory()
         obj.update_with_version(**update)
-        self.assertEqual(
-            obj.get_latest_version(), self.version_model.objects.last()
-        )
+        self.assertEqual(obj.get_latest_version(), self.version_model.objects.last())
 
     def _test_get_latest_version_not_available(self):
         obj = self.model()
@@ -387,9 +375,7 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
         self._test_get_latest_version_not_available()
 
 
-class TestHpcGroupChangeRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcGroupChangeRequest model"""
 
     model = HpcGroupChangeRequest
@@ -464,9 +450,7 @@ class TestHpcGroupChangeRequest(
         self._test_active()
 
 
-class TestHpcGroupCreateRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcGroupCreateRequest model"""
 
     model = HpcGroupCreateRequest
@@ -541,9 +525,7 @@ class TestHpcGroupCreateRequest(
         self._test_active()
 
 
-class TestHpcGroupDeleteRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcGroupDeleteRequest model"""
 
     model = HpcGroupDeleteRequest
@@ -618,9 +600,7 @@ class TestHpcGroupDeleteRequest(
         self._test_active()
 
 
-class TestHpcUserChangeRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcUserChangeRequest model"""
 
     model = HpcUserChangeRequest
@@ -695,9 +675,7 @@ class TestHpcUserChangeRequest(
         self._test_active()
 
 
-class TestHpcUserCreateRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcUserCreateRequest model"""
 
     model = HpcUserCreateRequest
@@ -772,9 +750,7 @@ class TestHpcUserCreateRequest(
         self._test_active()
 
 
-class TestHpcUserDeleteRequest(
-    RequestTesterMixin, VersionTesterMixin, TestCase
-):
+class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcUserDeleteRequest model"""
 
     model = HpcUserDeleteRequest

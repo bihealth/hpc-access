@@ -29,15 +29,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 ("resources_requested", models.JSONField()),
                 ("resources_used", models.JSONField()),
@@ -62,23 +58,17 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "gid",
-                    models.IntegerField(
-                        help_text="Id of the group on the cluster", null=True
-                    ),
+                    models.IntegerField(help_text="Id of the group on the cluster", null=True),
                 ),
                 ("name", models.CharField(max_length=64)),
                 ("folder", models.CharField(max_length=64)),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "current_version",
-                    models.IntegerField(
-                        help_text="Currently active version of the group object"
-                    ),
+                    models.IntegerField(help_text="Currently active version of the group object"),
                 ),
                 (
                     "creator",
@@ -109,15 +99,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 ("resources_requested", models.JSONField()),
                 ("resources_used", models.JSONField()),
@@ -143,9 +129,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uid",
-                    models.IntegerField(
-                        help_text="Id of the user on the cluster", null=True
-                    ),
+                    models.IntegerField(help_text="Id of the user on the cluster", null=True),
                 ),
                 (
                     "username",
@@ -156,21 +140,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "first_names",
-                    models.CharField(
-                        help_text="First name(s) of the user", max_length=32
-                    ),
+                    models.CharField(help_text="First name(s) of the user", max_length=32),
                 ),
                 (
                     "surname",
-                    models.CharField(
-                        help_text="Surname of the user", max_length=32
-                    ),
+                    models.CharField(help_text="Surname of the user", max_length=32),
                 ),
                 (
                     "email",
-                    models.CharField(
-                        help_text="Email address of the user", max_length=512
-                    ),
+                    models.CharField(help_text="Email address of the user", max_length=512),
                 ),
                 (
                     "phone",
@@ -182,15 +160,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user account"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user account"),
                 ),
                 (
                     "current_version",
-                    models.IntegerField(
-                        help_text="Currently active version of the user object"
-                    ),
+                    models.IntegerField(help_text="Currently active version of the user object"),
                 ),
                 (
                     "creator",
@@ -240,15 +214,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 ("resources_requested", models.JSONField()),
                 ("resources_used", models.JSONField()),
@@ -274,9 +244,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uid",
-                    models.IntegerField(
-                        help_text="Id of the user on the cluster", null=True
-                    ),
+                    models.IntegerField(help_text="Id of the user on the cluster", null=True),
                 ),
                 (
                     "username",
@@ -287,21 +255,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "first_names",
-                    models.CharField(
-                        help_text="First name(s) of the user", max_length=32
-                    ),
+                    models.CharField(help_text="First name(s) of the user", max_length=32),
                 ),
                 (
                     "surname",
-                    models.CharField(
-                        help_text="Surname of the user", max_length=32
-                    ),
+                    models.CharField(help_text="Surname of the user", max_length=32),
                 ),
                 (
                     "email",
-                    models.CharField(
-                        help_text="Email address of the user", max_length=512
-                    ),
+                    models.CharField(help_text="Email address of the user", max_length=512),
                 ),
                 (
                     "phone",
@@ -313,15 +275,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user account"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user account"),
                 ),
                 (
                     "version",
-                    models.IntegerField(
-                        help_text="Version of this user object"
-                    ),
+                    models.IntegerField(help_text="Version of this user object"),
                 ),
                 (
                     "creator",
@@ -371,15 +329,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -447,15 +401,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -523,15 +473,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -558,9 +504,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user"),
                 ),
                 (
                     "version",
@@ -606,15 +550,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -641,9 +581,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user"),
                 ),
                 (
                     "current_version",
@@ -689,15 +627,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -724,9 +658,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user"),
                 ),
                 (
                     "version",
@@ -772,15 +704,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -807,9 +735,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the user"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the user"),
                 ),
                 (
                     "current_version",
@@ -855,15 +781,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 ("resources_requested", models.JSONField()),
                 ("resources_used", models.JSONField()),
@@ -888,23 +810,17 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "gid",
-                    models.IntegerField(
-                        help_text="Id of the group on the cluster", null=True
-                    ),
+                    models.IntegerField(help_text="Id of the group on the cluster", null=True),
                 ),
                 ("name", models.CharField(max_length=64)),
                 ("folder", models.CharField(max_length=64)),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "version",
-                    models.IntegerField(
-                        help_text="Version number of this group object"
-                    ),
+                    models.IntegerField(help_text="Version number of this group object"),
                 ),
                 (
                     "creator",
@@ -955,15 +871,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1031,15 +943,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1107,15 +1015,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1149,9 +1053,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "version",
@@ -1208,15 +1110,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1250,9 +1148,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "current_version",
@@ -1309,15 +1205,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1344,9 +1236,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "version",
@@ -1392,15 +1282,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4, help_text="Record UUID", unique=True
-                    ),
+                    models.UUIDField(default=uuid.uuid4, help_text="Record UUID", unique=True),
                 ),
                 (
                     "date_created",
-                    models.DateTimeField(
-                        auto_now_add=True, help_text="DateTime of creation"
-                    ),
+                    models.DateTimeField(auto_now_add=True, help_text="DateTime of creation"),
                 ),
                 (
                     "status",
@@ -1427,9 +1313,7 @@ class Migration(migrations.Migration):
                 ("resources_requested", models.JSONField()),
                 (
                     "expiration",
-                    models.DateTimeField(
-                        help_text="Expiration date of the group"
-                    ),
+                    models.DateTimeField(help_text="Expiration date of the group"),
                 ),
                 (
                     "current_version",

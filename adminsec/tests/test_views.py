@@ -25,9 +25,7 @@ class TestAdminView(TestViewBase):
     """Tests for AdminView."""
 
     def test_get(self):
-        HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_ACTIVE
-        )
+        HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(reverse("adminsec:overview"))
@@ -43,9 +41,7 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
     """Tests for HpcGroupCreateRequestDetailView."""
 
     def test_get(self):
-        request = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_ACTIVE
-        )
+        request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -67,9 +63,7 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["admin"])
 
     def test_get_retracted(self):
-        request = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_RETRACTED
-        )
+        request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -86,9 +80,7 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_decided"])
 
     def test_get_denied(self):
-        request = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_DENIED
-        )
+        request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_DENIED)
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -105,9 +97,7 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_decided"])
 
     def test_get_approved(self):
-        request = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_APPROVED
-        )
+        request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_APPROVED)
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -129,9 +119,7 @@ class TestHpcGroupCreateRequestRevisionView(TestViewBase):
 
     def setUp(self):
         super().setUp()
-        self.obj = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_ACTIVE
-        )
+        self.obj = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
@@ -198,9 +186,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
     def setUp(self):
         super().setUp()
-        self.obj = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_ACTIVE
-        )
+        self.obj = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
@@ -232,9 +218,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Request approved and group and user created."
-            )
+            self.assertEqual(str(messages[0]), "Request approved and group and user created.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -261,9 +245,7 @@ class TestHpcGroupCreateRequestDenyView(TestViewBase):
 
     def setUp(self):
         super().setUp()
-        self.obj = HpcGroupCreateRequestFactory(
-            requester=self.user, status=REQUEST_STATUS_ACTIVE
-        )
+        self.obj = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
