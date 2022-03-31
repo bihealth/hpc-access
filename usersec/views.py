@@ -21,6 +21,7 @@ from usersec.models import (
     HpcGroupCreateRequest,
     REQUEST_STATUS_ACTIVE,
     HpcUser,
+    HpcGroup,
 )
 
 MSG_NO_AUTH = "User not authorized for requested action"
@@ -192,9 +193,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
         )
 
 
-class HpcGroupCreateRequestReactivateView(
-    HpcPermissionMixin, SingleObjectMixin, View
-):
+class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
 
     """Pending group request update view."""
 
@@ -226,3 +225,13 @@ class HpcUserView(HpcPermissionMixin, DetailView):
     slug_field = "uuid"
     slug_url_kwarg = "hpcuser"
     permission_required = "usersec.view_hpcuser"
+
+
+class HpcGroupView(HpcPermissionMixin, DetailView):
+    """HpcGroup view."""
+
+    model = HpcGroup
+    template_name = "usersec/hpcgroup_detail.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroup"
+    permission_required = "usersec.view_hpcgroup"

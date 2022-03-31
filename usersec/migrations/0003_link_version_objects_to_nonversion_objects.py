@@ -236,9 +236,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="hpcgroup",
             name="name",
-            field=models.CharField(
-                help_text="Name of the group on the cluster", max_length=64
-            ),
+            field=models.CharField(help_text="Name of the group on the cluster", max_length=64),
         ),
         migrations.AlterField(
             model_name="hpcgroupchangerequest",
@@ -437,9 +435,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="hpcgroupversion",
             name="name",
-            field=models.CharField(
-                help_text="Name of the group on the cluster", max_length=64
-            ),
+            field=models.CharField(help_text="Name of the group on the cluster", max_length=64),
         ),
         migrations.AlterField(
             model_name="hpcuserchangerequest",

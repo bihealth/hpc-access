@@ -48,11 +48,7 @@ def generate_hpc_username(username):
 
 
 def convert_to_posix(name):
-    return (
-        unicodedata.normalize("NFKD", name)
-        .encode("ascii", "ignore")
-        .decode("ascii")
-    )
+    return unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
 
 
 def generate_hpc_groupname(name):
@@ -69,9 +65,7 @@ class AdminView(HpcPermissionMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         # Add open HpcGroupCreateRequest
-        context[
-            "hpcgroupcreaterequests"
-        ] = HpcGroupCreateRequest.objects.active()
+        context["hpcgroupcreaterequests"] = HpcGroupCreateRequest.objects.active()
 
         # TODO: Add other open requests
 
@@ -188,9 +182,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         hpcgroup.status = OBJECT_STATUS_ACTIVE
         hpcgroup.save()  # We do not need another version for this action.
 
-        messages.success(
-            self.request, "Request approved and group and user created."
-        )
+        messages.success(self.request, "Request approved and group and user created.")
         return HttpResponseRedirect(
             reverse(
                 "adminsec:hpcgroupcreaterequest-detail",

@@ -7,22 +7,14 @@ from django.core.management.base import BaseCommand
 
 
 # Local constants
-JSON_URL = (
-    "https://raw.githubusercontent.com/iconify/collections-json/"
-    "master/collections.json"
-)
-COLL_URL = (
-    "https://raw.githubusercontent.com/iconify/collections-json/"
-    "master/json/{id}.json"
-)
+JSON_URL = "https://raw.githubusercontent.com/iconify/collections-json/" "master/collections.json"
+COLL_URL = "https://raw.githubusercontent.com/iconify/collections-json/" "master/json/{id}.json"
 
 
 class Command(BaseCommand):
     help = "Retrieves or updates JSON Iconify icons"
 
-    def __init__(
-        self, stdout=None, stderr=None, no_color=False, sodar_url=None
-    ):
+    def __init__(self, stdout=None, stderr=None, no_color=False, sodar_url=None):
         self.sodar_url = sodar_url
         super().__init__(stdout, stderr, no_color)
 
@@ -70,9 +62,7 @@ class Command(BaseCommand):
         if not os.path.exists(coll_path):
             os.makedirs(coll_path, mode=0o755)
             logger.info(
-                "Created Iconify JSON directories in {}/static".format(
-                    settings.SITE_PACKAGE
-                )
+                "Created Iconify JSON directories in {}/static".format(settings.SITE_PACKAGE)
             )
         else:
             logger.debug("Found existing Iconify JSON dirs")

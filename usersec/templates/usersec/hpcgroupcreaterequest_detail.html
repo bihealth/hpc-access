@@ -6,61 +6,61 @@
 
   <div class="card">
     <div class="card-header">
-      <h4 class="float-start">
+      <h4 class="card-title">
         HPC Group Request
         <span class="badge bg-{{ object.status|colorize_request_status }}">
           {{ object.status|lower }}
         </span>
-      </h4>
-      {% if not is_decided %}
-        <span class="float-end btn-group">
-          {% if admin %}
-            <a class="btn btn-warning"
-               href="{% url 'adminsec:hpcgroupcreaterequest-revision' hpcgroupcreaterequest=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:comment"></i>
-              Revision
-            </a>
-          {% else %}
-            <a class="btn btn-warning"
-               href="{% url 'usersec:hpcgroupcreaterequest-update' hpcgroupcreaterequest=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:refresh"></i>
-              Update
-            </a>
-          {% endif %}
-          {% if admin %}
-            <a class="btn btn-success"
-               href="{% url 'adminsec:hpcgroupcreaterequest-approve' hpcgroupcreaterequest=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:check-bold"></i>
-              Approve
-            </a>
-            <a class="btn btn-danger"
-               href="{% url 'adminsec:hpcgroupcreaterequest-deny' hpcgroupcreaterequest=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:minus-circle"></i>
-              Deny
-            </a>
-          {% else %}
-            {% if is_retracted %}
-              <a class="btn btn-success"
-                 href="{% url 'usersec:hpcgroupcreaterequest-reactivate' hpcgroupcreaterequest=object.uuid %}"
+        {% if not is_decided %}
+          <span class="float-end btn-group">
+            {% if admin %}
+              <a class="btn btn-warning"
+                 href="{% url 'adminsec:hpcgroupcreaterequest-revision' hpcgroupcreaterequest=object.uuid %}"
               >
-                <i class="iconify" data-icon="mdi:check-bold"></i>
-                Activate
+                <i class="iconify" data-icon="mdi:comment"></i>
+                Revision
               </a>
             {% else %}
-              <a class="btn btn-danger"
-                 href="{% url 'usersec:hpcgroupcreaterequest-retract' hpcgroupcreaterequest=object.uuid %}"
+              <a class="btn btn-primary"
+                 href="{% url 'usersec:hpcgroupcreaterequest-update' hpcgroupcreaterequest=object.uuid %}"
               >
-                <i class="iconify" data-icon="mdi:backspace"></i>
-                Retract
+                <i class="iconify" data-icon="mdi:refresh"></i>
+                Update
               </a>
             {% endif %}
-          {% endif %}
-        </span>
-      {% endif %}
+            {% if admin %}
+              <a class="btn btn-success"
+                 href="{% url 'adminsec:hpcgroupcreaterequest-approve' hpcgroupcreaterequest=object.uuid %}"
+              >
+                <i class="iconify" data-icon="mdi:check-bold"></i>
+                Approve
+              </a>
+              <a class="btn btn-danger"
+                 href="{% url 'adminsec:hpcgroupcreaterequest-deny' hpcgroupcreaterequest=object.uuid %}"
+              >
+                <i class="iconify" data-icon="mdi:minus-circle"></i>
+                Deny
+              </a>
+            {% else %}
+              {% if is_retracted %}
+                <a class="btn btn-success"
+                   href="{% url 'usersec:hpcgroupcreaterequest-reactivate' hpcgroupcreaterequest=object.uuid %}"
+                >
+                  <i class="iconify" data-icon="mdi:check-bold"></i>
+                  Activate
+                </a>
+              {% else %}
+                <a class="btn btn-danger"
+                   href="{% url 'usersec:hpcgroupcreaterequest-retract' hpcgroupcreaterequest=object.uuid %}"
+                >
+                  <i class="iconify" data-icon="mdi:backspace"></i>
+                  Retract
+                </a>
+              {% endif %}
+            {% endif %}
+          </span>
+        {% endif %}
+      </h4>
     </div>
     <div class="card-body">
       <div class="row">

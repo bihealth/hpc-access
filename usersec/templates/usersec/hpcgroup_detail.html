@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">
+        {{ object.name }}
+        <span class="badge bg-{{ object.status|colorize_request_status }}">
+          {{ object.status|lower }}
+        </span>
+        <span class="float-end btn-group">
+          <a class="btn btn-primary"
+             href="#hpcgroup-change"
+          >
+            <i class="iconify" data-icon="mdi:update"></i>
+            Update
+          </a>
+        </span>
+      </h4>
+      <h6 class="card-subtitle text-muted">{{ object.description }}</h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-sm-6">
+          <dl class="row">
+            <dt class="col-sm-3">Resources</dt>
+            <dd class="col-sm-9">
+              <dl class="row">
+                {% for key, value in object.resources_requested.items %}
+                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                  <dd class="col-sm-9">{{ value }}</dd>
+                {% endfor %}
+              </dl>
+            </dd>
+            <dt class="col-sm-3">Owner</dt>
+            <dd class="col-sm-9"><a href="{% url 'usersec:hpcuser-overview' hpcuser=object.owner.uuid %}">{{ object.owner.user.name }}</a></dd>
+
+            <dt class="col-sm-3">Delegate</dt>
+            <dd class="col-sm-9">{{ object.delegate.user.name|default:"<em class='text-muted'>not named</em>" }}</dd>
+
+            <dt class="col-sm-3">Expiration</dt>
+            <dd class="col-sm-9">{{ object.expiration }}</dd>
+          </dl>
+        </div>
+        <div class="col-sm-6">
+          {% if comment_history %}
+            <div class="alert alert-info">
+              <h5 class="alert-heading">Comments</h5>
+              <hr>
+              <ul class="list-unstyled">
+                {% for comment in comment_history %}
+                  <li>
+                    <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
+                    <strong>{{ comment.0 }}</strong>:
+                    {{ comment.2 }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}

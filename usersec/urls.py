@@ -28,8 +28,13 @@ urlpatterns = [
         name="hpcgroupcreaterequest-reactivate",
     ),
     path(
-        "hpcuser/<uuid:hpcuser>/overview",
+        "hpcuser/<uuid:hpcuser>/overview/",
         view=views.HpcUserView.as_view(),
         name="hpcuser-overview",
+    ),
+    path(
+        "hpcgroup/<uuid:hpcgroup>/detail/",
+        view=views.HpcGroupView.as_view(),
+        name="hpcgroup-detail",
     ),
 ]

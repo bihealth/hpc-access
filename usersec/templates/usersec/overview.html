@@ -6,7 +6,7 @@
 
   <div class="card w-50">
     <div class="card-header">
-      <h5 class="float-start">
+      <h4 class="card-title">
         {{ object.username }}
         <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
         {% if object.hpcgroup_owner.exists %}
@@ -14,31 +14,43 @@
         {% elif object.hpcgroup_delegate.exists %}
           <span class="badge bg-info">AG Delegate</span>
         {% endif %}
-      </h5>
+      </h4>
+      <h6 class="card-subtitle text-muted">
+        {{ object.user.name }}
+      </h6>
     </div>
-    <dl class="card-body">
-      <dt class="col-sm-3">Resources</dt>
-      <dd class="col-sm-9">
-        <dl class="row">
-          {% for key, value in object.resources_requested.items %}
-            <dt class="col-sm-3 text-muted">{{ key }}</dt>
-            <dd class="col-sm-9">{{ value }}</dd>
-          {% endfor %}
-        </dl>
-      </dd>
+    <div class="card-body">
+      <div class="card-subtitle text-muted">
+        <ul class="list-unstyled">
+          <li>
+            <a href="mailto:{{ object.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+            {{ object.user.email }}
+          </li>
+          <li>
+            <span class="iconify" data-icon="mdi:phone-classic"></span>
+            {{ object.user.phone }}
+          </li>
+        </ul>
+      </div>
+      <hr />
+      <dl class="row">
+        <dt class="col-sm-3">Resources</dt>
+        <dd class="col-sm-9">
+          <dl class="row">
+            {% for key, value in object.resources_requested.items %}
+              <dt class="col-sm-3 text-muted">{{ key }}</dt>
+              <dd class="col-sm-9">{{ value }}</dd>
+            {% endfor %}
+          </dl>
+        </dd>
 
-      <dt class="col-sm-3">Mail</dt>
-      <dd class="col-sm-9">{{ object.user.email }}</dd>
+        <dt class="col-sm-3">Expiration</dt>
+        <dd class="col-sm-9">{{ object.expiration }}</dd>
 
-      <dt class="col-sm-3">Phone</dt>
-      <dd class="col-sm-9">{{ object.user.phone }}</dd>
-
-      <dt class="col-sm-3">Expiration</dt>
-      <dd class="col-sm-9">{{ object.expiration }}</dd>
-
-      <dt class="col-sm-3">Member of</dt>
-      <dd class="col-sm-9">{{ object.primary_group.name }}</dd>
-    </dl>
+        <dt class="col-sm-3">Member of</dt>
+        <dd class="col-sm-9"><a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a></dd>
+      </dl>
+    </div>
   </div>
 
 {% endblock content %}

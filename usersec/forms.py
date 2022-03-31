@@ -32,9 +32,7 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
 
         # Resources requested must be a dict
         if not isinstance(resources, dict):
-            self.add_error(
-                "resources_requested", "Resources must be a dictionary!"
-            )
+            self.add_error("resources_requested", "Resources must be a dictionary!")
             return
 
         return cleaned_data

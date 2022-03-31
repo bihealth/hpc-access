@@ -79,9 +79,7 @@ def _is_group_delegate(user, group):
     return user.hpcuser_user.filter(hpcgroup_delegate=group).exists()
 
 
-has_pending_group_request = (
-    ~is_hpcadmin & ~is_cluster_user & _has_pending_group_request
-)
+has_pending_group_request = ~is_hpcadmin & ~is_cluster_user & _has_pending_group_request
 is_orphan = ~is_hpcadmin & ~is_cluster_user & ~_has_pending_group_request
 is_group_requester = ~is_hpcadmin & ~is_cluster_user & _is_group_requester
 is_group_member = ~is_hpcadmin & is_cluster_user & _is_group_member
@@ -89,9 +87,7 @@ is_group_owner = ~is_hpcadmin & is_cluster_user & _is_group_owner
 is_group_delegate = ~is_hpcadmin & is_cluster_user & _is_group_delegate
 is_hpcuser = ~is_hpcadmin & is_cluster_user & _is_hpcuser
 is_pi_of_hpcuser = ~is_hpcadmin & is_cluster_user & _is_pi_of_hpcuser
-is_delegate_of_hpcuser = (
-    ~is_hpcadmin & is_cluster_user & _is_delegate_of_hpcuser
-)
+is_delegate_of_hpcuser = ~is_hpcadmin & is_cluster_user & _is_delegate_of_hpcuser
 
 can_view_hpcgroup = is_group_owner | is_group_delegate | is_group_member
 can_view_hpcgroupcreaterequest = is_group_requester
@@ -114,10 +110,6 @@ rules.add_rule("has_pending_group_request", has_pending_group_request)
 
 
 rules.add_perm("usersec.view_hpcgroup", can_view_hpcgroup)
-rules.add_perm(
-    "usersec.view_hpcgroupcreaterequest", can_view_hpcgroupcreaterequest
-)
+rules.add_perm("usersec.view_hpcgroupcreaterequest", can_view_hpcgroupcreaterequest)
 rules.add_perm("usersec.view_hpcuser", can_view_hpcuser)
-rules.add_perm(
-    "usersec.create_hpcgroupcreaterequest", can_create_hpcgroupcreaterequest
-)
+rules.add_perm("usersec.create_hpcgroupcreaterequest", can_create_hpcgroupcreaterequest)
