@@ -12,12 +12,13 @@ from django.views.generic import (
     TemplateView,
 )
 
-from usersec.forms import HpcGroupCreateRequestForm
+from usersec.forms import HpcGroupCreateRequestForm, HpcUserCreateRequestForm
 from usersec.models import (
     HpcGroupCreateRequest,
     HpcGroup,
     HpcUser,
     OBJECT_STATUS_ACTIVE,
+    HpcUserCreateRequest,
 )
 from usersec.views import HpcPermissionMixin
 
@@ -221,5 +222,134 @@ class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
             reverse(
                 "adminsec:hpcgroupcreaterequest-detail",
                 kwargs={"hpcgroupcreaterequest": obj.uuid},
+            )
+        )
+
+
+class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC user create request detail view."""
+
+    template_name = "usersec/hpcusercreaterequest_detail.html"
+    model = HpcUserCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["comment_history"] = obj.get_comment_history()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_decided"] = obj.is_decided()
+        context["admin"] = True
+        return context
+
+
+class HpcUserCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
+    """HPC user create request revision view."""
+
+    template_name = "usersec/hpcusercreaterequest_form.html"
+    model = HpcUserCreateRequest
+    form_class = HpcUserCreateRequestForm
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["update"] = True
+        context["comment_history"] = obj.get_comment_history()
+        context["admin"] = True
+        return context
+
+    def get_success_url(self):
+        return reverse(
+            "adminsec:hpcusercreaterequest-detail",
+            kwargs={"hpcusercreaterequest": self.get_object().uuid},
+        )
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        obj = obj.revision_with_version()
+
+        if not obj:
+            messages.error(self.request, "Couldn't update user request.")
+            return HttpResponseRedirect(reverse("adminsec:overview"))
+
+        messages.success(self.request, "Revision requested.")
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
+    """HpcUserCreateRequest approve view."""
+
+    template_name_suffix = "_approve_confirm"
+    model = HpcUserCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = "Request approved"
+        obj.editor = self.request.user
+        obj.approve_with_version()
+
+        # TODO - Send out mail to user with link to special view.
+        # TODO - Create special view that creates HpcUser upon login.
+
+        messages.success(self.request, "Request approved and user NOT created.")
+        return HttpResponseRedirect(
+            reverse(
+                "adminsec:hpcusercreaterequest-detail",
+                kwargs={"hpcusercreaterequest": obj.uuid},
+            )
+        )
+
+
+class HpcUserCreateRequestDenyView(HpcPermissionMixin, DeleteView):
+    """HpcUserCreateRequest deny view."""
+
+    template_name_suffix = "_deny_confirm"
+    model = HpcUserCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcUserCreateRequestForm(
+            user=self.request.user,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = self.request.POST.get("comment")
+        obj.editor = self.request.user
+        obj.deny_with_version()
+        messages.success(self.request, "Request successfully denied.")
+        return HttpResponseRedirect(
+            reverse(
+                "adminsec:hpcusercreaterequest-detail",
+                kwargs={"hpcusercreaterequest": obj.uuid},
             )
         )

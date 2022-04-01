@@ -58,7 +58,7 @@ class SecondaryLDAPBackend(LDAPBackend):
 
 
 @receiver(populate_user, sender=PrimaryLDAPBackend)
-def primary_ldap_auth_handler(user, ldap_user, **kwargs):
+def primary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
     phone = ldap_user.attrs.get("telephoneNumber")
 
     if phone:
@@ -66,7 +66,7 @@ def primary_ldap_auth_handler(user, ldap_user, **kwargs):
 
 
 @receiver(populate_user, sender=SecondaryLDAPBackend)
-def secondary_ldap_auth_handler(user, ldap_user, **kwargs):
+def secondary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
     phone = ldap_user.attrs.get("telephoneNumber")
 
     if phone:

@@ -11,12 +11,18 @@
         <span class="badge bg-{{ object.status|colorize_request_status }}">
           {{ object.status|lower }}
         </span>
-        <span class="float-end btn-group">
+        <span class="float-end">
+          <a class="btn btn-primary"
+             href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.uuid %}"
+          >
+            <i class="iconify" data-icon="mdi:user"></i>
+            Add User
+          </a>
           <a class="btn btn-primary"
              href="#hpcgroup-change"
           >
             <i class="iconify" data-icon="mdi:update"></i>
-            Update
+            Request Change
           </a>
         </span>
       </h4>

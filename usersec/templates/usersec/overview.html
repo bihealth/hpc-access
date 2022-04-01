@@ -4,6 +4,11 @@
 
 {% block content %}
 
+  <h3>Welcome, {{ object.user.name }}!</h3>
+  <p class="text-muted">
+    This is the user landing page and holds information about your user and links to the
+    working group you are affiliated with.
+  </p>
   <div class="card w-50">
     <div class="card-header">
       <h4 class="card-title">
@@ -52,5 +57,25 @@
       </dl>
     </div>
   </div>
+  <div class="card w-50">
+    <div class="card-header">
+      <h5>
+        Open HPC User Requests
+      </h5>
+    </div>
+    <div class="card-body">
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcusercreaterequests %}
+          <li class="list-group-item">
+            <a href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=obj.uuid %}">
+              {{ obj.email }}
+            </a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
 
 {% endblock content %}

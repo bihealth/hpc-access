@@ -9,6 +9,8 @@ from usersec.tests.factories import (
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
     HpcUserFactory,
+    HpcUserCreateRequestFactory,
+    HPCUSERCREATEREQUESTFORM_DATA_VALID,
 )
 
 
@@ -40,28 +42,35 @@ class TestRulesBase(TestCase):
         self.user_member = self.make_user("member")
 
         # User without group
-        self.user_no_group = self.make_user("user_no_group")
+        self.user_member_other_group = self.make_user("user_no_group")
 
         # Pending user
         self.user_pending = self.make_user("pending")
 
-        self.hpc_owner = HpcUserFactory(user=self.user_owner)
-        self.hpc_delegate = HpcUserFactory(user=self.user_delegate)
-        self.hpc_member = HpcUserFactory(user=self.user_member)
-        self.hpc_user_no_group = HpcUserFactory(user=self.user_no_group)
-        self.hpc_group_request = HpcGroupCreateRequestFactory(requester=self.user_pending)
+        # Create HPC groups
+        self.hpc_group = HpcGroupFactory()
+        self.hpc_other_group = HpcGroupFactory()
 
-        self.hpc_group = HpcGroupFactory(
-            owner=self.hpc_owner,
-            delegate=self.hpc_delegate,
+        # Create HPC users
+        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
+        self.hpc_delegate = HpcUserFactory(user=self.user_delegate, primary_group=self.hpc_group)
+        self.hpc_member = HpcUserFactory(user=self.user_member, primary_group=self.hpc_group)
+        self.hpc_member_other_group = HpcUserFactory(
+            user=self.user_member_other_group, primary_group=self.hpc_other_group
         )
 
-        self.hpc_owner.primary_group = self.hpc_group
-        self.hpc_owner.save()
-        self.hpc_delegate.primary_group = self.hpc_group
-        self.hpc_delegate.save()
-        self.hpc_member.primary_group = self.hpc_group
-        self.hpc_member.save()
+        # Set group owner and delegate
+        self.hpc_group.owner = self.hpc_owner
+        self.hpc_group.delegate = self.hpc_delegate
+        self.hpc_group.save()
+
+        # Create HPC group create request
+        self.hpc_group_create_request = HpcGroupCreateRequestFactory(requester=self.user_pending)
+
+        # Create HPC user create request
+        self.hpc_user_create_request = HpcUserCreateRequestFactory(
+            requester=self.user_pending, group=self.hpc_group
+        )
 
     def assert_permissions_granted(self, perm, group, users):
         for user in users:
@@ -117,27 +126,117 @@ class TestRulesBase(TestCase):
 
 
 class TestRules(TestRulesBase):
-
     """Tests for rules."""
 
     def test_is_cluster_user_false(self):
-        self.assertFalse(rules.test_rule("is_cluster_user", self.user))
+        self.assertFalse(
+            rules.test_rule("usersec.is_cluster_user", self.user_pending)
+        )  # noqa: E1101
 
     def test_is_cluster_user_true(self):
-        HpcUserFactory(user=self.user)
-        self.assertTrue(rules.test_rule("is_cluster_user", self.user))
+        self.assertTrue(rules.test_rule("usersec.is_cluster_user", self.user_member))  # noqa: E1101
 
     def test_has_pending_group_request_false(self):
-        HpcUserFactory(user=self.user)
-        self.assertFalse(rules.test_rule("has_pending_group_request", self.user))
+        self.assertFalse(
+            rules.test_rule("usersec.has_pending_group_request", self.user)
+        )  # noqa: E1101
 
     def test_has_pending_group_request_true(self):
-        HpcGroupCreateRequestFactory(requester=self.user)
-        self.assertTrue(rules.test_rule("has_pending_group_request", self.user))
+        self.assertTrue(
+            rules.test_rule("usersec.has_pending_group_request", self.user_pending)
+        )  # noqa: E1101
+
+    def test_is_group_manager_owner_true(self):
+        self.assertTrue(
+            rules.test_rule(
+                "usersec.is_group_manager", self.user_owner, self.hpc_group
+            )  # noqa: E1101
+        )
+
+    def test_is_group_manager_delegate_true(self):
+        self.assertTrue(
+            rules.test_rule(
+                "usersec.is_group_manager", self.user_delegate, self.hpc_group
+            )  # noqa: E1101
+        )
+
+    def test_is_group_manager_member_false(self):
+        self.assertFalse(
+            rules.test_rule(
+                "usersec.is_group_manager", self.user_member, self.hpc_group
+            )  # noqa: E1101
+        )
 
 
 class TestPermissions(TestRulesBase):
     """Tests for permissions without views."""
+
+    def test_view_hpcuser(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+        ]
+        bad_users = [
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.view_hpcuser"
+        self.assert_permissions_granted(perm, self.hpc_member, good_users)
+        self.assert_permissions_denied(perm, self.hpc_member, bad_users)
+
+    def test_view_hpcusercreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.view_hpcusercreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_user_create_request, bad_users)
+
+    def test_create_hpcusercreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.create_hpcusercreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_group, good_users)
+        self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+
+    def test_manage_hpcusercreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.manage_hpcusercreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_user_create_request, bad_users)
 
     def test_view_hpcgroup(self):
         good_users = [
@@ -146,7 +245,7 @@ class TestPermissions(TestRulesBase):
             self.user_delegate,
             self.user_member,
         ]
-        bad_users = [self.user_hpcadmin, self.user_no_group, self.user]
+        bad_users = [self.user_hpcadmin, self.user_member_other_group, self.user]
         perm = "usersec.view_hpcgroup"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
@@ -158,12 +257,12 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
         perm = "usersec.view_hpcgroupcreaterequest"
-        self.assert_permissions_granted(perm, self.hpc_group_request, good_users)
-        self.assert_permissions_denied(perm, self.hpc_group_request, bad_users)
+        self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_group_create_request, bad_users)
 
     def test_create_hpcgroupcreaterequest(self):
         good_users = [self.superuser, self.user]
@@ -172,28 +271,26 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user_pending,
         ]
         perm = "usersec.create_hpcgroupcreaterequest"
         self.assert_permissions_granted(perm, None, good_users)
         self.assert_permissions_denied(perm, None, bad_users)
 
-    def test_view_hpcuser(self):
-        good_users = [
-            self.superuser,
+    def test_manage_hpcgroupcreaterequest(self):
+        good_users = [self.superuser, self.user_pending]
+        bad_users = [
+            self.user_hpcadmin,
             self.user_owner,
             self.user_delegate,
             self.user_member,
-        ]
-        bad_users = [
-            self.user_hpcadmin,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
-        perm = "usersec.view_hpcuser"
-        self.assert_permissions_granted(perm, self.hpc_member, good_users)
-        self.assert_permissions_denied(perm, self.hpc_member, bad_users)
+        perm = "usersec.manage_hpcgroupcreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_group_create_request, bad_users)
 
 
 class TestPermissionsInViews(TestRulesBase):
@@ -207,7 +304,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
         ]
         pending_users = [self.user_pending]
 
@@ -236,7 +333,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse(
                 "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
             ),
         )
         self.assert_permissions_on_url(
@@ -255,7 +352,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user_pending,
         ]
 
@@ -270,7 +367,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user_pending,
         ]
         data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
@@ -298,7 +395,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_detail_view(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-detail",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -306,7 +403,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
 
@@ -316,7 +413,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_update_view_get(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-update",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -324,7 +421,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
 
@@ -334,7 +431,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_update_view_post(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-update",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -342,7 +439,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
         data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
@@ -355,7 +452,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse(
                 "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
             ),
         )
         self.assert_permissions_on_url(
@@ -370,7 +467,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-retract",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -378,7 +475,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
 
@@ -388,7 +485,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_retract_view_post(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-retract",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -396,7 +493,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
 
@@ -407,7 +504,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse(
                 "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
             ),
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
@@ -415,7 +512,7 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_group_create_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-reactivate",
-            kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -423,7 +520,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
-            self.user_no_group,
+            self.user_member_other_group,
             self.user,
         ]
 
@@ -434,7 +531,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse(
                 "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_request.uuid},
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
             ),
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
@@ -453,7 +550,109 @@ class TestPermissionsInViews(TestRulesBase):
         bad_users = [
             self.user_pending,
             self.user_hpcadmin,
-            self.user_no_group,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_view(self):
+        url = reverse(
+            "usersec:hpcgroup-detail",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_user_create_request_create_view_get(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_user_create_request_create_view_post(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+        data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            200,
+            req_kwargs=data,
+            redirect_url=reverse(
+                "usersec:hpcgroupcreaterequest-detail",
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "GET",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+        )
+
+    def test_hpc_user_create_request_detail_view(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-detail",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
             self.user,
         ]
 
