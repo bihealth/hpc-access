@@ -32,6 +32,7 @@ UserSec
 - Created HPC user view (#13)
 - Created HPC group detail view (#53)
 - Registered models with admin site (#53)
+- Created HPC user create request views (#58)
 
 AdminSec
 --------
@@ -41,3 +42,4 @@ AdminSec
 - Created functionality to accept group create requests (#37)
 - Created HPC admin flag for user and added permission (#37)
 - Accepting group create request creates HPC user and group (#13)
+- Created HPC user create request views (#58)

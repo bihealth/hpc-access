@@ -99,12 +99,9 @@ class VersionManager(models.Manager):
 class VersionRequestManager(VersionManager):
     """Custom manager for requests."""
 
-    def active(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(status__in=(REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED))
-        )
+    def active(self, **kwargs):
+        kwargs.update({"status__in": (REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED)})
+        return super().get_queryset().filter(**kwargs)
 
 
 class VersionManagerMixin:
@@ -507,7 +504,6 @@ class HpcGroupRequestAbstract(HpcRequestAbstract):
 
 
 class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
-
     """HpcGroupChangeRequest abstract base class"""
 
     class Meta:
@@ -521,7 +517,6 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
 
 
 class HpcGroupChangeRequest(VersionManagerMixin, HpcGroupChangeRequestAbstract):
-
     """HpcGroupChangeRequest model"""
 
     #: Set custom manager
@@ -534,7 +529,6 @@ class HpcGroupChangeRequest(VersionManagerMixin, HpcGroupChangeRequestAbstract):
 
 
 class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
-
     """HpcGroupChangeRequestVersion model"""
 
     class Meta:
@@ -554,7 +548,6 @@ class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
 
 
 class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
-
     """HpcGroupCreateRequest abstract base class"""
 
     class Meta:
@@ -571,7 +564,6 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
 
 
 class HpcGroupCreateRequest(VersionManagerMixin, HpcGroupCreateRequestAbstract):
-
     """HpcGroupCreateRequest model"""
 
     #: Set custom manager
@@ -584,7 +576,6 @@ class HpcGroupCreateRequest(VersionManagerMixin, HpcGroupCreateRequestAbstract):
 
 
 class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
-
     """HpcGroupCreateRequestVersion model"""
 
     class Meta:
@@ -604,7 +595,6 @@ class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
 
 
 class HpcGroupDeleteRequest(VersionManagerMixin, HpcGroupRequestAbstract):
-
     """HpcGroupDeleteRequest model"""
 
     #: Set custom manager
@@ -617,7 +607,6 @@ class HpcGroupDeleteRequest(VersionManagerMixin, HpcGroupRequestAbstract):
 
 
 class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
-
     """HpcGroupDeleteRequestVersion model"""
 
     class Meta:
@@ -637,7 +626,6 @@ class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
 
 
 class HpcUserRequestAbstract(HpcRequestAbstract):
-
     """HpcUserRequest abstract base class"""
 
     class Meta:
@@ -654,7 +642,6 @@ class HpcUserRequestAbstract(HpcRequestAbstract):
 
 
 class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
-
     """HpcUserChangeRequest abstract base class"""
 
     class Meta:
@@ -668,7 +655,6 @@ class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
 
 
 class HpcUserChangeRequest(VersionManagerMixin, HpcUserChangeRequestAbstract):
-
     """HpcUserChangeRequest model"""
 
     #: Set custom manager
@@ -681,7 +667,6 @@ class HpcUserChangeRequest(VersionManagerMixin, HpcUserChangeRequestAbstract):
 
 
 class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
-
     """HpcUserChangeRequestVersion model"""
 
     class Meta:
@@ -701,7 +686,6 @@ class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
 
 
 class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
-
     """HpcUserCreateRequest abstract base class"""
 
     class Meta:
@@ -710,12 +694,23 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
     #: Users requested resources as JSON.
     resources_requested = models.JSONField()
 
+    #: Email of the user to send an invitation to.
+    email = models.CharField(max_length=255, help_text="Email of user to send an invitation to")
+
+    #: Group the request belongs to.
+    group = models.ForeignKey(
+        HpcGroup,
+        related_name="%(class)s",
+        help_text="Group the request belongs to",
+        null=True,
+        on_delete=models.CASCADE,
+    )
+
     #: Expiration date of the user
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
 
 class HpcUserCreateRequest(VersionManagerMixin, HpcUserCreateRequestAbstract):
-
     """HpcUserCreateRequest model"""
 
     #: Set custom manager
@@ -728,7 +723,6 @@ class HpcUserCreateRequest(VersionManagerMixin, HpcUserCreateRequestAbstract):
 
 
 class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
-
     """HpcUserCreateRequestVersion model"""
 
     #: Version number of the user create request object.
@@ -745,7 +739,6 @@ class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
 
 
 class HpcUserDeleteRequest(VersionManagerMixin, HpcUserRequestAbstract):
-
     """HpcUserDeleteRequest model"""
 
     #: Set custom manager
@@ -758,7 +751,6 @@ class HpcUserDeleteRequest(VersionManagerMixin, HpcUserRequestAbstract):
 
 
 class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
-
     """HpcUserDeleteRequestVersion model"""
 
     class Meta:

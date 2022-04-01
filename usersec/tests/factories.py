@@ -43,6 +43,15 @@ HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
 }
 
 
+#: Valid data for HpcUserCreateRequestForm.
+HPCUSERCREATEREQUESTFORM_DATA_VALID = {
+    "resources_requested": json.dumps({"resource": 100}),
+    "email": "user@bih-charite.de",
+    "expiration": "2022-01-01",
+    "comment": "nothing",
+}
+
+
 # ------------------------------------------------------------------------------
 # Factories
 # ------------------------------------------------------------------------------
@@ -183,6 +192,8 @@ class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
     class Meta:
         model = HpcUserCreateRequest
 
+    group = None
+    email = "user@bih-charite.de"
     resources_requested = {"null": "null"}
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
