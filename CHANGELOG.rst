@@ -17,6 +17,7 @@ General
 - Added ``rules`` package dependency (#9)
 - Added codacy integration (#6)
 - Reworked github CI workflow (#6)
+- Added ``popper.js`` library for tooltip support (#64)
 
 UserSec
 -------
@@ -33,6 +34,7 @@ UserSec
 - Created HPC group detail view (#53)
 - Registered models with admin site (#53)
 - Created HPC user create request views (#58)
+- Reworked overview page (#64)
 
 AdminSec
 --------
@@ -43,3 +45,4 @@ AdminSec
 - Created HPC admin flag for user and added permission (#37)
 - Accepting group create request creates HPC user and group (#13)
 - Created HPC user create request views (#58)
+- Reworked overview page (#64)

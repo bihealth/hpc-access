@@ -68,7 +68,29 @@ class AdminView(HpcPermissionMixin, TemplateView):
         # Add open HpcGroupCreateRequest
         context["hpcgroupcreaterequests"] = HpcGroupCreateRequest.objects.active()
 
-        # TODO: Add other open requests
+        # Add open HpcUserCreateRequest
+        context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.active()
+
+        # Add open HpcProjectCreateRequest
+        context["hpcprojectcreaterequests"] = None
+
+        # Add open HpcUserChangeRequest
+        context["hpcuserchangerequests"] = None
+
+        # Add open HpcGroupChangeRequest
+        context["hpcgroupchangerequests"] = None
+
+        # Add open HpcProjectChangeRequest
+        context["hpcprojectchangerequests"] = None
+
+        # Add open HpcGroupDeleteRequest
+        context["hpcgroupdeleterequests"] = None
+
+        # Add open HpcUserDeleteRequest
+        context["hpcuserdeleterequests"] = None
+
+        # Add open HpcProjectDeleteRequest
+        context["hpcprojectdeleterequests"] = None
 
         return context
 

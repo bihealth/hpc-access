@@ -223,8 +223,12 @@ class HpcUserView(HpcPermissionMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         group = context["object"].primary_group
+        is_manager = rules.test_rule(
+            "usersec.is_group_manager", self.request.user, group
+        )  # noqa: E1101
+        context["manager"] = is_manager
 
-        if rules.test_rule("usersec.is_group_manager", self.request.user, group):  # noqa: E1101
+        if is_manager:
             context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.active(group=group)
 
         return context

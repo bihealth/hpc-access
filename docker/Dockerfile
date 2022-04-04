@@ -62,6 +62,7 @@ RUN mkdir -p /usr/src/app/local-static/local/css && \
     wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css && \
     cd /usr/src/app/local-static/local/js && \
     wget \
+      https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js \
       https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js \
       https://browser.sentry-cdn.com/6.17.9/bundle.tracing.min.js
     #        https://code.jquery.com/jquery-3.5.1.min.js \
