@@ -4,78 +4,348 @@
 
 {% block content %}
 
-  <h3>Welcome, {{ object.user.name }}!</h3>
+  <h3 class="mt-4">Welcome, {{ object.user.name }}!</h3>
   <p class="text-muted">
     This is the user landing page and holds information about your user and links to the
     working group you are affiliated with.
   </p>
-  <div class="card w-50">
-    <div class="card-header">
-      <h4 class="card-title">
-        {{ object.username }}
-        <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
-        {% if object.hpcgroup_owner.exists %}
-          <span class="badge bg-info">AG Owner</span>
-        {% elif object.hpcgroup_delegate.exists %}
-          <span class="badge bg-info">AG Delegate</span>
-        {% endif %}
-      </h4>
-      <h6 class="card-subtitle text-muted">
-        {{ object.user.name }}
-      </h6>
-    </div>
-    <div class="card-body">
-      <div class="card-subtitle text-muted">
-        <ul class="list-unstyled">
-          <li>
-            <a href="mailto:{{ object.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
-            {{ object.user.email }}
-          </li>
-          <li>
-            <span class="iconify" data-icon="mdi:phone-classic"></span>
-            {{ object.user.phone }}
-          </li>
-        </ul>
-      </div>
-      <hr />
-      <dl class="row">
-        <dt class="col-sm-3">Resources</dt>
-        <dd class="col-sm-9">
+  <div class="row">
+    <div class="col-6">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">
+            {{ object.username }}
+            <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
+          </h4>
+          <h6 class="card-subtitle text-muted">
+            {{ object.user.name }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="card-subtitle text-muted">
+            <ul class="list-unstyled">
+              <li>
+                <a href="mailto:{{ object.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+                {{ object.user.email }}
+              </li>
+              <li>
+                <span class="iconify" data-icon="mdi:phone-classic"></span>
+                {{ object.user.phone }}
+              </li>
+              <li title="Expiration date" data-bs-toggle="tooltip">
+                <span class="iconify" data-icon="mdi:clock"></span>
+                {{ object.expiration }}
+              </li>
+            </ul>
+          </div>
+          <hr />
+          <h6>Resources</h6>
           <dl class="row">
-            {% for key, value in object.resources_requested.items %}
-              <dt class="col-sm-3 text-muted">{{ key }}</dt>
-              <dd class="col-sm-9">{{ value }}</dd>
-            {% endfor %}
+            <dd class="col-sm-9">
+              <dl class="row">
+                {% for key, value in object.resources_requested.items %}
+                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                  <dd class="col-sm-9">{{ value }}</dd>
+                {% endfor %}
+              </dl>
+            </dd>
           </dl>
-        </dd>
+        </div>
+      </div>
+    </div>
 
-        <dt class="col-sm-3">Expiration</dt>
-        <dd class="col-sm-9">{{ object.expiration }}</dd>
+    <div class="col-6">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">
+            {{ object.primary_group.name }}
+            <span class="badge bg-{{ object.primary_group.status|colorize_object_status }}">{{ object.primary_group.status|lower }}</span>
+            {% if object.hpcgroup_owner.exists %}
+              <span class="badge bg-primary">Owner</span>
+            {% elif object.hpcgroup_delegate.exists %}
+              <span class="badge bg-primary">Delegate</span>
+            {% endif %}
+          </h4>
+          <h6 class="card-subtitle text-muted">
+            {{ object.primary_group.description }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="card-subtitle text-muted">
+            <ul class="list-unstyled">
+              <li>
+                <span class="badge bg-primary">Owner</span>
+                <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.owner.uuid %}">{{ object.primary_group.owner.user.name }}</a>
+                <span class="small text-muted fw-bold">{{ object.primary_group.owner.username }}</span>
+              </li>
+              {% if object.primary_group.delegate %}
+                <li>
+                  <span class="badge bg-secondary">Delegate</span>
+                  <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.delegate.uuid %}">{{ object.primary_group.delegate.user.name }}</a>
+                  <span class="small text-muted fw-bold">{{ object.primary_group.delegate.username }}</span>
+                </li>
+              {% endif %}
+              <li title="Expiration date" data-bs-toggle="tooltip">
+                <span class="iconify" data-icon="mdi:clock"></span>
+                {{ object.primary_group.expiration }}
+              </li>
+            </ul>
+          </div>
+          <hr />
+          <dl class="row">
+            <dt class="col-sm-3">Resources</dt>
+            <dd class="col-sm-9">
+              <dl class="row">
+                {% for key, value in object.primary_group.resources_requested.items %}
+                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                  <dd class="col-sm-9">{{ value }}</dd>
+                {% endfor %}
+              </dl>
+            </dd>
 
-        <dt class="col-sm-3">Member of</dt>
-        <dd class="col-sm-9"><a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a></dd>
-      </dl>
+            <dt class="col-sm-3">Members ({{ object.primary_group.hpcuser.count }})</dt>
+            <dd class="col-sm-9">
+              <ul class="list-unstyled">
+                {% for member in object.primary_group.hpcuser.all %}
+                  <li><a href="{% url 'usersec:hpcuser-overview' hpcuser=member.uuid %}">{{ member.user.name }}</a> <span class="small text-muted fw-bold">{{ member.username }}</span></li>
+                {% empty %}
+                  <li><em class="text-muted">No members (?)</em></li>
+                {% endfor %}
+              </ul>
+            </dd>
+          </dl>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="card w-50">
-    <div class="card-header">
-      <h5>
-        Open HPC User Requests
-      </h5>
+
+  {% if manager %}
+    <h3 class="mb-4 mt-4">
+      Open Requests
+    </h3>
+
+    <hr class="mb-4" />
+
+    <div class="row mb-4">
+      <div class="col-4 text-center">
+        <h4>
+          <i class="iconify" data-icon="mdi:user-group"></i>
+          Group
+        </h4>
+      </div>
+      <div class="col-4 text-center">
+        <h4>
+          <i class="iconify" data-icon="mdi:user"></i>
+          User
+        </h4>
+      </div>
+      <div class="col-4 text-center">
+        <h4>
+          <i class="iconify" data-icon="mdi:package-variant"></i>
+          Project
+        </h4>
+      </div>
     </div>
-    <div class="card-body">
-      <ul class="list-group list-group-flush">
-        {% for obj in hpcusercreaterequests %}
-          <li class="list-group-item">
-            <a href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=obj.uuid %}">
-              {{ obj.email }}
-            </a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.status|lower }}
-            </span>
-          </li>
-        {% endfor %}
-      </ul>
+    <div class="row mb-4">
+      <div class="col-4">
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:create"></i>
+              Create
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcusercreaterequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:create"></i>
+              Create
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcprojectcreaterequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
     </div>
+    <div class="row mb-4">
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:refresh"></i>
+              Change
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcgroupchangerequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcgroupchangerequest-detail' hpcgroupchangerequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:refresh"></i>
+              Change
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcuserchangerequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcuserchangerequest-detail' hpcuserchangerequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:refresh"></i>
+              Change
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcgroupchangerequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcprojectchangerequest-detail' hpcprojectchangerequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-4">
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:trash-can"></i>
+              Delete
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcgroupdeleterequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcgroupdeleterequest-detail' hpcgroupdeleterequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:trash-can"></i>
+              Delete
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcuserdeleterequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcuserdeleterequest-detail' hpcuserdeleterequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="iconify" data-icon="mdi:trash-can"></i>
+              Delete
+            </h5>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for obj in hpcprojectdeleterequests %}
+              <li class="list-group-item">
+                <a href="{% url 'adminsec:hpcprojectdeleterequest-detail' hpcprojectdeleterequest=obj.uuid %}">
+                  {{ obj.requester.username }}
+                </a>
+                <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                  {{ obj.status|lower }}
+                </span>
+              </li>
+            {% empty %}
+              <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
 {% endblock content %}
