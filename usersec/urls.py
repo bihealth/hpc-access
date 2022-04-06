@@ -38,12 +38,17 @@ urlpatterns = [
         view=views.HpcUserView.as_view(),
         name="hpcuser-overview",
     ),
+    path(
+        "hpcuser/<uuid:hpcuser>/detail/",
+        view=views.HpcUserDetailView.as_view(),
+        name="hpcuser-detail",
+    ),
     # ------------------------------------------------------------------------------
     # HpcGroup related
     # ------------------------------------------------------------------------------
     path(
         "hpcgroup/<uuid:hpcgroup>/detail/",
-        view=views.HpcGroupView.as_view(),
+        view=views.HpcGroupDetailView.as_view(),
         name="hpcgroup-detail",
     ),
     # ------------------------------------------------------------------------------

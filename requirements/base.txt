@@ -20,3 +20,6 @@ sentry-sdk==1.5.8
 
 # Rule system
 rules==3.3
+
+# LDAP (not for authentication)
+ldap3==2.9.1

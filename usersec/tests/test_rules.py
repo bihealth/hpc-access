@@ -41,11 +41,16 @@ class TestRulesBase(TestCase):
         # Member
         self.user_member = self.make_user("member")
 
+        # User for user-centric views
+        self.user_member2 = self.make_user("member2")
+
         # User without group
-        self.user_member_other_group = self.make_user("user_no_group")
+        self.user_member_other_group = self.make_user("member_no_group")
 
         # Pending user
-        self.user_pending = self.make_user("pending")
+        self.user_pending = self.make_user("pending@CHARITE")
+        self.user_pending.name = "John Doe"
+        self.user_pending.save()
 
         # Create HPC groups
         self.hpc_group = HpcGroupFactory()
@@ -55,6 +60,7 @@ class TestRulesBase(TestCase):
         self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
         self.hpc_delegate = HpcUserFactory(user=self.user_delegate, primary_group=self.hpc_group)
         self.hpc_member = HpcUserFactory(user=self.user_member, primary_group=self.hpc_group)
+        self.hpc_member2 = HpcUserFactory(user=self.user_member2, primary_group=self.hpc_group)
         self.hpc_member_other_group = HpcUserFactory(
             user=self.user_member_other_group, primary_group=self.hpc_other_group
         )
@@ -72,13 +78,13 @@ class TestRulesBase(TestCase):
             requester=self.user_pending, group=self.hpc_group
         )
 
-    def assert_permissions_granted(self, perm, group, users):
+    def assert_permissions_granted(self, perm, obj, users):
         for user in users:
-            self.assertTrue(user.has_perm(perm, group), msg=f"user={user.username}")
+            self.assertTrue(user.has_perm(perm, obj), msg=f"user={user.username}")
 
-    def assert_permissions_denied(self, perm, group, users):
+    def assert_permissions_denied(self, perm, obj, users):
         for user in users:
-            self.assertFalse(user.has_perm(perm, group), msg=f"user={user.username}")
+            self.assertFalse(user.has_perm(perm, obj), msg=f"user={user.username}")
 
     def _send_request(self, url, method, req_kwargs):
         req_method = getattr(self.client, method.lower())
@@ -98,6 +104,7 @@ class TestRulesBase(TestCase):
         req_kwargs=None,
         lazy_url_callback=None,
         lazy_arg=None,
+        rollback_callback=None,
     ):
         if req_kwargs is None:
             req_kwargs = {}
@@ -123,6 +130,9 @@ class TestRulesBase(TestCase):
                             redirect_url = lazy_url_callback()
 
                     self.assertEqual(response.url, redirect_url, msg=f"user={user.username}")
+
+            if rollback_callback:
+                rollback_callback()
 
 
 class TestRules(TestRulesBase):
@@ -180,6 +190,7 @@ class TestPermissions(TestRulesBase):
         ]
         bad_users = [
             self.user_hpcadmin,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -197,6 +208,7 @@ class TestPermissions(TestRulesBase):
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -214,6 +226,7 @@ class TestPermissions(TestRulesBase):
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -231,6 +244,7 @@ class TestPermissions(TestRulesBase):
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -244,6 +258,7 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
         ]
         bad_users = [self.user_hpcadmin, self.user_member_other_group, self.user]
         perm = "usersec.view_hpcgroup"
@@ -257,6 +272,7 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -271,6 +287,7 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user_pending,
         ]
@@ -285,6 +302,7 @@ class TestPermissions(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -304,6 +322,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
         ]
         pending_users = [self.user_pending]
@@ -352,6 +371,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user_pending,
         ]
@@ -367,6 +387,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user_pending,
         ]
@@ -403,6 +424,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -421,6 +443,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -439,6 +462,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -475,6 +499,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -493,6 +518,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -520,6 +546,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -550,6 +577,7 @@ class TestPermissionsInViews(TestRulesBase):
         bad_users = [
             self.user_pending,
             self.user_hpcadmin,
+            self.user_member2,
             self.user_member_other_group,
             self.user,
         ]
@@ -557,7 +585,29 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
-    def test_hpc_group_view(self):
+    def test_hpc_user_detail_view(self):
+        url = reverse(
+            "usersec:hpcuser-detail",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+        ]
+        bad_users = [
+            self.user_hpcadmin,
+            self.user_pending,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_detail_view(self):
         url = reverse(
             "usersec:hpcgroup-detail",
             kwargs={"hpcgroup": self.hpc_group.uuid},
@@ -567,6 +617,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_owner,
             self.user_delegate,
             self.user_member,
+            self.user_member2,
         ]
         bad_users = [
             self.user_pending,
@@ -590,6 +641,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
         bad_users = [
             self.user_member,
+            self.user_member2,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member_other_group,
@@ -611,6 +663,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
         bad_users = [
             self.user_member,
+            self.user_member2,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member_other_group,
@@ -650,6 +703,7 @@ class TestPermissionsInViews(TestRulesBase):
         ]
         bad_users = [
             self.user_member,
+            self.user_member2,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member_other_group,

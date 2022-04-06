@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.contrib.messages import get_messages
 from django.urls import reverse
 from test_plus.test import TestCase
@@ -123,10 +124,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
                 response.context["comment_history"],
                 request.get_comment_history(),
             )
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertFalse(response.context["is_decided"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
@@ -140,10 +144,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertTrue(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_DENIED)
@@ -157,10 +164,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertTrue(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_APPROVED)
@@ -174,10 +184,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertTrue(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcGroupCreateRequestUpdateView(TestViewBase):
@@ -374,8 +387,24 @@ class TestHpcUserView(TestViewBase):
             self.assertEqual(response.context["object"], self.hpc_owner)
 
 
-class TestHpcGroupView(TestViewBase):
-    """Tests for HpcGroupView."""
+class TestHpcUserDetailView(TestViewBase):
+    """Tests for HpcUserDetailView."""
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuser-detail",
+                    kwargs={"hpcuser": self.hpc_owner.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.hpc_owner)
+
+
+class TestHpcGroupDetailView(TestViewBase):
+    """Tests for HpcGroupDetailView."""
 
     def test_get(self):
         with self.login(self.user_owner):
@@ -407,6 +436,7 @@ class TestHpcUserCreateRequestCreateView(TestViewBase):
                     "usersec:hpcusercreaterequest-create", kwargs={"hpcgroup": self.hpc_group.uuid}
                 ),
                 data=data,
+                follow=True,
             )
             request = HpcUserCreateRequest.objects.first()
             self.assertRedirects(
@@ -457,10 +487,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
                 response.context["comment_history"],
                 request.get_comment_history(),
             )
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertFalse(response.context["is_decided"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcUserCreateRequestFactory(
@@ -476,10 +509,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertTrue(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcUserCreateRequestFactory(
@@ -495,10 +531,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertTrue(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcUserCreateRequestFactory(
@@ -514,10 +553,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertTrue(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcUserCreateRequestUpdateView(TestViewBase):
@@ -558,7 +600,7 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
-            "email": "other@bih-charite.de",
+            "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
 
@@ -599,7 +641,7 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": "",
-            "email": "other@bih-charite.de",
+            "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
 

@@ -17,15 +17,8 @@
               <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
               Overview
             </a>
-          {% else %}
-            <a class="btn btn-secondary" href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.group.uuid %}">
-              <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-              Overview
-            </a>
-          {% endif %}
-          {% if not is_decided %}
-            <span class="btn-group">
-              {% if admin %}
+            {% if is_active %}
+              <span class="btn-group">
                 <a class="btn btn-warning"
                    href="{% url 'adminsec:hpcusercreaterequest-revision' hpcusercreaterequest=object.uuid %}"
                 >
@@ -44,13 +37,23 @@
                   <i class="iconify" data-icon="mdi:minus-circle"></i>
                   Deny
                 </a>
-              {% else %}
-                <a class="btn btn-primary"
-                   href="{% url 'usersec:hpcusercreaterequest-update' hpcusercreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:refresh"></i>
-                  Update
-                </a>
+              </span>
+            {% endif %}
+          {% else %}
+            <a class="btn btn-secondary" href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.group.uuid %}">
+              <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+              Overview
+            </a>
+            <span class="btn-group">
+              {% if not is_decided %}
+                {% if not is_active %}
+                  <a class="btn btn-primary"
+                     href="{% url 'usersec:hpcusercreaterequest-update' hpcusercreaterequest=object.uuid %}"
+                  >
+                    <i class="iconify" data-icon="mdi:refresh"></i>
+                    Update
+                  </a>
+                {% endif %}
                 {% if is_retracted %}
                   <a class="btn btn-success"
                      href="{% url 'usersec:hpcusercreaterequest-reactivate' hpcusercreaterequest=object.uuid %}"
@@ -89,8 +92,14 @@
             <dd class="col-sm-9">{{ object.requester }}</dd>
 
             <dt class="col-sm-3">Email</dt>
-            <dd class="col-sm-9">{{ object.email }}</dd>
+            <dd class="col-sm-9"><a href="mailto:{{ object.email }}">{{ object.email }}</a></dd>
 
+            <dt class="col-sm-3">Group</dt>
+            {% if admin %}
+              <dd class="col-sm-9"><a href="{% url 'adminsec:hpcgroup-detail' hpcgroup=object.group.uuid %}">{{ object.group.name }}</a></dd>
+            {% else %}
+              <dd class="col-sm-9"><a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.group.uuid %}">{{ object.group.name }}</a></dd>
+            {% endif %}
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration }}</dd>
           </dl>

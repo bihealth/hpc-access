@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 
 from usersec.models import HpcGroupCreateRequest, HpcUserCreateRequest
 
@@ -72,12 +73,15 @@ class HpcUserCreateRequestForm(forms.ModelForm):
             return
 
         email_split = email.split("@")
+        valid_domains = []
 
-        if not len(email_split) == 2:
-            self.add_error("email", "Not a valid email address.")
-            return
+        if settings.ENABLE_LDAP:
+            valid_domains += settings.INSTITUTE_EMAIL_DOMAINS.split(",")
 
-        if email_split[1].lower() not in ("charite.de", "bih-charite.de", "mdc-berlin.de"):
+        if settings.ENABLE_LDAP_SECONDARY:
+            valid_domains += settings.INSTITUTE2_EMAIL_DOMAINS.split(",")
+
+        if email_split[1].lower() not in valid_domains:
             self.add_error("email", "No institute email address.")
             return
 

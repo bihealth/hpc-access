@@ -318,9 +318,10 @@ if ENABLE_LDAP:
     AUTH_LDAP_BIND_DN = env.str("AUTH_LDAP_BIND_DN", None)
     AUTH_LDAP_BIND_PASSWORD = env.str("AUTH_LDAP_BIND_PASSWORD", None)
     AUTH_LDAP_CONNECTION_OPTIONS = LDAP_DEFAULT_CONN_OPTIONS
+    AUTH_LDAP_USER_SEARCH_BASE = env.str("AUTH_LDAP_USER_SEARCH_BASE", None)
 
     AUTH_LDAP_USER_SEARCH = LDAPSearch(
-        env.str("AUTH_LDAP_USER_SEARCH_BASE", None),
+        AUTH_LDAP_USER_SEARCH_BASE,
         ldap.SCOPE_SUBTREE,
         LDAP_DEFAULT_FILTERSTR,
     )
@@ -335,15 +336,21 @@ if ENABLE_LDAP:
         )
     )
 
+    INSTITUTE_EMAIL_DOMAINS = env.str(
+        "INSTITUTE_EMAIL_DOMAINS"
+    )  # comma separated list, e.g. example.com,example.net
+    INSTITUTE_USERNAME_SUFFIX = env.str("INSTITUTE_USERNAME_SUFFIX")
+
     # Secondary LDAP server (optional)
     if ENABLE_LDAP_SECONDARY:
         AUTH_LDAP2_SERVER_URI = env.str("AUTH_LDAP2_SERVER_URI", None)
         AUTH_LDAP2_BIND_DN = env.str("AUTH_LDAP2_BIND_DN", None)
         AUTH_LDAP2_BIND_PASSWORD = env.str("AUTH_LDAP2_BIND_PASSWORD", None)
         AUTH_LDAP2_CONNECTION_OPTIONS = LDAP_DEFAULT_CONN_OPTIONS
+        AUTH_LDAP2_USER_SEARCH_BASE = env.str("AUTH_LDAP2_USER_SEARCH_BASE", None)
 
         AUTH_LDAP2_USER_SEARCH = LDAPSearch(
-            env.str("AUTH_LDAP2_USER_SEARCH_BASE", None),
+            AUTH_LDAP2_USER_SEARCH_BASE,
             ldap.SCOPE_SUBTREE,
             LDAP_DEFAULT_FILTERSTR,
         )
@@ -360,6 +367,18 @@ if ENABLE_LDAP:
             )
         )
 
+        INSTITUTE2_USERNAME_SUFFIX = env.str("INSTITUTE2_USERNAME_SUFFIX")
+        INSTITUTE2_EMAIL_DOMAINS = env.str(
+            "INSTITUTE2_EMAIL_DOMAINS"
+        )  # comma separated list, e.g. example.com,example.net
+
+
 SITE_TITLE = "HPC Access"
 SITE_SUBTITLE = "Beta"
 SITE_PACKAGE = "hpcaccess"
+
+# Email settings
+SEND_EMAIL = env.bool("SEND_EMAIL", False)
+EMAIL_HOST = env.str("EMAIL_HOST", "localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", 25)
+EMAIL_SENDER = env.str("EMAIL_SENDER", "")

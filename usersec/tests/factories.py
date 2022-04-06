@@ -2,6 +2,8 @@ import json
 import factory
 
 from datetime import datetime
+
+from django.conf import settings
 from django.forms import model_to_dict
 from django.utils.timezone import utc
 
@@ -46,7 +48,7 @@ HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
 #: Valid data for HpcUserCreateRequestForm.
 HPCUSERCREATEREQUESTFORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
-    "email": "user@bih-charite.de",
+    "email": "user@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
     "expiration": "2022-01-01",
     "comment": "nothing",
 }
@@ -107,7 +109,7 @@ class HpcUserFactory(HpcObjectFactoryBase):
     creator = None  # User
     description = "this is a user"
     uid = 2000
-    username = factory.Sequence(lambda n: f"user{n}_c")
+    username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
@@ -193,7 +195,7 @@ class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
         model = HpcUserCreateRequest
 
     group = None
-    email = "user@bih-charite.de"
+    email = "user@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0]
     resources_requested = {"null": "null"}
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 

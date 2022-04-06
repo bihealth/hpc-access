@@ -1,7 +1,10 @@
 import unicodedata
 from datetime import timedelta
 
+
+from django.conf import settings
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
@@ -12,6 +15,8 @@ from django.views.generic import (
     TemplateView,
 )
 
+from adminsec.email import send_invite
+from adminsec.ldap import LdapConnector
 from usersec.forms import HpcGroupCreateRequestForm, HpcUserCreateRequestForm
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -19,20 +24,43 @@ from usersec.models import (
     HpcUser,
     OBJECT_STATUS_ACTIVE,
     HpcUserCreateRequest,
+    OBJECT_STATUS_INITIAL,
 )
 from usersec.views import HpcPermissionMixin
 
 
-DOMAIN_MAPPING = {
-    "CHARITE": "c",
-    "MDC-BERLIN": "m",
-}
+LDAP_ENABLED = getattr(settings, "ENABLE_LDAP")
+# Required for LDAP2
+LDAP2_ENABLED = getattr(settings, "ENABLE_LDAP_SECONDARY")
+
+DOMAIN_MAPPING = {}
+
+if LDAP_ENABLED:
+    LDAP_DOMAIN = getattr(settings, "AUTH_LDAP_USERNAME_DOMAIN")
+    INSTITUTE_USERNAME_SUFFIX = getattr(settings, "INSTITUTE_USERNAME_SUFFIX")
+    DOMAIN_MAPPING[LDAP_DOMAIN] = INSTITUTE_USERNAME_SUFFIX
+
+if LDAP2_ENABLED:
+    LDAP2_DOMAIN = getattr(settings, "AUTH_LDAP2_USERNAME_DOMAIN")
+    INSTITUTE2_USERNAME_SUFFIX = getattr(settings, "INSTITUTE2_USERNAME_SUFFIX")
+    DOMAIN_MAPPING[LDAP2_DOMAIN] = INSTITUTE2_USERNAME_SUFFIX
+
 AG_PREFIX = "ag_"
 LDAP_USERNAME_SEPARATOR = "@"
 HPC_USERNAME_SEPARATOR = "_"
 
 
-def generate_hpc_username(username):
+def ldap_to_hpc_username(username, domain):
+    fail_string = ""
+    ending = DOMAIN_MAPPING.get(domain)
+
+    if not ending:
+        return fail_string
+
+    return f"{username}{HPC_USERNAME_SEPARATOR}{ending}"
+
+
+def django_to_hpc_username(username):
     fail_string = ""
     data = username.split(LDAP_USERNAME_SEPARATOR)
 
@@ -40,12 +68,8 @@ def generate_hpc_username(username):
         return fail_string
 
     username, domain = data
-    ending = DOMAIN_MAPPING.get(domain)
 
-    if not ending:
-        return fail_string
-
-    return f"{username}{HPC_USERNAME_SEPARATOR}{ending}"
+    return ldap_to_hpc_username(username, domain)
 
 
 def convert_to_posix(name):
@@ -95,6 +119,36 @@ class AdminView(HpcPermissionMixin, TemplateView):
         return context
 
 
+class HpcUserDetailView(HpcPermissionMixin, DetailView):
+    """HPC user detail view."""
+
+    model = HpcUser
+    template_name = "usersec/hpcuser_detail.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuser"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["admin"] = True
+        return context
+
+
+class HpcGroupDetailView(HpcPermissionMixin, DetailView):
+    """HPC group view."""
+
+    model = HpcGroup
+    template_name = "usersec/hpcgroup_detail.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroup"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["admin"] = True
+        return context
+
+
 class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
     """Pending group request detail view."""
 
@@ -108,10 +162,13 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["comment_history"] = obj.get_comment_history()
+        context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
         context["is_approved"] = obj.is_approved()
-        context["is_decided"] = obj.is_decided()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
         context["admin"] = True
         return context
 
@@ -196,9 +253,9 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             resources_requested={"some": "default"},
             creator=self.request.user,
             description="PI, created together with accepting the group request.",
-            username=generate_hpc_username(obj.requester.username),
+            username=django_to_hpc_username(obj.requester.username),
+            status=OBJECT_STATUS_ACTIVE,
             expiration=timezone.now() + timedelta(weeks=52),
-            # TODO phone
         )
 
         hpcgroup.owner = hpcuser
@@ -261,10 +318,13 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["comment_history"] = obj.get_comment_history()
+        context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
         context["is_approved"] = obj.is_approved()
-        context["is_decided"] = obj.is_decided()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
         context["admin"] = True
         return context
 
@@ -327,14 +387,56 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request approved"
-        obj.editor = self.request.user
-        obj.approve_with_version()
 
-        # TODO - Send out mail to user with link to special view.
-        # TODO - Create special view that creates HpcUser upon login.
+        try:
+            ldapcon = LdapConnector()
+            ldapcon.connect()
+            username, domain = ldapcon.get_ldap_username_domain_by_mail(obj.email)
 
-        messages.success(self.request, "Request approved and user NOT created.")
+        except Exception as e:
+            messages.error(self.request, "There was an error with the LDAP: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcusercreaterequest-detail",
+                    kwargs={"hpcusercreaterequest": obj.uuid},
+                )
+            )
+
+        try:
+            with transaction.atomic():
+                hpcuser = HpcUser.objects.create_with_version(
+                    user=None,
+                    primary_group=obj.group,
+                    resources_requested=obj.resources_requested,
+                    creator=self.request.user,
+                    username=ldap_to_hpc_username(username, domain),
+                    status=OBJECT_STATUS_INITIAL,
+                    expiration=obj.expiration,
+                )
+
+        except Exception as e:
+            messages.error(self.request, "Could not create user object: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcusercreaterequest-detail",
+                    kwargs={"hpcusercreaterequest": obj.uuid},
+                )
+            )
+
+        if settings.SEND_EMAIL:
+            send_invite(
+                recipient_list=[obj.email],
+                inviter=obj.requester,
+                hpcuser=hpcuser,
+                request=self.request,
+            )
+
+        with transaction.atomic():
+            obj.comment = "Request approved"
+            obj.editor = self.request.user
+            obj.approve_with_version()
+
+        messages.success(self.request, "Request approved and user created.")
         return HttpResponseRedirect(
             reverse(
                 "adminsec:hpcusercreaterequest-detail",

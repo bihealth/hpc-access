@@ -462,9 +462,7 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
     def is_decided(self):
         return self.status in (
-            REQUEST_STATUS_INITIAL,
             REQUEST_STATUS_DENIED,
-            REQUEST_STATUS_RETRACTED,
             REQUEST_STATUS_APPROVED,
         )
 
@@ -478,7 +476,10 @@ class HpcRequestAbstract(HpcObjectAbstract):
         return self.status == REQUEST_STATUS_APPROVED
 
     def is_active(self):
-        return self.status == REQUEST_STATUS_ACTIVE
+        return self.status in (
+            REQUEST_STATUS_ACTIVE,
+            REQUEST_STATUS_REVISED,
+        )
 
     def is_revised(self):
         return self.status == REQUEST_STATUS_REVISED
@@ -695,7 +696,9 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
     resources_requested = models.JSONField()
 
     #: Email of the user to send an invitation to.
-    email = models.CharField(max_length=255, help_text="Email of user to send an invitation to")
+    email = models.EmailField(
+        null=False, blank=False, help_text="Email of user to send an invitation to"
+    )
 
     #: Group the request belongs to.
     group = models.ForeignKey(
