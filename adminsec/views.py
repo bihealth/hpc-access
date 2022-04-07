@@ -52,7 +52,7 @@ HPC_USERNAME_SEPARATOR = "_"
 
 def ldap_to_hpc_username(username, domain):
     fail_string = ""
-    ending = DOMAIN_MAPPING.get(domain)
+    ending = DOMAIN_MAPPING.get(domain.upper())
 
     if not ending:
         return fail_string
