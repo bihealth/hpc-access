@@ -28,6 +28,17 @@ class PrimaryLDAPBackend(LDAPBackend):
                 return None
             ldap_user = _LDAPUser(self, username=username.strip())
         user = ldap_user.authenticate(password)
+
+        if not user.hpcuser_user.exists():
+            username = django_to_hpc_username(user.username)
+            hpcuser = HpcUser.objects.filter(username=username)
+
+            if hpcuser.count() == 1:
+                hpcuser = hpcuser.first()
+                hpcuser.user = user
+                hpcuser.status = OBJECT_STATUS_ACTIVE
+                hpcuser.save_with_version()
+
         return user
 
     def ldap_to_django_username(self, username):
@@ -49,6 +60,17 @@ class SecondaryLDAPBackend(LDAPBackend):
 
         ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
         user = ldap_user.authenticate(password)
+
+        if not user.hpcuser_user.exists():
+            username = django_to_hpc_username(user.username)
+            hpcuser = HpcUser.objects.filter(username=username)
+
+            if hpcuser.count() == 1:
+                hpcuser = hpcuser.first()
+                hpcuser.user = user
+                hpcuser.status = OBJECT_STATUS_ACTIVE
+                hpcuser.save_with_version()
+
         return user
 
     def ldap_to_django_username(self, username):
@@ -67,16 +89,6 @@ def primary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
     if phone:
         user.phone = phone[0]
 
-    if not user.hpcuser_user.exists():
-        username = django_to_hpc_username(user.username)
-        hpcuser = HpcUser.objects.filter(username=username)
-
-        if hpcuser.count() == 1:
-            hpcuser = hpcuser.first()
-            hpcuser.user = user
-            hpcuser.status = OBJECT_STATUS_ACTIVE
-            hpcuser.save_with_version()
-
 
 @receiver(populate_user, sender=SecondaryLDAPBackend)
 def secondary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
@@ -84,13 +96,3 @@ def secondary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
 
     if phone:
         user.phone = phone[0]
-
-    if not user.hpcuser_user.exists():
-        username = django_to_hpc_username(user.username)
-        hpcuser = HpcUser.objects.filter(username=username)
-
-        if hpcuser.count() == 1:
-            hpcuser = hpcuser.first()
-            hpcuser.user = user
-            hpcuser.status = OBJECT_STATUS_ACTIVE
-            hpcuser.save_with_version()

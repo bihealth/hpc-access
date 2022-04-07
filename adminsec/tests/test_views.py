@@ -548,8 +548,9 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request approved and user created.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Email sent to {}".format(self.obj.email))
+            self.assertEqual(str(messages[1]), "Request approved and user created.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()

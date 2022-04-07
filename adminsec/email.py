@@ -19,6 +19,16 @@ EMAIL_SENDER = settings.EMAIL_SENDER
 # Local constants
 EMAIL_RE = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
+EMAIL_DOMAIN_TO_INSTITUTE_MAPPING = {}
+
+if settings.ENABLE_LDAP:
+    for domain in settings.INSTITUTE_EMAIL_DOMAINS.split(","):
+        EMAIL_DOMAIN_TO_INSTITUTE_MAPPING[domain] = settings.AUTH_LDAP_DOMAIN_PRINTABLE
+
+if settings.ENABLE_LDAP_SECONDARY:
+    for domain in settings.INSTITUTE2_EMAIL_DOMAINS.split(","):
+        EMAIL_DOMAIN_TO_INSTITUTE_MAPPING[domain] = settings.AUTH_LDAP2_DOMAIN_PRINTABLE
+
 
 # ------------------------------------------------------------------------------
 # Generic Elements
@@ -28,11 +38,11 @@ EMAIL_RE = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 MESSAGE_INVITE = r"""
 You've been invited by {inviter} to become member of {ag} on the BIH cluster.
 
-The following link will require you log in and complete the registration.
+The following link will require you to complete the registration with your login.
 
 {invitation_link}
 
-Log in with your Charité or MDC credentials to gain access.
+Use with your {institute} credentials to gain access.
 
 Cheers,
   Gatekeeper
@@ -103,12 +113,33 @@ Cheers,
 
 
 def send_invite(recipient_list, inviter, hpcuser, request=None):
+    institute = "???"
+    invitation_link = "???"
+
+    if len(recipient_list) > 1:
+        institute = "institutes"
+
+    elif len(recipient_list) == 1:
+        user_domain = recipient_list[0].split("@")
+
+        if len(user_domain) == 2:
+            institute = EMAIL_DOMAIN_TO_INSTITUTE_MAPPING.get(user_domain[1], "???")
+
+    else:
+        return 0
+
+    if request:
+        invitation_link = request.build_absolute_uri(
+            reverse("usersec:hpcuser-overview", kwargs={"hpcuser": hpcuser.uuid})
+        )
+
     subject = "Invitation for a BIH Cluster account"
     message = MESSAGE_INVITE.format(
         site_title=settings.SITE_TITLE,
         inviter=inviter.user.name,
         ag=inviter.primary_group.name,
-        invitation_link=reverse("usersec:hpcuser-overview", kwargs={"hpcuser": hpcuser.uuid}),
+        institute=institute,
+        invitation_link=invitation_link,
     )
     return send_mail(subject, message, recipient_list, request)
 
