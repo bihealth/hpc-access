@@ -426,7 +426,7 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         if settings.SEND_EMAIL:
             send_invite(
                 recipient_list=[obj.email],
-                inviter=obj.requester,
+                inviter=obj.requester.hpcuser_user.first(),
                 hpcuser=hpcuser,
                 request=self.request,
             )

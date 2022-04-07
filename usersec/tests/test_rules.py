@@ -34,6 +34,8 @@ class TestRulesBase(TestCase):
 
         # Owner
         self.user_owner = self.make_user("owner")
+        self.user_owner.name = "Group Owner"
+        self.user_owner.save()
 
         # Delegate
         self.user_delegate = self.make_user("delegate")
@@ -75,7 +77,7 @@ class TestRulesBase(TestCase):
 
         # Create HPC user create request
         self.hpc_user_create_request = HpcUserCreateRequestFactory(
-            requester=self.user_pending, group=self.hpc_group
+            requester=self.user_owner, group=self.hpc_group
         )
 
     def assert_permissions_granted(self, perm, obj, users):
