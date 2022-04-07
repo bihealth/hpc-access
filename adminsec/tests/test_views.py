@@ -1,12 +1,16 @@
 import json
+from unittest.mock import patch
 
+from django.conf import settings
+from django.test import override_settings
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from adminsec.views import (
-    generate_hpc_username,
+    django_to_hpc_username,
     convert_to_posix,
     generate_hpc_groupname,
+    ldap_to_hpc_username,
 )
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -37,6 +41,35 @@ class TestAdminView(TestViewBase):
             )
 
 
+class TestHpcUserDetailView(TestViewBase):
+    """Tests for HpcUserDetailView."""
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuser-detail",
+                    kwargs={"hpcuser": self.hpc_owner.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.hpc_owner)
+
+
+class TestHpcGroupDetailView(TestViewBase):
+    """Tests for HpcGroupDetailView."""
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse("adminsec:hpcgroup-detail", kwargs={"hpcgroup": self.hpc_group.uuid})
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.hpc_group)
+
+
 class TestHpcGroupCreateRequestDetailView(TestViewBase):
     """Tests for HpcGroupCreateRequestDetailView."""
 
@@ -56,10 +89,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
                 response.context["comment_history"],
                 request.get_comment_history(),
             )
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertFalse(response.context["is_decided"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
             self.assertTrue(response.context["admin"])
 
     def test_get_retracted(self):
@@ -74,10 +110,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertTrue(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_DENIED)
@@ -91,10 +130,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertTrue(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_APPROVED)
@@ -108,10 +150,13 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertTrue(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcGroupCreateRequestRevisionView(TestViewBase):
@@ -199,6 +244,10 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(response.status_code, 200)
             self.assertIsNotNone(response.context["form"])
 
+    @override_settings(
+        INSTITUTE_EMAIL_DOMAINS="charite.de",
+        INSTITUTE_USERNAME_SUFFIX="c",
+    )
     def test_post(self):
         with self.login(self.user_hpcadmin):
             response = self.client.post(
@@ -234,7 +283,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             hpcgroup = hpcgroups.last()  # noqa: E1101
 
             self.assertEqual(hpcuser.user, self.user)
-            self.assertEqual(hpcuser.username, "user_c")
+            self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
             self.assertEqual(hpcgroup.name, "ag_doe")
@@ -307,10 +356,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
                 response.context["comment_history"],
                 request.get_comment_history(),
             )
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertFalse(response.context["is_decided"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
             self.assertTrue(response.context["admin"])
 
     def test_get_retracted(self):
@@ -327,10 +379,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertTrue(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcUserCreateRequestFactory(
@@ -346,10 +401,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertTrue(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertFalse(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcUserCreateRequestFactory(
@@ -365,10 +423,13 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             )
 
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
             self.assertFalse(response.context["is_denied"])
             self.assertFalse(response.context["is_retracted"])
             self.assertTrue(response.context["is_approved"])
-            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcUserCreateRequestRevisionView(TestViewBase):
@@ -460,7 +521,16 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
             self.assertEqual(response.status_code, 200)
             self.assertIsNotNone(response.context["form"])
 
-    def test_post(self):
+    @patch("adminsec.ldap.LdapConnector.connect")
+    @patch("adminsec.ldap.LdapConnector.get_ldap_username_domain_by_mail")
+    def test_post(self, mock_get_ldap_username_domain_by_mail, mock_connect):
+        mock_get_ldap_username_domain_by_mail.return_value = (
+            "new_user",
+            settings.AUTH_LDAP_USERNAME_DOMAIN,
+        )
+
+        self.assertEqual(HpcUser.objects.count(), 1)
+
         with self.login(self.user_hpcadmin):
             response = self.client.post(
                 reverse(
@@ -479,11 +549,19 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
 
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request approved and user NOT created.")
+            self.assertEqual(str(messages[0]), "Request approved and user created.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_APPROVED)
+
+            self.assertEqual(HpcUser.objects.count(), 2)
+            user = HpcUser.objects.last()
+            self.assertEqual(user.username, "new_user_" + settings.INSTITUTE_USERNAME_SUFFIX)
+            self.assertIsNone(user.user)
+
+            mock_get_ldap_username_domain_by_mail.assert_called_with(self.obj.email)
+            mock_connect.assert_called_once()
 
 
 class TestHpcUserCreateRequestDenyView(TestViewBase):
@@ -537,21 +615,44 @@ class TestHpcUserCreateRequestDenyView(TestViewBase):
 class TestFunctions(TestViewBase):
     """Test non-view related functions."""
 
-    def test_generate_hpc_username_charite(self):
-        username = "user@CHARITE"
-        self.assertEqual(generate_hpc_username(username), "user_c")
+    def test_ldap_to_hpc_username_institute1(self):
+        username = "user"
+        domain = settings.AUTH_LDAP_USERNAME_DOMAIN
+        self.assertEqual(
+            ldap_to_hpc_username(username, domain), "user_" + settings.INSTITUTE_USERNAME_SUFFIX
+        )
 
-    def test_generate_hpc_username_mdc(self):
-        username = "user@MDC-BERLIN"
-        self.assertEqual(generate_hpc_username(username), "user_m")
+    def test_ldap_to_hpc_username_institute2(self):
+        username = "user"
+        domain = settings.AUTH_LDAP2_USERNAME_DOMAIN
+        self.assertEqual(
+            ldap_to_hpc_username(username, domain), "user_" + settings.INSTITUTE2_USERNAME_SUFFIX
+        )
 
-    def test_generate_hpc_username_invalid_string(self):
+    def test_ldap_to_hpc_username_invalid_string(self):
+        username = "user"
+        domain = "UNKNOWN"
+        self.assertEqual(ldap_to_hpc_username(username, domain), "")
+
+    def test_django_to_hpc_username_institute1(self):
+        username = "user@" + settings.AUTH_LDAP_USERNAME_DOMAIN
+        self.assertEqual(
+            django_to_hpc_username(username), "user_" + settings.INSTITUTE_USERNAME_SUFFIX
+        )
+
+    def test_django_to_hpc_username_institute2(self):
+        username = "user@" + settings.AUTH_LDAP2_USERNAME_DOMAIN
+        self.assertEqual(
+            django_to_hpc_username(username), "user_" + settings.INSTITUTE2_USERNAME_SUFFIX
+        )
+
+    def test_django_to_hpc_username_invalid_string(self):
         username = "user@A@B"
-        self.assertEqual(generate_hpc_username(username), "")
+        self.assertEqual(django_to_hpc_username(username), "")
 
-    def test_generate_hpc_username_invalid_domain(self):
+    def test_django_to_hpc_username_invalid_domain(self):
         username = "user@UNKNOWN"
-        self.assertEqual(generate_hpc_username(username), "")
+        self.assertEqual(django_to_hpc_username(username), "")
 
     def test_convert_to_posix(self):
         name = "LeéèÄAöo"

@@ -14,7 +14,7 @@
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            {{ object.username }}
+            <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.uuid %}">{{ object.username }}</a>
             <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
           </h4>
           <h6 class="card-subtitle text-muted">
@@ -58,7 +58,7 @@
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            {{ object.primary_group.name }}
+            <a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a>
             <span class="badge bg-{{ object.primary_group.status|colorize_object_status }}">{{ object.primary_group.status|lower }}</span>
             {% if object.hpcgroup_owner.exists %}
               <span class="badge bg-primary">Owner</span>
@@ -103,11 +103,14 @@
               </dl>
             </dd>
 
-            <dt class="col-sm-3">Members ({{ object.primary_group.hpcuser.count }})</dt>
+            <dt class="col-sm-3">Members <span class="badge bg-secondary">{{ object.primary_group.hpcuser.count }}</span></dt>
             <dd class="col-sm-9">
               <ul class="list-unstyled">
                 {% for member in object.primary_group.hpcuser.all %}
-                  <li><a href="{% url 'usersec:hpcuser-overview' hpcuser=member.uuid %}">{{ member.user.name }}</a> <span class="small text-muted fw-bold">{{ member.username }}</span></li>
+                  <li>
+                    <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
+                    <span class="small text-muted fw-bold">{{ member.username }}</span>
+                  </li>
                 {% empty %}
                   <li><em class="text-muted">No members (?)</em></li>
                 {% endfor %}
@@ -160,7 +163,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcusercreaterequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -184,7 +187,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcprojectcreaterequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -210,7 +213,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcgroupchangerequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcgroupchangerequest-detail' hpcgroupchangerequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcgroupchangerequest-detail' hpcgroupchangerequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -234,7 +237,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcuserchangerequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcuserchangerequest-detail' hpcuserchangerequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcuserchangerequest-detail' hpcuserchangerequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -258,7 +261,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcgroupchangerequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcprojectchangerequest-detail' hpcprojectchangerequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcprojectchangerequest-detail' hpcprojectchangerequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -284,7 +287,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcgroupdeleterequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcgroupdeleterequest-detail' hpcgroupdeleterequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcgroupdeleterequest-detail' hpcgroupdeleterequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -308,7 +311,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcuserdeleterequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcuserdeleterequest-detail' hpcuserdeleterequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcuserdeleterequest-detail' hpcuserdeleterequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -332,7 +335,7 @@
           <ul class="list-group list-group-flush">
             {% for obj in hpcprojectdeleterequests %}
               <li class="list-group-item">
-                <a href="{% url 'adminsec:hpcprojectdeleterequest-detail' hpcprojectdeleterequest=obj.uuid %}">
+                <a href="{% url 'usersec:hpcprojectdeleterequest-detail' hpcprojectdeleterequest=obj.uuid %}">
                   {{ obj.requester.username }}
                 </a>
                 <span class="badge bg-{{ obj.status|colorize_request_status }}">

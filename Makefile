@@ -16,5 +16,5 @@ black:
 
 
 test:
-	$(manage) test -v2 --settings=config.settings.test
+	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test
 

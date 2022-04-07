@@ -27,3 +27,15 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+ENABLE_LDAP = True
+ENABLE_LDAP_SECONDARY = True
+
+AUTH_LDAP_USERNAME_DOMAIN = "CHARITE"
+AUTH_LDAP2_USERNAME_DOMAIN = "MDC-BERLIN"
+
+INSTITUTE_EMAIL_DOMAINS = "charite.de"
+INSTITUTE2_EMAIL_DOMAINS = "mdc-berlin.de"
+
+INSTITUTE_USERNAME_SUFFIX = "c"
+INSTITUTE2_USERNAME_SUFFIX = "m"

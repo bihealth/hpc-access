@@ -1,3 +1,4 @@
+from django.conf import settings
 from test_plus.test import TestCase
 
 from usersec.models import (
@@ -77,7 +78,7 @@ class RequestTesterMixin:
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
         self.assertTrue(obj.is_decided())
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
-        self.assertTrue(obj.is_decided())
+        self.assertFalse(obj.is_decided())
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
         self.assertTrue(obj.is_decided())
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
@@ -129,7 +130,7 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_denied())
         self.assertFalse(obj.is_retracted())
         self.assertFalse(obj.is_approved())
-        self.assertFalse(obj.is_active())
+        self.assertTrue(obj.is_active())
         self.assertFalse(obj.is_revision())
 
     def _test_is_revision(self):
@@ -316,7 +317,7 @@ class TestHpcUser(VersionTesterMixin, TestCase):
     def test_save_with_version_new(self):
         supplementaries = {
             "primary_group": HpcGroupFactory(),
-            "username": "user_c",
+            "username": "user_" + settings.INSTITUTE_USERNAME_SUFFIX,
         }
         self._test_save_with_version_new(**supplementaries)
 

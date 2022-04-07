@@ -7,7 +7,7 @@
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">
-        {{ object.name }}
+        {{ object.username }}
         <span class="badge bg-{{ object.status|colorize_request_status }}">
           {{ object.status|lower }}
         </span>
@@ -17,14 +17,8 @@
             Overview
           </a>
           {% if not admin %}
-            <a class="btn btn-primary"
-               href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:user"></i>
-              Add User
-            </a>
             <a class="btn btn-primary disabled"
-               href="#hpcgroup-change"
+               href="#hpcusre-change"
             >
               <i class="iconify" data-icon="mdi:update"></i>
               Request Change
@@ -32,7 +26,7 @@
           {% endif %}
         </span>
       </h4>
-      <h6 class="card-subtitle text-muted">{{ object.description }}</h6>
+      <h6 class="card-subtitle text-muted">{{ object.user.name|default:"<em>User needs to log to the portal once to complete user information.</em>" }}</h6>
     </div>
     <div class="card-body">
       <div class="row">
@@ -47,28 +41,15 @@
                 {% endfor %}
               </dl>
             </dd>
-            <dt class="col-sm-3">Owner</dt>
-            <dd class="col-sm-9"><a href="{% url 'usersec:hpcuser-overview' hpcuser=object.owner.uuid %}">{{ object.owner.user.name }}</a></dd>
-
-            <dt class="col-sm-3">Delegate</dt>
-            <dd class="col-sm-9">{{ object.delegate.user.name|default:"<em class='text-muted'>not named</em>" }}</dd>
+            <dt class="col-sm-3">Member of</dt>
+            {% if admin %}
+              <dd class="col-sm-9"><a href="{% url 'adminsec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a></dd>
+            {% else %}
+              <dd class="col-sm-9"><a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a></dd>
+            {% endif %}
 
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration }}</dd>
-
-            <dt class="col-sm-3">Members <span class="badge bg-secondary">{{ object.hpcuser.count }}</span></dt>
-            <dd class="col-sm-9">
-              <ul class="list-unstyled">
-                {% for member in object.hpcuser.all %}
-                  <li>
-                    <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
-                    <span class="small text-muted fw-bold">{{ member.username }}</span>
-                  </li>
-                {% empty %}
-                  <li><em class="text-muted">No members (?)</em></li>
-                {% endfor %}
-              </ul>
-            </dd>
           </dl>
         </div>
         <div class="col-sm-6">

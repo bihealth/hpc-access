@@ -41,7 +41,7 @@ class TestCommon(TestCase):
             REQUEST_STATUS_INITIAL: "info",
             REQUEST_STATUS_ACTIVE: "info",
             REQUEST_STATUS_REVISION: "warning",
-            REQUEST_STATUS_REVISED: "warning",
+            REQUEST_STATUS_REVISED: "info",
             REQUEST_STATUS_APPROVED: "success",
             REQUEST_STATUS_DENIED: "danger",
             REQUEST_STATUS_RETRACTED: "danger",

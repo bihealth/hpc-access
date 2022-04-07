@@ -114,7 +114,7 @@ class TestHpcUserCreateRequestForm(TestCase):
         self.assertEqual(form.errors["email"], ["This field is required."])
 
     def test_form_invalid_email_wrong_domain(self):
-        data_invalid = {**self.data_valid, "email": "user@example.com"}
+        data_invalid = {**self.data_valid, "email": "user@invalid.com"}
         form = HpcUserCreateRequestForm(data=data_invalid)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["email"], ["No institute email address."])

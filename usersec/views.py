@@ -23,6 +23,7 @@ from usersec.models import (
     HpcUser,
     HpcGroup,
     HpcUserCreateRequest,
+    REQUEST_STATUS_REVISION,
 )
 
 MSG_NO_AUTH = "User not authorized for requested action"
@@ -112,10 +113,13 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["comment_history"] = obj.get_comment_history()
+        context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
         context["is_approved"] = obj.is_approved()
-        context["is_decided"] = obj.is_decided()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
         return context
 
 
@@ -155,7 +159,12 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.save_with_version()
+
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj = obj.revised_with_version()
+
+        else:
+            obj = obj.save_with_version()
 
         if not obj:
             messages.error(self.request, "Couldn't update group request.")
@@ -212,7 +221,7 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
 
 
 class HpcUserView(HpcPermissionMixin, DetailView):
-    """HPC user view."""
+    """HPC user overview."""
 
     model = HpcUser
     template_name = "usersec/overview.html"
@@ -229,13 +238,23 @@ class HpcUserView(HpcPermissionMixin, DetailView):
         context["manager"] = is_manager
 
         if is_manager:
-            context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.active(group=group)
+            context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.filter(group=group)
 
         return context
 
 
-class HpcGroupView(HpcPermissionMixin, DetailView):
-    """HPC group view."""
+class HpcUserDetailView(HpcPermissionMixin, DetailView):
+    """HPC user detail view."""
+
+    model = HpcUser
+    template_name = "usersec/hpcuser_detail.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuser"
+    permission_required = "usersec.view_hpcuser"
+
+
+class HpcGroupDetailView(HpcPermissionMixin, DetailView):
+    """HPC group detail view."""
 
     model = HpcGroup
     template_name = "usersec/hpcgroup_detail.html"
@@ -304,10 +323,13 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["comment_history"] = obj.get_comment_history()
+        context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
         context["is_approved"] = obj.is_approved()
-        context["is_decided"] = obj.is_decided()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
         return context
 
 
@@ -347,7 +369,12 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.save_with_version()
+
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj = obj.revised_with_version()
+
+        else:
+            obj = obj.save_with_version()
 
         if not obj:
             messages.error(self.request, "Couldn't update user request.")
