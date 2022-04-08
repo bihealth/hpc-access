@@ -37,6 +37,7 @@ UserSec
 - Created HPC user create request views (#58)
 - Reworked overview page (#64)
 - Created HPC user detail view (#60)
+- Disentagle and modularize html templates (#69)
 
 AdminSec
 --------

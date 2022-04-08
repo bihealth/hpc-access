@@ -1,0 +1,26 @@
+<a class="btn btn-secondary" href="{% url 'adminsec:overview' %}">
+  <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+  Overview
+</a>
+{% if is_active %}
+  <span class="btn-group">
+    <a class="btn btn-warning"
+       href="{{ object.get_revision_url }}"
+    >
+      <i class="iconify" data-icon="mdi:comment"></i>
+      Revision
+    </a>
+    <a class="btn btn-success"
+       href="{{ object.get_approve_url }}"
+    >
+      <i class="iconify" data-icon="mdi:check-bold"></i>
+      Approve
+    </a>
+    <a class="btn btn-danger"
+       href="{{ object.get_deny_url }}"
+    >
+      <i class="iconify" data-icon="mdi:minus-circle"></i>
+      Deny
+    </a>
+  </span>
+{% endif %}

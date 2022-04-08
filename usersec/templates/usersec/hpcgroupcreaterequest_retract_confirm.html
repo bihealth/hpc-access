@@ -4,27 +4,6 @@
 
 {% block content %}
 
-  <div class="row">
-    <h2>Retracting group request</h2>
-  </div>
+  {% include "usersec/modules/confirm.html" with action="Retract" object_type="HPC group create request" %}
 
-  <div class="row">
-    <form method="post">
-      {% csrf_token %}
-      <p>
-        Are you sure you want to <strong>retract</strong> the group request?
-      </p>
-      {{ form }}
-      <a class="btn btn-secondary"
-         href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
-      >
-        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-        Cancel
-      </a>
-      <button class="btn btn-danger" type="submit">
-        <i class="iconify" data-icon="mdi:backspace"></i>
-        Retract
-      </button>
-    </form>
-  </div>
 {% endblock content %}

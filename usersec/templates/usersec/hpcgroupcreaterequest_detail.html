@@ -11,55 +11,13 @@
         <span class="badge bg-{{ object.status|colorize_request_status }}">
           {{ object.status|lower }}
         </span>
-        {% if not is_decided %}
-          <span class="float-end btn-group">
-            {% if admin %}
-              <a class="btn btn-warning"
-                 href="{% url 'adminsec:hpcgroupcreaterequest-revision' hpcgroupcreaterequest=object.uuid %}"
-              >
-                <i class="iconify" data-icon="mdi:comment"></i>
-                Revision
-              </a>
-            {% else %}
-              <a class="btn btn-primary"
-                 href="{% url 'usersec:hpcgroupcreaterequest-update' hpcgroupcreaterequest=object.uuid %}"
-              >
-                <i class="iconify" data-icon="mdi:refresh"></i>
-                Update
-              </a>
-            {% endif %}
-            {% if admin %}
-              <a class="btn btn-success"
-                 href="{% url 'adminsec:hpcgroupcreaterequest-approve' hpcgroupcreaterequest=object.uuid %}"
-              >
-                <i class="iconify" data-icon="mdi:check-bold"></i>
-                Approve
-              </a>
-              <a class="btn btn-danger"
-                 href="{% url 'adminsec:hpcgroupcreaterequest-deny' hpcgroupcreaterequest=object.uuid %}"
-              >
-                <i class="iconify" data-icon="mdi:minus-circle"></i>
-                Deny
-              </a>
-            {% else %}
-              {% if is_retracted %}
-                <a class="btn btn-success"
-                   href="{% url 'usersec:hpcgroupcreaterequest-reactivate' hpcgroupcreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:check-bold"></i>
-                  Activate
-                </a>
-              {% else %}
-                <a class="btn btn-danger"
-                   href="{% url 'usersec:hpcgroupcreaterequest-retract' hpcgroupcreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:backspace"></i>
-                  Retract
-                </a>
-              {% endif %}
-            {% endif %}
-          </span>
-        {% endif %}
+        <span class="float-end">
+          {% if admin %}
+            {% include "usersec/modules/request_buttons_admin.html" %}
+          {% else %}
+            {% include "usersec/modules/request_buttons_user.html" %}
+          {% endif %}
+        </span>
       </h4>
     </div>
     <div class="card-body">
@@ -86,21 +44,7 @@
           </dl>
         </div>
         <div class="col-sm-6">
-          {% if comment_history %}
-            <div class="alert alert-info">
-              <h5 class="alert-heading">Comments</h5>
-              <hr>
-              <ul class="list-unstyled">
-                {% for comment in comment_history %}
-                  <li>
-                    <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
-                    <strong>{{ comment.0 }}</strong>:
-                    {{ comment.2 }}
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% endif %}
+          {% include "usersec/modules/comments.html" %}
         </div>
       </div>
     </div>

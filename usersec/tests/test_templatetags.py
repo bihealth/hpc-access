@@ -1,5 +1,7 @@
 from importlib import import_module
-from django.test import TestCase
+
+from django.urls import reverse
+from test_plus.test import TestCase
 
 from django.conf import settings
 
@@ -21,7 +23,9 @@ from usersec.templatetags.common import (
     site_version,
     colorize_object_status,
     colorize_request_status,
+    get_detail_url,
 )
+from usersec.tests.factories import HpcUserFactory
 
 site = import_module(settings.SITE_PACKAGE)
 
@@ -62,3 +66,10 @@ class TestCommon(TestCase):
 
         for key, expected in data.items():
             self.assertEqual(colorize_object_status(key), expected)
+
+    def test_get_detail_url(self):
+        user = self.make_user("user")
+        hpcuser = HpcUserFactory(user=user)
+        url = get_detail_url(hpcuser, user)
+        expected = reverse("usersec:hpcuser-detail", kwargs={"hpcuser": hpcuser.uuid})
+        self.assertEqual(url, expected)

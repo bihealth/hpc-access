@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.urls import reverse
 from test_plus.test import TestCase
 
 from usersec.models import (
@@ -151,6 +152,42 @@ class RequestTesterMixin:
         self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
         self.assertEqual(list(self.model.objects.active()), [obj1, obj2])
 
+    def _test_get_revision_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("adminsec:{}-revision".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_revision_url(), expected)
+
+    def _test_get_approve_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("adminsec:{}-approve".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_approve_url(), expected)
+
+    def _test_get_deny_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("adminsec:{}-deny".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_deny_url(), expected)
+
+    def _test_get_update_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("usersec:{}-update".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_update_url(), expected)
+
+    def _test_get_reactivate_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("usersec:{}-reactivate".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_reactivate_url(), expected)
+
+    def _test_get_retract_url(self):
+        obj = self.factory(requester=self.user)
+        name = self.model.__name__.lower()
+        expected = reverse("usersec:{}-retract".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_retract_url(), expected)
+
 
 class VersionTesterMixin:
     """Mixin for testing version-related methods."""
@@ -164,6 +201,9 @@ class VersionTesterMixin:
 
         self.maxDiff = None
         self.user = self.make_user("user")
+        self.hpcadmin = self.make_user("hpcadmin")
+        self.hpcadmin.is_hpcadmin = True
+        self.hpcadmin.save()
 
     def _test_create_with_version(self):
         self.assertFalse(self.model.objects.exists())
@@ -300,6 +340,18 @@ class VersionTesterMixin:
         obj = self.model()
         self.assertIsNone(obj.get_latest_version())
 
+    def _test_get_detail_url_user(self):
+        obj = self.factory()
+        name = self.model.__name__.lower()
+        expected = reverse("usersec:{}-detail".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_detail_url(self.user), expected)
+
+    def _test_get_detail_url_admin(self):
+        obj = self.factory()
+        name = self.model.__name__.lower()
+        expected = reverse("adminsec:{}-detail".format(name), kwargs={name: obj.uuid})
+        self.assertEqual(obj.get_detail_url(self.hpcadmin), expected)
+
 
 class TestHpcUser(VersionTesterMixin, TestCase):
     """Tests for HpcUser model"""
@@ -339,6 +391,12 @@ class TestHpcUser(VersionTesterMixin, TestCase):
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
     """Tests for HpcGroup model"""
@@ -374,6 +432,12 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
 
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
+
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
 
 
 class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -422,6 +486,12 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -449,6 +519,24 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
 
 
 class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -497,6 +585,12 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -524,6 +618,24 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
 
 
 class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -572,6 +684,12 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -599,6 +717,24 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
 
 
 class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -647,6 +783,12 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -674,6 +816,24 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
 
 
 class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -722,6 +882,12 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -749,6 +915,24 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
 
 
 class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -797,6 +981,12 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
 
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
@@ -824,3 +1014,21 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_active(self):
         self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()

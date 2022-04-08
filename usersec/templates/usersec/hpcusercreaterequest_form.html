@@ -14,21 +14,7 @@
     </h2>
   </div>
 
-  {% if comment_history %}
-    <div class="alert alert-info">
-      <h4 class="alert-heading">Comments</h4>
-      <hr>
-      <ul class="list-unstyled">
-        {% for comment in comment_history %}
-          <li>
-            <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
-            <strong>{{ comment.0 }}</strong>:
-            {{ comment.2 }}
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  {% endif %}
+  {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
     <form method="post">

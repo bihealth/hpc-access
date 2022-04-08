@@ -13,64 +13,13 @@
         </span>
         <span class="float-end">
           {% if admin %}
-            <a class="btn btn-secondary" href="{% url 'adminsec:overview' %}">
-              <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-              Overview
-            </a>
-            {% if is_active %}
-              <span class="btn-group">
-                <a class="btn btn-warning"
-                   href="{% url 'adminsec:hpcusercreaterequest-revision' hpcusercreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:comment"></i>
-                  Revision
-                </a>
-                <a class="btn btn-success"
-                   href="{% url 'adminsec:hpcusercreaterequest-approve' hpcusercreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:check-bold"></i>
-                  Approve
-                </a>
-                <a class="btn btn-danger"
-                   href="{% url 'adminsec:hpcusercreaterequest-deny' hpcusercreaterequest=object.uuid %}"
-                >
-                  <i class="iconify" data-icon="mdi:minus-circle"></i>
-                  Deny
-                </a>
-              </span>
-            {% endif %}
+            {% include "usersec/modules/request_buttons_admin.html" %}
           {% else %}
             <a class="btn btn-secondary" href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.group.uuid %}">
               <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
               Overview
             </a>
-            <span class="btn-group">
-              {% if not is_decided %}
-                {% if not is_active %}
-                  <a class="btn btn-primary"
-                     href="{% url 'usersec:hpcusercreaterequest-update' hpcusercreaterequest=object.uuid %}"
-                  >
-                    <i class="iconify" data-icon="mdi:refresh"></i>
-                    Update
-                  </a>
-                {% endif %}
-                {% if is_retracted %}
-                  <a class="btn btn-success"
-                     href="{% url 'usersec:hpcusercreaterequest-reactivate' hpcusercreaterequest=object.uuid %}"
-                  >
-                    <i class="iconify" data-icon="mdi:check-bold"></i>
-                    Activate
-                  </a>
-                {% else %}
-                  <a class="btn btn-danger"
-                     href="{% url 'usersec:hpcusercreaterequest-retract' hpcusercreaterequest=object.uuid %}"
-                  >
-                    <i class="iconify" data-icon="mdi:backspace"></i>
-                    Retract
-                  </a>
-                {% endif %}
-              {% endif %}
-            </span>
+            {% include "usersec/modules/request_buttons_user.html" %}
           {% endif %}
         </span>
       </h4>
@@ -105,21 +54,7 @@
           </dl>
         </div>
         <div class="col-sm-6">
-          {% if comment_history %}
-            <div class="alert alert-info">
-              <h5 class="alert-heading">Comments</h5>
-              <hr>
-              <ul class="list-unstyled">
-                {% for comment in comment_history %}
-                  <li>
-                    <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
-                    <strong>{{ comment.0 }}</strong>:
-                    {{ comment.2 }}
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% endif %}
+          {% include "usersec/modules/comments.html" %}
         </div>
       </div>
     </div>
