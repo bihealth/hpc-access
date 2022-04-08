@@ -4,27 +4,6 @@
 
 {% block content %}
 
-  <div class="row">
-    <h2>Denying user request</h2>
-  </div>
+  {% include "usersec/modules/confirm.html" with action="Deny" object_type="HPC user create request" %}
 
-  <div class="row">
-    <form method="post">
-      {% csrf_token %}
-      <p>
-        Are you sure you want to <strong>deny</strong> the group request?
-      </p>
-      {{ form }}
-      <a class="btn btn-secondary"
-         href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
-      >
-        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-        Cancel
-      </a>
-      <button class="btn btn-danger" type="submit">
-        <i class="iconify" data-icon="mdi:circle-off-outline"></i>
-        Deny
-      </button>
-    </form>
-  </div>
 {% endblock content %}

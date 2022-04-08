@@ -65,3 +65,9 @@ def colorize_request_status(status):
 def colorize_object_status(status):
     """Return the color for a given status."""
     return OBJECT_STATUS_COLOR_MAPPING.get(status, "dark")
+
+
+@register.filter
+def get_detail_url(obj, user):
+    """Return the color for a given status."""
+    return obj.get_detail_url(user)

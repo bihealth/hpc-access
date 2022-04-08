@@ -428,3 +428,83 @@ class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
                 kwargs={"hpcusercreaterequest": obj.uuid},
             )
         )
+
+
+class HpcGroupDeleteRequestCreateView(View):
+    pass
+
+
+class HpcGroupDeleteRequestDetailView(View):
+    pass
+
+
+class HpcGroupDeleteRequestUpdateView(View):
+    pass
+
+
+class HpcGroupDeleteRequestRetractView(View):
+    pass
+
+
+class HpcGroupDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcGroupChangeRequestCreateView(View):
+    pass
+
+
+class HpcGroupChangeRequestDetailView(View):
+    pass
+
+
+class HpcGroupChangeRequestUpdateView(View):
+    pass
+
+
+class HpcGroupChangeRequestRetractView(View):
+    pass
+
+
+class HpcGroupChangeRequestReactivateView(View):
+    pass
+
+
+class HpcUserDeleteRequestCreateView(View):
+    pass
+
+
+class HpcUserDeleteRequestDetailView(View):
+    pass
+
+
+class HpcUserDeleteRequestUpdateView(View):
+    pass
+
+
+class HpcUserDeleteRequestRetractView(View):
+    pass
+
+
+class HpcUserDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcUserChangeRequestCreateView(View):
+    pass
+
+
+class HpcUserChangeRequestDetailView(View):
+    pass
+
+
+class HpcUserChangeRequestUpdateView(View):
+    pass
+
+
+class HpcUserChangeRequestRetractView(View):
+    pass
+
+
+class HpcUserChangeRequestReactivateView(View):
+    pass

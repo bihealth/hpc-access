@@ -8,6 +8,7 @@ from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import (
     DetailView,
     UpdateView,
@@ -404,7 +405,7 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                hpcuser = HpcUser.objects.create_with_version(
+                HpcUser.objects.create_with_version(
                     user=None,
                     primary_group=obj.group,
                     resources_requested=obj.resources_requested,
@@ -427,7 +428,6 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             send_invite(
                 recipient_list=[obj.email],
                 inviter=obj.requester.hpcuser_user.first(),
-                hpcuser=hpcuser,
                 request=self.request,
             )
 
@@ -477,3 +477,67 @@ class HpcUserCreateRequestDenyView(HpcPermissionMixin, DeleteView):
                 kwargs={"hpcusercreaterequest": obj.uuid},
             )
         )
+
+
+class HpcGroupDeleteRequestDetailView(View):
+    pass
+
+
+class HpcGroupDeleteRequestRevisionView(View):
+    pass
+
+
+class HpcGroupDeleteRequestApproveView(View):
+    pass
+
+
+class HpcGroupDeleteRequestDenyView(View):
+    pass
+
+
+class HpcGroupChangeRequestDetailView(View):
+    pass
+
+
+class HpcGroupChangeRequestRevisionView(View):
+    pass
+
+
+class HpcGroupChangeRequestApproveView(View):
+    pass
+
+
+class HpcGroupChangeRequestDenyView(View):
+    pass
+
+
+class HpcUserDeleteRequestDetailView(View):
+    pass
+
+
+class HpcUserDeleteRequestRevisionView(View):
+    pass
+
+
+class HpcUserDeleteRequestApproveView(View):
+    pass
+
+
+class HpcUserDeleteRequestDenyView(View):
+    pass
+
+
+class HpcUserChangeRequestDetailView(View):
+    pass
+
+
+class HpcUserChangeRequestRevisionView(View):
+    pass
+
+
+class HpcUserChangeRequestApproveView(View):
+    pass
+
+
+class HpcUserChangeRequestDenyView(View):
+    pass

@@ -15,7 +15,6 @@ class TestEmail(TestViewBase):
             ret = send_invite(
                 ["user@example.com"],
                 self.hpc_owner,
-                self.hpc_user,
             )
             self.assertEqual(ret, 1)
             self.assertEqual(len(mail.outbox), 1)

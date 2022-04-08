@@ -2,6 +2,7 @@ import uuid as uuid_object
 
 from django.contrib.auth import user_logged_in
 from django.db import models, transaction
+from django.urls import reverse
 from factory.django import get_model
 
 from hpcaccess.users.models import User
@@ -155,6 +156,43 @@ class VersionManagerMixin:
         self.status = OBJECT_STATUS_DELETED
         return self.save_with_version()
 
+    def get_detail_url(self, user):
+        class_name = self.__class__.__name__.lower()
+
+        if user.is_hpcadmin:
+            section = "adminsec"
+
+        else:
+            section = "usersec"
+
+        return reverse("{}:{}-detail".format(section, class_name), kwargs={class_name: self.uuid})
+
+    # def create_or_update_with_version(self):
+    #     """Create or update with version"""
+    #
+    #     name = self.__class__.__name__
+    #     data = model_to_dict(self, exclude=["id", "uuid", "current_version"])
+    #
+    #     if self.version_history.all().exists():
+    #         self.current_version = self.get_latest_version_obj().version + 1
+    #         data["version"] = self.current_version
+    #
+    #     else:
+    #         self.current_version = 1
+    #         data["version"] = self.current_version
+    #
+    #     # Create current object
+    #     self.save()
+    #     data["belongs_to"] = self
+    #
+    #     # Create version object
+    #     version_obj = get_model(APP_NAME, f"{name}Version")(**data)
+    #     version_obj.save()
+    #
+    #     return self
+
+
+class RequestManagerMixin:
     def retract_with_version(self):
         """Mark object as retracted and create new version object."""
 
@@ -185,29 +223,29 @@ class VersionManagerMixin:
         self.status = REQUEST_STATUS_REVISED
         return self.save_with_version()
 
-    # def create_or_update_with_version(self):
-    #     """Create or update with version"""
-    #
-    #     name = self.__class__.__name__
-    #     data = model_to_dict(self, exclude=["id", "uuid", "current_version"])
-    #
-    #     if self.version_history.all().exists():
-    #         self.current_version = self.get_latest_version_obj().version + 1
-    #         data["version"] = self.current_version
-    #
-    #     else:
-    #         self.current_version = 1
-    #         data["version"] = self.current_version
-    #
-    #     # Create current object
-    #     self.save()
-    #     data["belongs_to"] = self
-    #
-    #     # Create version object
-    #     version_obj = get_model(APP_NAME, f"{name}Version")(**data)
-    #     version_obj.save()
-    #
-    #     return self
+    def get_revision_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("adminsec:{}-revision".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_approve_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("adminsec:{}-approve".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_deny_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("adminsec:{}-deny".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_update_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-update".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_reactivate_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-reactivate".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_retract_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
 
 
 class HpcObjectAbstract(models.Model):
@@ -517,7 +555,9 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroupChangeRequest(VersionManagerMixin, HpcGroupChangeRequestAbstract):
+class HpcGroupChangeRequest(
+    RequestManagerMixin, VersionManagerMixin, HpcGroupChangeRequestAbstract
+):
     """HpcGroupChangeRequest model"""
 
     #: Set custom manager
@@ -564,7 +604,9 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroupCreateRequest(VersionManagerMixin, HpcGroupCreateRequestAbstract):
+class HpcGroupCreateRequest(
+    RequestManagerMixin, VersionManagerMixin, HpcGroupCreateRequestAbstract
+):
     """HpcGroupCreateRequest model"""
 
     #: Set custom manager
@@ -595,7 +637,7 @@ class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
     )
 
 
-class HpcGroupDeleteRequest(VersionManagerMixin, HpcGroupRequestAbstract):
+class HpcGroupDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcGroupRequestAbstract):
     """HpcGroupDeleteRequest model"""
 
     #: Set custom manager
@@ -655,7 +697,7 @@ class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
 
-class HpcUserChangeRequest(VersionManagerMixin, HpcUserChangeRequestAbstract):
+class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChangeRequestAbstract):
     """HpcUserChangeRequest model"""
 
     #: Set custom manager
@@ -713,7 +755,7 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
 
-class HpcUserCreateRequest(VersionManagerMixin, HpcUserCreateRequestAbstract):
+class HpcUserCreateRequest(RequestManagerMixin, VersionManagerMixin, HpcUserCreateRequestAbstract):
     """HpcUserCreateRequest model"""
 
     #: Set custom manager
@@ -741,7 +783,7 @@ class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
     )
 
 
-class HpcUserDeleteRequest(VersionManagerMixin, HpcUserRequestAbstract):
+class HpcUserDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcUserRequestAbstract):
     """HpcUserDeleteRequest model"""
 
     #: Set custom manager

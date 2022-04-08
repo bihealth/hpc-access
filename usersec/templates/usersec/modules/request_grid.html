@@ -1,0 +1,226 @@
+{% load common %}
+
+<div class="row mb-4">
+  <div class="col-4 text-center">
+    <h2>
+      <i class="iconify" data-icon="mdi:user-group"></i>
+      Group
+    </h2>
+  </div>
+  <div class="col-4 text-center">
+    <h2>
+      <i class="iconify" data-icon="mdi:user"></i>
+      User
+    </h2>
+  </div>
+  <div class="col-4 text-center">
+    <h2>
+      <i class="iconify" data-icon="mdi:package-variant"></i>
+      Project
+    </h2>
+  </div>
+</div>
+<div class="row mb-4">
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:create"></i>
+          Create
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcgroupcreaterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:create"></i>
+          Create
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcusercreaterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:create"></i>
+          Create
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcprojectcreaterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="row mb-4">
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:refresh"></i>
+          Change
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcgroupchangerequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:refresh"></i>
+          Change
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcuserchangerequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:refresh"></i>
+          Change
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcgroupchangerequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="row mb-4">
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Delete
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcgroupdeleterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Delete
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcuserdeleterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Delete
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcprojectdeleterequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.status|lower }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>

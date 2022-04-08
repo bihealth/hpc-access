@@ -36,18 +36,23 @@ if settings.ENABLE_LDAP_SECONDARY:
 
 
 MESSAGE_INVITE = r"""
-You've been invited by {inviter} to become member of {ag} on the BIH cluster.
+You've been invited by
 
-The following link will require you to complete the registration with your login.
+  {inviter}
+
+to become member of
+
+  {ag}
+
+on the BIH cluster. The following link will require you to login with your
+{institute} credentials. This will complete the registration.
 
 {invitation_link}
-
-Use with your {institute} credentials to gain access.
 
 Cheers,
   Gatekeeper
 
-<em>This email has been automatically generated.</em>
+This email has been automatically generated.
 """.lstrip()
 
 
@@ -112,7 +117,7 @@ Cheers,
 """.lstrip()
 
 
-def send_invite(recipient_list, inviter, hpcuser, request=None):
+def send_invite(recipient_list, inviter, request=None):
     institute = "???"
     invitation_link = "???"
 
@@ -129,9 +134,7 @@ def send_invite(recipient_list, inviter, hpcuser, request=None):
         return 0
 
     if request:
-        invitation_link = request.build_absolute_uri(
-            reverse("usersec:hpcuser-overview", kwargs={"hpcuser": hpcuser.uuid})
-        )
+        invitation_link = request.build_absolute_uri(reverse("home"))
 
     subject = "Invitation for a BIH Cluster account"
     message = MESSAGE_INVITE.format(
