@@ -508,3 +508,232 @@ class HpcUserChangeRequestRetractView(View):
 
 class HpcUserChangeRequestReactivateView(View):
     pass
+
+
+class HpcProjectDetailView(HpcPermissionMixin, DetailView):
+    """HPC project detail view."""
+
+    #
+    # model = HpcUser
+    # template_name = "usersec/hpcuser_detail.html"
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcuser"
+    # permission_required = "usersec.view_hpcuser"
+    pass
+
+
+class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
+    """HPC project create request create view.
+
+    Using HpcGroup object for permission checking,
+    it is not the object to be created.
+    """
+
+    #
+    # # Required for permission checks, usually the CreateView doesn't have the current object available
+    # model = HpcGroup
+    # template_name = "usersec/hpcusercreaterequest_form.html"
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcgroup"
+    # # Check permission based on HpcGroup object
+    # permission_required = "usersec.create_hpcusercreaterequest"
+    # # Pass the form to the actual object we want to create
+    # form_class = HpcUserCreateRequestForm
+    #
+    # def get_permission_object(self):
+    #     """Override to return the HpcGroup object.
+    #
+    #     Parent returns None in case of CreateView.
+    #     """
+    #     return self.get_object()
+    #
+    # def form_valid(self, form):
+    #     obj = form.save(commit=False)
+    #     obj.requester = self.request.user
+    #     obj.editor = self.request.user
+    #     obj.status = REQUEST_STATUS_ACTIVE
+    #     obj.group = self.get_object()
+    #     obj = obj.save_with_version()
+    #
+    #     if not obj:
+    #         messages.error(self.request, "Couldn't create group request.")
+    #         return HttpResponseRedirect(
+    #             reverse("usersec:hpcgroup-detail", kwargs={"hpcgroup": obj.group.uuid})
+    #         )
+    #
+    #     messages.success(self.request, "User request submitted.")
+    #     return HttpResponseRedirect(
+    #         reverse(
+    #             "usersec:hpcusercreaterequest-detail",
+    #             kwargs={"hpcusercreaterequest": obj.uuid},
+    #         )
+    #     )
+    pass
+
+
+class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC project create request detail view."""
+
+    #
+    # model = HpcUserCreateRequest
+    # template_name = "usersec/hpcusercreaterequest_detail.html"
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcusercreaterequest"
+    # permission_required = "usersec.view_hpcusercreaterequest"
+    #
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     obj = self.get_object()
+    #     context["comment_history"] = obj.get_comment_history()
+    #     context["is_decided"] = obj.is_decided()
+    #     context["is_denied"] = obj.is_denied()
+    #     context["is_retracted"] = obj.is_retracted()
+    #     context["is_approved"] = obj.is_approved()
+    #     context["is_active"] = obj.is_active()
+    #     context["is_revision"] = obj.is_revision()
+    #     context["is_revised"] = obj.is_revised()
+    #     return context
+    pass
+
+
+class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
+    """HPC user create request update view."""
+
+    #
+    # template_name = "usersec/hpcusercreaterequest_form.html"
+    # model = HpcUserCreateRequest
+    # fields = [
+    #     "resources_requested",
+    #     "email",
+    #     "expiration",
+    #     "comment",
+    # ]
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcusercreaterequest"
+    # permission_required = "usersec.manage_hpcusercreaterequest"
+    #
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     obj = self.get_object()
+    #     context["update"] = True
+    #     context["comment_history"] = obj.get_comment_history()
+    #     return context
+    #
+    # def get_success_url(self):
+    #     return reverse(
+    #         "usersec:hpcusercreaterequest-detail",
+    #         kwargs={"hpcusercreaterequest": self.get_object().uuid},
+    #     )
+    #
+    # def get_initial(self):
+    #     initial = super().get_initial()
+    #     initial["comment"] = ""
+    #     return initial
+    #
+    # def form_valid(self, form):
+    #     obj = form.save(commit=False)
+    #     obj.editor = self.request.user
+    #
+    #     if obj.status == REQUEST_STATUS_REVISION:
+    #         obj = obj.revised_with_version()
+    #
+    #     else:
+    #         obj = obj.save_with_version()
+    #
+    #     if not obj:
+    #         messages.error(self.request, "Couldn't update user request.")
+    #         return HttpResponseRedirect(reverse("home"))
+    #
+    #     messages.success(self.request, "User request updated.")
+    #     return HttpResponseRedirect(self.get_success_url())
+    pass
+
+
+class HpcProjectCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+    """HPC project create request update view."""
+
+    #
+    # template_name_suffix = "_retract_confirm"
+    # model = HpcUserCreateRequest
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcusercreaterequest"
+    # permission_required = "usersec.manage_hpcusercreaterequest"
+    #
+    # def post(self, request, *args, **kwargs):
+    #     obj = self.get_object()
+    #     obj.comment = "Request retracted"
+    #     obj.editor = self.request.user
+    #     obj.retract_with_version()
+    #     messages.success(self.request, "Request successfully retracted.")
+    #     return HttpResponseRedirect(
+    #         reverse(
+    #             "usersec:hpcusercreaterequest-detail",
+    #             kwargs={"hpcusercreaterequest": obj.uuid},
+    #         )
+    #     )
+    pass
+
+
+class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC project create request update view."""
+
+    #
+    # model = HpcUserCreateRequest
+    # slug_field = "uuid"
+    # slug_url_kwarg = "hpcusercreaterequest"
+    # permission_required = "usersec.manage_hpcusercreaterequest"
+    #
+    # def get(self, request, *args, **kwargs):
+    #     obj = self.get_object()
+    #     obj.status = REQUEST_STATUS_ACTIVE
+    #     obj.comment = "Request reactivated"
+    #     obj.editor = self.request.user
+    #     obj.save_with_version()
+    #     messages.success(self.request, "Request successfully re-activated.")
+    #     return HttpResponseRedirect(
+    #         reverse(
+    #             "usersec:hpcusercreaterequest-detail",
+    #             kwargs={"hpcusercreaterequest": obj.uuid},
+    #         )
+    #     )
+    pass
+
+
+class HpcProjectDeleteRequestCreateView(View):
+    pass
+
+
+class HpcProjectDeleteRequestDetailView(View):
+    pass
+
+
+class HpcProjectDeleteRequestUpdateView(View):
+    pass
+
+
+class HpcProjectDeleteRequestRetractView(View):
+    pass
+
+
+class HpcProjectDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcProjectChangeRequestCreateView(View):
+    pass
+
+
+class HpcProjectChangeRequestDetailView(View):
+    pass
+
+
+class HpcProjectChangeRequestUpdateView(View):
+    pass
+
+
+class HpcProjectChangeRequestRetractView(View):
+    pass
+
+
+class HpcProjectChangeRequestReactivateView(View):
+    pass
