@@ -38,6 +38,7 @@ UserSec
 - Reworked overview page (#64)
 - Created HPC user detail view (#60)
 - Disentagle and modularize html templates (#69)
+- Added models for HPC projects and project requests (#4)
 
 AdminSec
 --------

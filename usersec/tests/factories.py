@@ -16,6 +16,10 @@ from usersec.models import (
     HpcUserChangeRequest,
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
+    HpcProjectCreateRequest,
+    HpcProjectChangeRequest,
+    HpcProjectDeleteRequest,
+    HpcProject,
 )
 
 # ------------------------------------------------------------------------------
@@ -60,7 +64,6 @@ HPCUSERCREATEREQUESTFORM_DATA_VALID = {
 
 
 class HpcObjectFactoryBase(factory.django.DjangoModelFactory):
-
     """Base factory class for every Hpc object factory"""
 
     class Meta:
@@ -76,8 +79,22 @@ class HpcObjectFactoryBase(factory.django.DjangoModelFactory):
         return manager.create_with_version(*args, **kwargs)
 
 
-class HpcGroupFactory(HpcObjectFactoryBase):
+class HpcRequestFactoryBase(HpcObjectFactoryBase):
+    """Base class for HpcRequest factories"""
 
+    class Meta:
+        abstract = True
+
+    requester = None  # User
+    editor = factory.LazyAttribute(lambda o: o.requester)
+    comment = "some comment"
+
+
+# HpcGroup related
+# ------------------------------------------------------------------------------
+
+
+class HpcGroupFactory(HpcObjectFactoryBase):
     """Factory for HpcGroup model"""
 
     class Meta:
@@ -95,8 +112,48 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
-class HpcUserFactory(HpcObjectFactoryBase):
+class HpcGroupRequestFactoryBase(HpcRequestFactoryBase):
+    """Base class for HpcGroupRequest factories"""
 
+    class Meta:
+        abstract = True
+
+    group = None  # HpcGroup
+
+
+class HpcGroupCreateRequestFactory(HpcGroupRequestFactoryBase):
+    """Factory for HpcGroupCreateRequest model"""
+
+    class Meta:
+        model = HpcGroupCreateRequest
+
+    resources_requested = {"null": "null"}
+    description = "some group create request"
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
+    """Factory for HpcGroupChangeRequest model"""
+
+    class Meta:
+        model = HpcGroupChangeRequest
+
+    resources_requested = {"null": "null"}
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcGroupDeleteRequestFactory(HpcGroupRequestFactoryBase):
+    """Factory for HpcGroupDeleteRequest model"""
+
+    class Meta:
+        model = HpcGroupDeleteRequest
+
+
+# HpcUser related
+# ------------------------------------------------------------------------------
+
+
+class HpcUserFactory(HpcObjectFactoryBase):
     """Factory for HpcUser model"""
 
     class Meta:
@@ -113,61 +170,7 @@ class HpcUserFactory(HpcObjectFactoryBase):
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
-class HpcRequestFactoryBase(HpcObjectFactoryBase):
-
-    """Base class for HpcRequest factories"""
-
-    class Meta:
-        abstract = True
-
-    requester = None  # User
-    editor = factory.LazyAttribute(lambda o: o.requester)
-    comment = "some comment"
-
-
-class HpcGroupRequestFactoryBase(HpcRequestFactoryBase):
-
-    """Base class for HpcGroupRequest factories"""
-
-    class Meta:
-        abstract = True
-
-    group = None  # HpcGroup
-
-
-class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
-
-    """Factory for HpcGroupChangeRequest model"""
-
-    class Meta:
-        model = HpcGroupChangeRequest
-
-    resources_requested = {"null": "null"}
-    expiration = datetime(2050, 1, 1, tzinfo=utc)
-
-
-class HpcGroupCreateRequestFactory(HpcGroupRequestFactoryBase):
-
-    """Factory for HpcGroupCreateRequest model"""
-
-    class Meta:
-        model = HpcGroupCreateRequest
-
-    resources_requested = {"null": "null"}
-    description = "some group create request"
-    expiration = datetime(2050, 1, 1, tzinfo=utc)
-
-
-class HpcGroupDeleteRequestFactory(HpcGroupRequestFactoryBase):
-
-    """Factory for HpcGroupDeleteRequest model"""
-
-    class Meta:
-        model = HpcGroupDeleteRequest
-
-
 class HpcUserRequestFactoryBase(HpcRequestFactoryBase):
-
     """Base class for HpcUserRequest factories"""
 
     class Meta:
@@ -176,19 +179,7 @@ class HpcUserRequestFactoryBase(HpcRequestFactoryBase):
     user = None  # HpcUser
 
 
-class HpcUserChangeRequestFactory(HpcUserRequestFactoryBase):
-
-    """Factory for HpcUserChangeRequest model"""
-
-    class Meta:
-        model = HpcUserChangeRequest
-
-    resources_requested = {"null": "null"}
-    expiration = datetime(2050, 1, 1, tzinfo=utc)
-
-
 class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
-
     """Factory for HpcUserCreateRequest model"""
 
     class Meta:
@@ -200,9 +191,79 @@ class HpcUserCreateRequestFactory(HpcUserRequestFactoryBase):
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
-class HpcUserDeleteRequestFactory(HpcUserRequestFactoryBase):
+class HpcUserChangeRequestFactory(HpcUserRequestFactoryBase):
+    """Factory for HpcUserChangeRequest model"""
 
+    class Meta:
+        model = HpcUserChangeRequest
+
+    resources_requested = {"null": "null"}
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcUserDeleteRequestFactory(HpcUserRequestFactoryBase):
     """Factory for HpcUserDeleteRequest model"""
 
     class Meta:
         model = HpcUserDeleteRequest
+
+
+# HpcProject related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectFactory(HpcObjectFactoryBase):
+    """Factory for HpcProject model"""
+
+    class Meta:
+        model = HpcProject
+
+    group = factory.SubFactory(HpcGroupFactory)
+    resources_requested = {"null": "null"}
+    resources_used = {"null": "null"}
+    creator = None  # User
+    delegate = None  # HpcUser
+    description = "this is a project"
+    gid = 5000
+    name = factory.Sequence(lambda n: f"hpc-group{n}")
+    folder = "/data/project"
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcProjectRequestFactoryBase(HpcRequestFactoryBase):
+    """Base class for HpcProjectRequest factories"""
+
+    class Meta:
+        abstract = True
+
+    project = None  # HpcProject
+
+
+class HpcProjectCreateRequestFactory(HpcProjectRequestFactoryBase):
+    """Factory for HpcProjectCreateRequest model"""
+
+    class Meta:
+        model = HpcProjectCreateRequest
+
+    group = None
+    delegate = None
+    resources_requested = {"null": "null"}
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcProjectChangeRequestFactory(HpcProjectRequestFactoryBase):
+    """Factory for HpcProjectChangeRequest model"""
+
+    class Meta:
+        model = HpcProjectChangeRequest
+
+    resources_requested = {"null": "null"}
+    delegate = None
+    expiration = datetime(2050, 1, 1, tzinfo=utc)
+
+
+class HpcProjectDeleteRequestFactory(HpcProjectRequestFactoryBase):
+    """Factory for HpcProjectDeleteRequest model"""
+
+    class Meta:
+        model = HpcProjectDeleteRequest

@@ -62,6 +62,11 @@ REQUEST_STATUS_CHOICES = [
 ]
 
 
+# ------------------------------------------------------------------------------
+# Mixins
+# ------------------------------------------------------------------------------
+
+
 class VersionManager(models.Manager):
     """Functions for creating, updating and deleting objects with version objects."""
 
@@ -167,30 +172,6 @@ class VersionManagerMixin:
 
         return reverse("{}:{}-detail".format(section, class_name), kwargs={class_name: self.uuid})
 
-    # def create_or_update_with_version(self):
-    #     """Create or update with version"""
-    #
-    #     name = self.__class__.__name__
-    #     data = model_to_dict(self, exclude=["id", "uuid", "current_version"])
-    #
-    #     if self.version_history.all().exists():
-    #         self.current_version = self.get_latest_version_obj().version + 1
-    #         data["version"] = self.current_version
-    #
-    #     else:
-    #         self.current_version = 1
-    #         data["version"] = self.current_version
-    #
-    #     # Create current object
-    #     self.save()
-    #     data["belongs_to"] = self
-    #
-    #     # Create version object
-    #     version_obj = get_model(APP_NAME, f"{name}Version")(**data)
-    #     version_obj.save()
-    #
-    #     return self
-
 
 class RequestManagerMixin:
     def retract_with_version(self):
@@ -248,6 +229,11 @@ class RequestManagerMixin:
         return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
 
 
+# ------------------------------------------------------------------------------
+# Base model for Hpc objects
+# ------------------------------------------------------------------------------
+
+
 class HpcObjectAbstract(models.Model):
     """Common fields for HPC models"""
 
@@ -259,6 +245,11 @@ class HpcObjectAbstract(models.Model):
 
     #: Date created
     date_created = models.DateTimeField(auto_now_add=True, help_text="DateTime of creation")
+
+
+# ------------------------------------------------------------------------------
+# HpcUser related
+# ------------------------------------------------------------------------------
 
 
 class HpcUserAbstract(HpcObjectAbstract):
@@ -354,6 +345,11 @@ class HpcUserVersion(HpcUserAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+
+# ------------------------------------------------------------------------------
+# HpcGroup related
+# ------------------------------------------------------------------------------
 
 
 class HpcGroupAbstract(HpcObjectAbstract):
@@ -454,6 +450,123 @@ class HpcGroupVersion(HpcGroupAbstract):
     )
 
 
+# ------------------------------------------------------------------------------
+# HpcProject related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectAbstract(HpcObjectAbstract):
+    """HpcProject abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Group that requested the project. Group PI is owner of project.
+    group = models.ForeignKey(
+        HpcGroup,
+        related_name="%(class)s",
+        # Must be nullable because user and group reference each other
+        # TODO: make sure there are no permanent owner-less groups
+        null=True,
+        help_text="Group that requested project. Group PI is owner of project",
+        on_delete=models.CASCADE,
+    )
+
+    #: Delegate of the project, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="User registered as delegate of the project",
+        on_delete=models.SET_NULL,
+    )
+
+    #: Members of the project.
+    members = models.ManyToManyField(
+        HpcUser,
+        related_name="%(class)s_members",
+        help_text="Members of the project",
+    )
+
+    #: Projects requested resources as JSON.
+    resources_requested = models.JSONField()
+
+    #: Projects used resources as JSON.
+    resources_used = models.JSONField(null=True, blank=True)
+
+    #: Description of what the project is working on.
+    description = models.CharField(max_length=512, help_text="Description of the groups work")
+
+    #: Django User creating the object.
+    creator = models.ForeignKey(
+        User,
+        related_name="%(class)s_creator",
+        help_text="User creating the object",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+
+    #: Status of the object.
+    status = models.CharField(
+        max_length=16,
+        choices=OBJECT_STATUS_CHOICES,
+        default=OBJECT_STATUS_INITIAL,
+        help_text="Status of the project object",
+    )
+
+    #: POSIX id of the group on the cluster.
+    gid = models.IntegerField(null=True, help_text="Id of the project on the cluster")
+
+    #: POSIX name of the group on the cluster.
+    name = models.CharField(max_length=64, help_text="Name of the project on the cluster")
+
+    #: Folder ot the group on the cluster.
+    folder = models.CharField(max_length=64, help_text="Path to the project folder on the cluster")
+
+    #: Expiration date of the group
+    expiration = models.DateTimeField(help_text="Expiration date of the project")
+
+
+class HpcProject(VersionManagerMixin, HpcProjectAbstract):
+    """HpcProject model"""
+
+    #: Set custom manager
+    objects = VersionManager()
+
+    class Meta:
+        unique_together = ("name",)
+
+    #: Currently active version of the project object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the project object"
+    )
+
+
+class HpcProjectVersion(HpcProjectAbstract):
+    """HpcProjectVersion model"""
+
+    class Meta:
+        unique_together = ("name", "version")
+
+    #: Version number of the project object.
+    version = models.IntegerField(help_text="Version number of this project object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcProject,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# ------------------------------------------------------------------------------
+# HpcRequest related
+# ------------------------------------------------------------------------------
+
+
 class HpcRequestAbstract(HpcObjectAbstract):
     """HpcRequest abstract base class"""
 
@@ -526,6 +639,10 @@ class HpcRequestAbstract(HpcObjectAbstract):
         return self.status == REQUEST_STATUS_REVISION
 
 
+# HpcGroupRequest related
+# ------------------------------------------------------------------------------
+
+
 class HpcGroupRequestAbstract(HpcRequestAbstract):
     """HpcGroupRequest abstract base class"""
 
@@ -542,50 +659,8 @@ class HpcGroupRequestAbstract(HpcRequestAbstract):
     )
 
 
-class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
-    """HpcGroupChangeRequest abstract base class"""
-
-    class Meta:
-        abstract = True
-
-    #: Groups requested resources as JSON.
-    resources_requested = models.JSONField()
-
-    #: Expiration date of the group
-    expiration = models.DateTimeField(help_text="Expiration date of the group")
-
-
-class HpcGroupChangeRequest(
-    RequestManagerMixin, VersionManagerMixin, HpcGroupChangeRequestAbstract
-):
-    """HpcGroupChangeRequest model"""
-
-    #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the group change request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group change request object"
-    )
-
-
-class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
-    """HpcGroupChangeRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the group change request object.
-    version = models.IntegerField(help_text="Version number of this group change request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroupChangeRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
+# HpcGroupCreateRequest related
+# ------------------------------------------------------------------------------
 
 
 class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
@@ -637,6 +712,70 @@ class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
     )
 
 
+# HpcGroupChangeRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
+    """HpcGroupChangeRequest abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Groups requested resources as JSON.
+    resources_requested = models.JSONField()
+
+    #: Delegate of the group, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="User registered as delegate of the group",
+        on_delete=models.SET_NULL,
+    )
+
+    #: Expiration date of the group
+    expiration = models.DateTimeField(help_text="Expiration date of the group")
+
+
+class HpcGroupChangeRequest(
+    RequestManagerMixin, VersionManagerMixin, HpcGroupChangeRequestAbstract
+):
+    """HpcGroupChangeRequest model"""
+
+    #: Set custom manager
+    objects = VersionRequestManager()
+
+    #: Currently active version of the group change request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the group change request object"
+    )
+
+
+class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
+    """HpcGroupChangeRequestVersion model"""
+
+    class Meta:
+        unique_together = ("belongs_to", "version")
+
+    #: Version number of the group change request object.
+    version = models.IntegerField(help_text="Version number of this group change request object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcGroupChangeRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# HpcGroupDeleteRequest related
+# ------------------------------------------------------------------------------
+
+
 class HpcGroupDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcGroupRequestAbstract):
     """HpcGroupDeleteRequest model"""
 
@@ -668,6 +807,11 @@ class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
     )
 
 
+# ------------------------------------------------------------------------------
+# HpcUserRequest related
+# ------------------------------------------------------------------------------
+
+
 class HpcUserRequestAbstract(HpcRequestAbstract):
     """HpcUserRequest abstract base class"""
 
@@ -684,48 +828,8 @@ class HpcUserRequestAbstract(HpcRequestAbstract):
     )
 
 
-class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
-    """HpcUserChangeRequest abstract base class"""
-
-    class Meta:
-        abstract = True
-
-    #: Users requested resources as JSON.
-    resources_requested = models.JSONField()
-
-    #: Expiration date of the user
-    expiration = models.DateTimeField(help_text="Expiration date of the user")
-
-
-class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChangeRequestAbstract):
-    """HpcUserChangeRequest model"""
-
-    #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the user change request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the user change request object"
-    )
-
-
-class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
-    """HpcUserChangeRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the user change request object.
-    version = models.IntegerField(help_text="Version number of this user change request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcUserChangeRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
+# HpcUserCreateRequest related
+# ------------------------------------------------------------------------------
 
 
 class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
@@ -783,6 +887,58 @@ class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
     )
 
 
+# HpcUserChangeRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
+    """HpcUserChangeRequest abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Users requested resources as JSON.
+    resources_requested = models.JSONField()
+
+    #: Expiration date of the user
+    expiration = models.DateTimeField(help_text="Expiration date of the user")
+
+
+class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChangeRequestAbstract):
+    """HpcUserChangeRequest model"""
+
+    #: Set custom manager
+    objects = VersionRequestManager()
+
+    #: Currently active version of the user change request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the user change request object"
+    )
+
+
+class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
+    """HpcUserChangeRequestVersion model"""
+
+    class Meta:
+        unique_together = ("belongs_to", "version")
+
+    #: Version number of the user change request object.
+    version = models.IntegerField(help_text="Version number of this user change request object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcUserChangeRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# HpcUserDeleteRequest related
+# ------------------------------------------------------------------------------
+
+
 class HpcUserDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcUserRequestAbstract):
     """HpcUserDeleteRequest model"""
 
@@ -807,6 +963,202 @@ class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
         HpcUserDeleteRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# ------------------------------------------------------------------------------
+# HpcProjectRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectRequestAbstract(HpcRequestAbstract):
+    """HpcProjectRequest abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Project the request belongs to.
+    project = models.ForeignKey(
+        HpcProject,
+        related_name="%(class)s",
+        help_text="Project the request belongs to",
+        null=True,
+        on_delete=models.CASCADE,
+    )
+
+
+# HpcProjectCreateRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
+    """HpcProjectCreateRequest abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Projects requested resources as JSON.
+    resources_requested = models.JSONField()
+
+    #: Group the request belongs to.
+    group = models.ForeignKey(
+        HpcGroup,
+        related_name="%(class)s",
+        help_text="Group the request belongs to",
+        null=True,
+        on_delete=models.CASCADE,
+    )
+
+    #: Delegate of the project, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="User registered as delegate of the project",
+        on_delete=models.SET_NULL,
+    )
+
+    #: Members of the project.
+    members = models.ManyToManyField(
+        HpcUser,
+        related_name="%(class)s_members",
+        help_text="Members of the project",
+    )
+
+    #: Expiration date of the project
+    expiration = models.DateTimeField(help_text="Expiration date of the project")
+
+
+class HpcProjectCreateRequest(
+    RequestManagerMixin, VersionManagerMixin, HpcProjectCreateRequestAbstract
+):
+    """HpcProjectCreateRequest model"""
+
+    #: Set custom manager
+    objects = VersionRequestManager()
+
+    #: Currently active version of the project create request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the project create request object"
+    )
+
+
+class HpcProjectCreateRequestVersion(HpcProjectCreateRequestAbstract):
+    """HpcProjectCreateRequestVersion model"""
+
+    #: Version number of the project create request object.
+    version = models.IntegerField(help_text="Version number of this project create request object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcProjectCreateRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# HpcProjectChangeRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
+    """HpcProjectChangeRequest abstract base class"""
+
+    class Meta:
+        abstract = True
+
+    #: Projects requested resources as JSON.
+    resources_requested = models.JSONField()
+
+    #: Delegate of the project, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="User registered as delegate of the project",
+        on_delete=models.SET_NULL,
+    )
+
+    #: Members of the project.
+    members = models.ManyToManyField(
+        HpcUser,
+        related_name="%(class)s_members",
+        help_text="Members of the project",
+    )
+
+    #: Expiration date of the project
+    expiration = models.DateTimeField(help_text="Expiration date of the project")
+
+
+class HpcProjectChangeRequest(
+    RequestManagerMixin, VersionManagerMixin, HpcProjectChangeRequestAbstract
+):
+    """HpcProjectChangeRequest model"""
+
+    #: Set custom manager
+    objects = VersionRequestManager()
+
+    #: Currently active version of the project change request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the project change request object"
+    )
+
+
+class HpcProjectChangeRequestVersion(HpcProjectChangeRequestAbstract):
+    """HpcProjectChangeRequestVersion model"""
+
+    class Meta:
+        unique_together = ("belongs_to", "version")
+
+    #: Version number of the project change request object.
+    version = models.IntegerField(help_text="Version number of this project change request object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcProjectChangeRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+# HpcProjectDeleteRequest related
+# ------------------------------------------------------------------------------
+
+
+class HpcProjectDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcProjectRequestAbstract):
+    """HpcProjectDeleteRequest model"""
+
+    #: Set custom manager
+    objects = VersionRequestManager()
+
+    #: Currently active version of the project delete request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the project delete request object"
+    )
+
+
+class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
+    """HpcProjectDeleteRequestVersion model"""
+
+    class Meta:
+        unique_together = ("belongs_to", "version")
+
+    #: Version number of the project delete request object.
+    version = models.IntegerField(help_text="Version number of this project delete request object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcProjectDeleteRequest,
         null=True,
         related_name="version_history",
         help_text="Object this version belongs to",

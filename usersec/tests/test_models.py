@@ -5,20 +5,28 @@ from test_plus.test import TestCase
 from usersec.models import (
     HpcGroup,
     HpcGroupVersion,
-    HpcGroupChangeRequest,
-    HpcGroupChangeRequestVersion,
     HpcGroupCreateRequest,
     HpcGroupCreateRequestVersion,
+    HpcGroupChangeRequest,
+    HpcGroupChangeRequestVersion,
     HpcGroupDeleteRequest,
     HpcGroupDeleteRequestVersion,
     HpcUser,
     HpcUserVersion,
-    HpcUserChangeRequest,
-    HpcUserChangeRequestVersion,
     HpcUserCreateRequest,
     HpcUserCreateRequestVersion,
+    HpcUserChangeRequest,
+    HpcUserChangeRequestVersion,
     HpcUserDeleteRequest,
     HpcUserDeleteRequestVersion,
+    HpcProject,
+    HpcProjectVersion,
+    HpcProjectCreateRequest,
+    HpcProjectCreateRequestVersion,
+    HpcProjectChangeRequest,
+    HpcProjectChangeRequestVersion,
+    HpcProjectDeleteRequest,
+    HpcProjectDeleteRequestVersion,
     OBJECT_STATUS_DELETED,
     OBJECT_STATUS_INITIAL,
     REQUEST_STATUS_INITIAL,
@@ -30,14 +38,18 @@ from usersec.models import (
     REQUEST_STATUS_REVISION,
 )
 from usersec.tests.factories import (
-    HpcGroupChangeRequestFactory,
-    HpcGroupCreateRequestFactory,
-    HpcGroupDeleteRequestFactory,
     HpcGroupFactory,
-    HpcUserChangeRequestFactory,
-    HpcUserCreateRequestFactory,
-    HpcUserDeleteRequestFactory,
+    HpcGroupCreateRequestFactory,
+    HpcGroupChangeRequestFactory,
+    HpcGroupDeleteRequestFactory,
     HpcUserFactory,
+    HpcUserCreateRequestFactory,
+    HpcUserChangeRequestFactory,
+    HpcUserDeleteRequestFactory,
+    HpcProjectFactory,
+    HpcProjectCreateRequestFactory,
+    HpcProjectChangeRequestFactory,
+    HpcProjectDeleteRequestFactory,
     hpc_obj_to_dict,
     hpc_version_obj_to_dict,
 )
@@ -413,6 +425,51 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
 
     def test_save_with_version_new(self):
         supplementaries = {"name": "hpc-group"}
+        self._test_save_with_version_new(**supplementaries)
+
+    def test_save_with_version(self):
+        update = {"description": "description updated"}
+        self._test_save_with_version_existing(**update)
+
+    def test_update_with_version(self):
+        update = {"description": "description updated"}
+        self._test_update_with_version(**update)
+
+    def test_delete_with_version(self):
+        self._test_delete_with_version()
+
+    def test_get_latest_version(self):
+        update = {"description": "description updated"}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()
+
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
+
+class TestHpcProject(VersionTesterMixin, TestCase):
+    """Tests for HpcProject model"""
+
+    model = HpcProject
+    version_model = HpcProjectVersion
+    factory = HpcProjectFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        supplementaries = {
+            "group": HpcGroupFactory(),
+            "name": "hpc-project",
+        }
         self._test_save_with_version_new(**supplementaries)
 
     def test_save_with_version(self):
@@ -941,6 +998,303 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     model = HpcUserDeleteRequest
     version_model = HpcUserDeleteRequestVersion
     factory = HpcUserDeleteRequestFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        self._test_save_with_version_new()
+
+    def test_save_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_save_with_version_existing(**update)
+
+    def test_update_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_update_with_version(**update)
+
+    def test_retract_with_version(self):
+        self._test_retract_with_version()
+
+    def test_deny_with_version(self):
+        self._test_deny_with_version()
+
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
+    def test_get_latest_version(self):
+        update = {"comment": "comment updated"}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()
+
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
+    def test_get_comment_history(self):
+        comments = ["new comment", "", "even more comments"]
+        self._test_get_comment_history(comments)
+
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
+
+
+class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+    """Tests for HpcProjectChangeRequest model"""
+
+    model = HpcProjectChangeRequest
+    version_model = HpcProjectChangeRequestVersion
+    factory = HpcProjectChangeRequestFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        self._test_save_with_version_new()
+
+    def test_save_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_save_with_version_existing(**update)
+
+    def test_update_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_update_with_version(**update)
+
+    def test_retract_with_version(self):
+        self._test_retract_with_version()
+
+    def test_deny_with_version(self):
+        self._test_deny_with_version()
+
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
+    def test_get_latest_version(self):
+        update = {"comment": "comment updated"}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()
+
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
+    def test_get_comment_history(self):
+        comments = ["new comment", "", "even more comments"]
+        self._test_get_comment_history(comments)
+
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
+
+
+class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+    """Tests for HpcProjectCreateRequest model"""
+
+    model = HpcProjectCreateRequest
+    version_model = HpcProjectCreateRequestVersion
+    factory = HpcProjectCreateRequestFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        self._test_save_with_version_new()
+
+    def test_save_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_save_with_version_existing(**update)
+
+    def test_update_with_version(self):
+        update = {"comment": "comment updated"}
+        self._test_update_with_version(**update)
+
+    def test_retract_with_version(self):
+        self._test_retract_with_version()
+
+    def test_deny_with_version(self):
+        self._test_deny_with_version()
+
+    def test_approve_with_version(self):
+        self._test_approve_with_version()
+
+    def test_revision_with_version(self):
+        self._test_revision_with_version()
+
+    def test_revised_with_version(self):
+        self._test_revised_with_version()
+
+    def test_get_latest_version(self):
+        update = {"comment": "comment updated"}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()
+
+    def test_get_detail_url_user(self):
+        self._test_get_detail_url_user()
+
+    def test_get_detail_url_admin(self):
+        self._test_get_detail_url_admin()
+
+    def test_get_comment_history(self):
+        comments = ["new comment", "", "even more comments"]
+        self._test_get_comment_history(comments)
+
+    def test_is_decided(self):
+        self._test_is_decided()
+
+    def test_is_denied(self):
+        self._test_is_denied()
+
+    def test_is_retracted(self):
+        self._test_is_retracted()
+
+    def test_is_approved(self):
+        self._test_is_approved()
+
+    def test_is_active(self):
+        self._test_is_active()
+
+    def test_is_revised(self):
+        self._test_is_revised()
+
+    def test_is_revision(self):
+        self._test_is_revision()
+
+    def test_active(self):
+        self._test_active()
+
+    def test_get_revision_url(self):
+        self._test_get_revision_url()
+
+    def test_get_approve_url(self):
+        self._test_get_approve_url()
+
+    def test_get_deny_url(self):
+        self._test_get_deny_url()
+
+    def test_get_update_url(self):
+        self._test_get_update_url()
+
+    def test_get_reactivate_url(self):
+        self._test_get_reactivate_url()
+
+    def test_get_retract_url(self):
+        self._test_get_retract_url()
+
+
+class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+    """Tests for HpcProjectDeleteRequest model"""
+
+    model = HpcProjectDeleteRequest
+    version_model = HpcProjectDeleteRequestVersion
+    factory = HpcProjectDeleteRequestFactory
 
     def test_create_with_version(self):
         self._test_create_with_version()

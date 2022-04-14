@@ -12,14 +12,6 @@ urlpatterns = [
         name="overview",
     ),
     # ------------------------------------------------------------------------------
-    # HpcUser related
-    # ------------------------------------------------------------------------------
-    path(
-        "hpcuser/<uuid:hpcuser>/detail/",
-        view=views.HpcUserDetailView.as_view(),
-        name="hpcuser-detail",
-    ),
-    # ------------------------------------------------------------------------------
     # HpcGroup related
     # ------------------------------------------------------------------------------
     path(
@@ -97,6 +89,14 @@ urlpatterns = [
         name="hpcgroupdeleterequest-deny",
     ),
     # ------------------------------------------------------------------------------
+    # HpcUser related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcuser/<uuid:hpcuser>/detail/",
+        view=views.HpcUserDetailView.as_view(),
+        name="hpcuser-detail",
+    ),
+    # ------------------------------------------------------------------------------
     # HpcUserCreateRequest related
     # ------------------------------------------------------------------------------
     path(
@@ -164,5 +164,82 @@ urlpatterns = [
         "hpcuserdeleterequest/<uuid:hpcuserdeleterequest>/deny/",
         view=views.HpcUserDeleteRequestDenyView.as_view(),
         name="hpcuserdeleterequest-deny",
+    ),
+    # ------------------------------------------------------------------------------
+    # HpcProject related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcproject/<uuid:hpcproject>/detail/",
+        view=views.HpcProjectDetailView.as_view(),
+        name="hpcproject-detail",
+    ),
+    # ------------------------------------------------------------------------------
+    # HpcProjectCreateRequest related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/detail/",
+        view=views.HpcProjectCreateRequestDetailView.as_view(),
+        name="hpcprojectcreaterequest-detail",
+    ),
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/revision/",
+        view=views.HpcProjectCreateRequestRevisionView.as_view(),
+        name="hpcprojectcreaterequest-revision",
+    ),
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/approve/",
+        view=views.HpcProjectCreateRequestApproveView.as_view(),
+        name="hpcprojectcreaterequest-approve",
+    ),
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/deny/",
+        view=views.HpcProjectCreateRequestDenyView.as_view(),
+        name="hpcprojectcreaterequest-deny",
+    ),
+    # ------------------------------------------------------------------------------
+    # HpcProjectChangeRequest related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/detail/",
+        view=views.HpcProjectChangeRequestDetailView.as_view(),
+        name="hpcprojectchangerequest-detail",
+    ),
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/revision/",
+        view=views.HpcProjectChangeRequestRevisionView.as_view(),
+        name="hpcprojectchangerequest-revision",
+    ),
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/approve/",
+        view=views.HpcProjectChangeRequestApproveView.as_view(),
+        name="hpcprojectchangerequest-approve",
+    ),
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/deny/",
+        view=views.HpcProjectChangeRequestDenyView.as_view(),
+        name="hpcprojectchangerequest-deny",
+    ),
+    # ------------------------------------------------------------------------------
+    # HpcProjectDeleteRequest related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/detail/",
+        view=views.HpcProjectDeleteRequestDetailView.as_view(),
+        name="hpcprojectdeleterequest-detail",
+    ),
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/revision/",
+        view=views.HpcProjectDeleteRequestRevisionView.as_view(),
+        name="hpcprojectdeleterequest-revision",
+    ),
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/approve/",
+        view=views.HpcProjectDeleteRequestApproveView.as_view(),
+        name="hpcprojectdeleterequest-approve",
+    ),
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/deny/",
+        view=views.HpcProjectDeleteRequestDenyView.as_view(),
+        name="hpcprojectdeleterequest-deny",
     ),
 ]
