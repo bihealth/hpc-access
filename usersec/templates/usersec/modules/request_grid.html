@@ -22,42 +22,57 @@
 </div>
 <div class="row mb-4">
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          <i class="iconify" data-icon="mdi:create"></i>
-          Create
-        </h5>
+    {% if admin %}
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="iconify" data-icon="mdi:create"></i>
+            Create
+          </h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for obj in hpcgroupcreaterequests %}
+            <li class="list-group-item">
+              <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+              <span class="badge bg-{{ obj.status|colorize_request_status }}">
+                {{ obj.status|lower }}
+              </span>
+              <small class="text-muted">
+                {{ obj.date_created|date:"Y-d-m H:i" }}
+              </small>
+            </li>
+          {% empty %}
+            <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+          {% endfor %}
+        </ul>
       </div>
-      <ul class="list-group list-group-flush">
-        {% for obj in hpcgroupcreaterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.status|lower }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% endif %}
   </div>
   <div class="col-4">
     <div class="card">
       <div class="card-header">
         <h5 class="card-title">
-          <i class="iconify" data-icon="mdi:create"></i>
-          Create
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:create"></i>
+            Create
+          {% else %}
+            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}">
+              <i class="iconify" data-icon="mdi:create"></i>
+              Create
+            </a>
+          {% endif %}
         </h5>
       </div>
       <ul class="list-group list-group-flush">
         {% for obj in hpcusercreaterequests %}
           <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.email }}</a>
             <span class="badge bg-{{ obj.status|colorize_request_status }}">
               {{ obj.status|lower }}
             </span>
+            <small class="text-muted">
+              <strong>{{ obj.requester.username }}</strong>@{{ obj.date_created|date:"Y-d-m H:i" }}
+            </small>
           </li>
         {% empty %}
           <li class="list-group-item"><em class="text-muted">No requests.</em></li>
@@ -69,17 +84,28 @@
     <div class="card">
       <div class="card-header">
         <h5 class="card-title">
-          <i class="iconify" data-icon="mdi:create"></i>
-          Create
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:create"></i>
+            Create
+          {% else %}
+            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcprojectcreaterequest-create' hpcgroup=object.primary_group.uuid %}">
+              <i class="iconify" data-icon="mdi:create"></i>
+              Create
+            </a>
+          {% endif %}
         </h5>
       </div>
       <ul class="list-group list-group-flush">
         {% for obj in hpcprojectcreaterequests %}
           <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.name }}</a>
             <span class="badge bg-{{ obj.status|colorize_request_status }}">
               {{ obj.status|lower }}
             </span>
+            <div class="small text-muted">
+              <strong>{{ obj.requester.username }}</strong>
+              {{ obj.date_created|date:"Y-d-m H:i" }}
+            </div>
           </li>
         {% empty %}
           <li class="list-group-item"><em class="text-muted">No requests.</em></li>
@@ -93,8 +119,15 @@
     <div class="card">
       <div class="card-header">
         <h5 class="card-title">
-          <i class="iconify" data-icon="mdi:refresh"></i>
-          Change
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:refresh"></i>
+            Change
+          {% else %}
+            <a class="btn btn-sm btn-primary disabled">
+              <i class="iconify" data-icon="mdi:refresh"></i>
+              Change
+            </a>
+          {% endif %}
         </h5>
       </div>
       <ul class="list-group list-group-flush">
@@ -156,13 +189,21 @@
     </div>
   </div>
 </div>
+
 <div class="row mb-4">
   <div class="col-4">
     <div class="card">
       <div class="card-header">
         <h5 class="card-title">
-          <i class="iconify" data-icon="mdi:trash-can"></i>
-          Delete
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:trash-can"></i>
+            Delete
+          {% else %}
+            <a class="btn btn-sm btn-danger disabled">
+              <i class="iconify" data-icon="mdi:trash-can"></i>
+              Delete
+            </a>
+          {% endif %}
         </h5>
       </div>
       <ul class="list-group list-group-flush">

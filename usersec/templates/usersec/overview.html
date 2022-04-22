@@ -10,15 +10,15 @@
     working group you are affiliated with.
   </p>
   <div class="row">
-    <div class="col-6">
+    <div class="col-4">
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.uuid %}">{{ object.username }}</a>
-            <span class="badge bg-{{ object.status|colorize_object_status }}">{{ object.status|lower }}</span>
+            <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.uuid %}"><i class="iconify" data-icon="mdi:user"></i></a>
+            {{ object.user.name }}
           </h4>
           <h6 class="card-subtitle text-muted">
-            {{ object.user.name }}
+            {{ object.username }}
           </h6>
         </div>
         <div class="card-body">
@@ -41,29 +41,25 @@
           <hr />
           <h6>Resources</h6>
           <dl class="row">
-            <dd class="col-sm-9">
-              <dl class="row">
-                {% for key, value in object.resources_requested.items %}
-                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
-                  <dd class="col-sm-9">{{ value }}</dd>
-                {% endfor %}
-              </dl>
-            </dd>
+            {% for key, value in object.resources_requested.items %}
+              <dt class="col-sm-3 text-muted">{{ key }}</dt>
+              <dd class="col-sm-9">{{ value }}</dd>
+            {% endfor %}
           </dl>
         </div>
       </div>
     </div>
 
-    <div class="col-6">
+    <div class="col-4">
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            <a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}">{{ object.primary_group.name }}</a>
-            <span class="badge bg-{{ object.primary_group.status|colorize_object_status }}">{{ object.primary_group.status|lower }}</span>
+            <a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}"><i class="iconify" data-icon="mdi:user-group"></i></a>
+            {{ object.primary_group.name }}
             {% if object.hpcgroup_owner.exists %}
-              <span class="badge bg-primary">Owner</span>
+              <i class="iconify text-warning" data-icon="mdi:medal"></i>
             {% elif object.hpcgroup_delegate.exists %}
-              <span class="badge bg-primary">Delegate</span>
+              <i class="iconify text-secondary" data-icon="mdi:medal-outline"></i>
             {% endif %}
           </h4>
           <h6 class="card-subtitle text-muted">
@@ -74,13 +70,13 @@
           <div class="card-subtitle text-muted">
             <ul class="list-unstyled">
               <li>
-                <span class="badge bg-primary">Owner</span>
+                <i class="iconify" data-icon="mdi:medal"></i>
                 <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.owner.uuid %}">{{ object.primary_group.owner.user.name }}</a>
                 <span class="small text-muted fw-bold">{{ object.primary_group.owner.username }}</span>
               </li>
               {% if object.primary_group.delegate %}
                 <li>
-                  <span class="badge bg-secondary">Delegate</span>
+                  <i class="iconify" data-icon="mdi:medal-outline"></i>
                   <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.delegate.uuid %}">{{ object.primary_group.delegate.user.name }}</a>
                   <span class="small text-muted fw-bold">{{ object.primary_group.delegate.username }}</span>
                 </li>
@@ -91,46 +87,60 @@
               </li>
             </ul>
           </div>
-          <hr />
-          <dl class="row">
-            <dt class="col-sm-3">Resources</dt>
-            <dd class="col-sm-9">
-              <dl class="row">
-                {% for key, value in object.primary_group.resources_requested.items %}
-                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
-                  <dd class="col-sm-9">{{ value }}</dd>
-                {% endfor %}
-              </dl>
-            </dd>
 
-            <dt class="col-sm-3">Members <span class="badge bg-secondary">{{ object.primary_group.hpcuser.count }}</span></dt>
-            <dd class="col-sm-9">
-              <ul class="list-unstyled">
-                {% for member in object.primary_group.hpcuser.all %}
-                  <li>
-                    <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
-                    <span class="small text-muted fw-bold">{{ member.username }}</span>
-                  </li>
-                {% empty %}
-                  <li><em class="text-muted">No members (?)</em></li>
-                {% endfor %}
-              </ul>
-            </dd>
+          <hr />
+
+          <h6>Resources</h6>
+          <dl class="row">
+            {% for key, value in object.primary_group.resources_requested.items %}
+              <dt class="col-sm-3 text-muted">{{ key }}</dt>
+              <dd class="col-sm-9">{{ value }}</dd>
+            {% endfor %}
           </dl>
+
+          <h6>Members <span class="badge rounded-pill bg-secondary">{{ object.primary_group.hpcuser.count }}</span></h6>
+          <ul class="list-unstyled">
+            {% for member in object.primary_group.hpcuser.all %}
+              <li>
+                <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
+                <span class="small text-muted fw-bold">{{ member.username }}</span>
+              </li>
+            {% empty %}
+              <li><em class="text-muted">No members (?)</em></li>
+            {% endfor %}
+          </ul>
         </div>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">
+            Projects
+          </h4>
+          <h6 class="card-subtitle text-muted">
+            List of all associated projects.
+          </h6>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for project in user.hpcuser_user.first.hpcproject_members.all %}
+            <li class="list-group-item">
+              <i class="iconify" data-icon="mdi:package-variant"></i>
+              <a href="{% url 'usersec:hpcproject-detail' hpcproject=project.uuid %}">{{ project.name }}</a>
+            </li>
+          {% empty %}
+            <li class="list-group-item"><em class="text-muted">No projects.</em></li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </div>
 
   {% if manager %}
-    <h3 class="mb-4 mt-4">
-      Open Requests
-    </h3>
-
-    <hr class="mb-4" />
-
-    {% include "usersec/modules/request_grid.html" %}
-
+    <div class="pt-4">
+      {% include "usersec/modules/request_grid.html" %}
+    </div>
   {% endif %}
 
 {% endblock content %}

@@ -1,9 +1,15 @@
 from test_plus.test import TestCase
 
-from usersec.forms import HpcGroupCreateRequestForm, HpcUserCreateRequestForm
+from usersec.forms import (
+    HpcGroupCreateRequestForm,
+    HpcUserCreateRequestForm,
+    HpcProjectCreateRequestForm,
+)
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUESTFORM_DATA_VALID,
     HPCUSERCREATEREQUESTFORM_DATA_VALID,
+    HPCPROJECTCREATEREQUESTFORM_DATA_VALID,
+    HpcUserFactory,
 )
 
 
@@ -131,3 +137,82 @@ class TestHpcUserCreateRequestForm(TestCase):
         user_hpcadmin.save()
         form = HpcUserCreateRequestForm(user=user_hpcadmin, data=self.data_valid)
         self.assertTrue(form.is_valid())
+
+
+class TestHpcProjectCreateRequestForm(TestCase):
+    """Tests for HpcProjectCreateRequest form."""
+
+    def setUp(self):
+        super().setUp()
+        self.data_valid = HPCPROJECTCREATEREQUESTFORM_DATA_VALID
+        self.data_valid["members"] = [HpcUserFactory()]
+
+    def test_form_valid(self):
+        form = HpcProjectCreateRequestForm(data=self.data_valid)
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_resources_requested_missing(self):
+        data_invalid = {**self.data_valid, "resources_requested": {}}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["resources_requested"], ["This field is required."])
+
+    def test_form_invalid_resources_requested_not_dict(self):
+        data_invalid = {
+            **self.data_valid,
+            "resources_requested": ["I'm", "a", "list"],
+        }
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["resources_requested"],
+            ["Resources must be a dictionary!"],
+        )
+
+    def test_form_invalid_expiration_missing(self):
+        data_invalid = {**self.data_valid, "expiration": ""}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["expiration"], ["This field is required."])
+
+    def test_form_invalid_description_missing(self):
+        data_invalid = {**self.data_valid, "description": ""}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["description"], ["This field is required."])
+
+    def test_form_invalid_name_missing(self):
+        data_invalid = {**self.data_valid, "name": ""}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["name"], ["This field is required."])
+
+    def test_form_invalid_members_missing(self):
+        data_invalid = {**self.data_valid, "members": None}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["members"], ["This field is required."])
+
+    def test_form_invalid_comment_missing(self):
+        data_invalid = {**self.data_valid, "comment": ""}
+        form = HpcProjectCreateRequestForm(data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["comment"], ["This field is required."])
+
+    def test_form_valid_hpcadmin(self):
+        user_hpcadmin = self.make_user("hpcadmin")
+        user_hpcadmin.is_hpcadmin = True
+        user_hpcadmin.save()
+        form = HpcProjectCreateRequestForm(user=user_hpcadmin, data=self.data_valid)
+        self.assertTrue(form.is_valid())
+
+    # TODO remove
+    # def test_form_invalid_hpcadmin_comment_missing(self):
+    #     user_hpcadmin = self.make_user("hpcadmin")
+    #     user_hpcadmin.is_hpcadmin = True
+    #     user_hpcadmin.save()
+    #     data_invalid = {**self.data_valid, "comment": ""}
+    #     form = HpcProjectCreateRequestForm(user=user_hpcadmin, data=data_invalid)
+    #     form = HpcProjectCreateRequestForm(user=user_hpcadmin, data=data_invalid)
+    #     self.assertFalse(form.is_valid())
+    #     self.assertEqual(form.errors["comment"], ["This field is required."])

@@ -58,6 +58,17 @@ HPCUSERCREATEREQUESTFORM_DATA_VALID = {
 }
 
 
+#: Valid data for HpcProjectCreateRequestForm.
+HPCPROJECTCREATEREQUESTFORM_DATA_VALID = {
+    "resources_requested": json.dumps({"resource": 100}),
+    "description": "some project description",
+    "name": "some-project",
+    "expiration": "2022-01-01",
+    "comment": "nothing",
+    "members": None,  # fill out before usage
+}
+
+
 # ------------------------------------------------------------------------------
 # Factories
 # ------------------------------------------------------------------------------
@@ -225,8 +236,9 @@ class HpcProjectFactory(HpcObjectFactoryBase):
     delegate = None  # HpcUser
     description = "this is a project"
     gid = 5000
-    name = factory.Sequence(lambda n: f"hpc-group{n}")
+    name = factory.Sequence(lambda n: f"hpc-project{n}")
     folder = "/data/project"
+    # members = None  # List of HpcUsers
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
@@ -245,9 +257,11 @@ class HpcProjectCreateRequestFactory(HpcProjectRequestFactoryBase):
     class Meta:
         model = HpcProjectCreateRequest
 
-    group = None
+    group = factory.SubFactory(HpcGroupFactory)
     delegate = None
     resources_requested = {"null": "null"}
+    description = "some description"
+    name = factory.Sequence(lambda n: f"hpc-project100{n}")
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 

@@ -39,6 +39,8 @@ UserSec
 - Created HPC user detail view (#60)
 - Disentagle and modularize html templates (#69)
 - Added models for HPC projects and project requests (#4)
+- Added HPC project detail view (#8)
+- Added HPC project create request views (#8)
 
 AdminSec
 --------

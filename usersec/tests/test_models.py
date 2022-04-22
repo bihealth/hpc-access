@@ -1204,7 +1204,11 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
         self._test_create_with_version_two()
 
     def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+        supplementaries = {
+            "group": HpcGroupFactory(),
+            "name": "some-project",
+        }
+        self._test_save_with_version_new(**supplementaries)
 
     def test_save_with_version(self):
         update = {"comment": "comment updated"}

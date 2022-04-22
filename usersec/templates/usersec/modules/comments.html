@@ -1,9 +1,9 @@
-{% if comment_history %}
+{% if object.get_comment_history %}
   <div class="alert alert-info">
     <h5 class="alert-heading">Comments</h5>
     <hr>
     <ul class="list-unstyled">
-      {% for comment in comment_history %}
+      {% for comment in object.get_comment_history %}
         <li>
           <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
           <strong>{{ comment.0 }}</strong>:

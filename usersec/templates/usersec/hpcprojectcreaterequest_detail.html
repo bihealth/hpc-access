@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">
+        HPC Project Request
+        <span class="badge bg-{{ object.status|colorize_request_status }}">
+          {{ object.status|lower }}
+        </span>
+        <span class="float-end">
+          {% if admin %}
+            {% include "usersec/modules/request_buttons_admin.html" %}
+          {% else %}
+            <a class="btn btn-secondary" href="{% url 'home' %}">
+              <i class="iconify" data-icon="mdi:home"></i>
+              Overview
+            </a>
+            {% include "usersec/modules/request_buttons_user.html" %}
+          {% endif %}
+        </span>
+      </h4>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-sm-6">
+          <dl class="row">
+            <dt class="col-sm-3">Resources</dt>
+            <dd class="col-sm-9">
+              <dl class="row">
+                {% for key, value in object.resources_requested.items %}
+                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                  <dd class="col-sm-9">{{ value }}</dd>
+                {% endfor %}
+              </dl>
+            </dd>
+
+            <dt class="col-sm-3">Requester</dt>
+            <dd class="col-sm-9">
+              <a href="{{ object.requester.hpcuser_user.first|get_detail_url:user }}">{{ object.requester.name }}</a>
+              <strong class="small text-muted">{{ object.requester.hpcuser_user.first.username }}</strong>
+            </dd>
+
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">{{ object.name }}</dd>
+
+            <dt class="col-sm-3">Delegate</dt>
+            <dd class="col-sm-9">
+              {% if object.delegate %}
+                <a href="{{ object.delegate|get_detail_url:user }}">{{ object.delegate.user.name }}</a> <strong class="small text-muted">{{ object.delegate.username }}</strong>
+              {% else %}
+                <em class="text-muted">No delegate.</em>
+              {% endif %}
+            </dd>
+
+            <dt class="col-sm-3">Members</dt>
+            <dd class="col-sm-9">
+              <ul class="list-unstyled">
+                {% for member in object.members.all %}
+                  <li>
+                    <a href="{{ member|get_detail_url:user }}">{{ member.user.name }}</a> <strong class="small text-muted">{{ member.username }}</strong>
+                  </li>
+                {% endfor %}
+              </ul>
+            </dd>
+
+            <dt class="col-sm-3">Group</dt>
+            <dd class="col-sm-9">
+              <a href="{{ object.group|get_detail_url:user }}">{{ object.group.name }}</a>
+              <small class="fst-italic text-muted">owned by</small> <a href="{{ object.group.owner|get_detail_url:user }}">{{ object.group.owner.user.name }}</a> <strong class="small text-muted">{{ object.group.owner.username }}</strong>
+            </dd>
+            <dt class="col-sm-3">Expiration</dt>
+            <dd class="col-sm-9">{{ object.expiration }}</dd>
+          </dl>
+        </div>
+        <div class="col-sm-6">
+          {% include "usersec/modules/comments.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
