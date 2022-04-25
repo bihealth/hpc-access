@@ -110,6 +110,9 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Exclude members that have no User associated
+        self.fields["members"].queryset = self.fields["members"].queryset.exclude(user__isnull=True)
+
         if user and user.is_hpcadmin:
             self.fields["resources_requested"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()

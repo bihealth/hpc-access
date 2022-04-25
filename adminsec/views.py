@@ -36,6 +36,7 @@ from usersec.models import (
     OBJECT_STATUS_INITIAL,
     HpcProject,
     HpcProjectCreateRequest,
+    HpcGroupVersion,
 )
 from usersec.views import HpcPermissionMixin
 
@@ -254,9 +255,16 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             expiration=timezone.now() + timedelta(weeks=52),
         )
 
+        # Set group owner
         hpcgroup.owner = hpcuser
         hpcgroup.status = OBJECT_STATUS_ACTIVE
         hpcgroup.save()  # We do not need another version for this action.
+
+        # Set group owner in versino object
+        hpcgroup_version = HpcGroupVersion.objects.get(belongs_to=hpcgroup)
+        hpcgroup_version.owner = hpcuser
+        hpcgroup.status = OBJECT_STATUS_ACTIVE
+        hpcgroup_version.save()
 
         messages.success(self.request, "Request approved and group and user created.")
         return HttpResponseRedirect(
@@ -626,6 +634,8 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                     expiration=obj.expiration,
                 )
                 project.members.set(obj.members.all())
+                project_version = project.version_history.last()
+                project_version.members.set(obj.members.all())
 
         except Exception as e:
             messages.error(self.request, "Could not create project object: {}".format(e))

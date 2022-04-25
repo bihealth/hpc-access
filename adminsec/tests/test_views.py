@@ -292,12 +292,16 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
             hpcuser = hpcusers.last()  # noqa: E1101
             hpcgroup = hpcgroups.last()  # noqa: E1101
+            hpcgroup_version = hpcgroup.version_history.last()
 
             self.assertEqual(hpcuser.user, self.user)
             self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
             self.assertEqual(hpcgroup.name, "ag_doe")
+
+            self.assertEqual(hpcgroup_version.owner, hpcuser)
+
             self.assertEqual(len(mail.outbox), 0)
 
 
@@ -831,10 +835,13 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertEqual(HpcProject.objects.count(), 2)
 
             hpcproject = HpcProject.objects.get(name=self.obj.name)
+            hpcproject_version = hpcproject.version_history.last()
 
             self.assertEqual(hpcproject.group.owner, self.hpc_owner)
             self.assertEqual(hpcproject.name, self.obj.name)
             self.assertEqual(list(hpcproject.members.all()), list(self.obj.members.all()))
+            self.assertEqual(list(hpcproject_version.members.all()), list(self.obj.members.all()))
+
             self.assertEqual(len(mail.outbox), 2)
 
 
