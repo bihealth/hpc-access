@@ -144,8 +144,9 @@ class TestHpcProjectCreateRequestForm(TestCase):
 
     def setUp(self):
         super().setUp()
+        user = self.make_user("user")
         self.data_valid = HPCPROJECTCREATEREQUESTFORM_DATA_VALID
-        self.data_valid["members"] = [HpcUserFactory()]
+        self.data_valid["members"] = [HpcUserFactory(user=user)]
 
     def test_form_valid(self):
         form = HpcProjectCreateRequestForm(data=self.data_valid)

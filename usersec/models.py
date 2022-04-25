@@ -326,6 +326,24 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
     #: Currently active version of the user object.
     current_version = models.IntegerField(help_text="Currently active version of the user object")
 
+    def __repr__(self):
+        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},current_version={})".format(
+            self.__class__.__name__,
+            self.id,
+            self.user.username if self.user else "None",
+            self.username,
+            self.uid,
+            self.primary_group.name,
+            self.status,
+            self.creator.username,
+            self.current_version,
+        )
+
+    def __str__(self):
+        return "{} ({})".format(
+            self.user.name if self.user else "User not connected", self.username
+        )
+
 
 class HpcUserVersion(HpcUserAbstract):
     """HpcUserVersion model"""
@@ -344,6 +362,19 @@ class HpcUserVersion(HpcUserAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+    def __repr__(self):
+        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},version={})".format(
+            self.__class__.__name__,
+            self.id,
+            self.user.username if self.user else "None",
+            self.username,
+            self.uid,
+            self.primary_group.name,
+            self.status,
+            self.creator.username,
+            self.version,
+        )
 
 
 # ------------------------------------------------------------------------------
@@ -429,6 +460,26 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
     #: Currently active version of the group object.
     current_version = models.IntegerField(help_text="Currently active version of the group object")
 
+    def __repr__(self):
+        return "{}(id={},name={},owner={},delegate={},gid={},status={},creator={},current_version={})".format(
+            self.__class__.__name__,
+            self.id,
+            self.name,
+            self.owner.username,
+            self.delegate.username if self.delegate else None,
+            self.gid,
+            self.status,
+            self.creator.username,
+            self.current_version,
+        )
+
+    def __str__(self):
+        return "{} ({}, {})".format(
+            self.name,
+            self.owner.username,
+            self.delegate.username if self.delegate else None,
+        )
+
 
 class HpcGroupVersion(HpcGroupAbstract):
     """HpcGroupVersion model"""
@@ -447,6 +498,20 @@ class HpcGroupVersion(HpcGroupAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+    def __repr__(self):
+        return "{}(id={},name={},owner={},delegate={},gid={},status={},members={},creator={},version={})".format(
+            self.__class__.__name__,
+            self.id,
+            self.name,
+            self.owner.username,
+            self.delegate.username if self.delegate else None,
+            self.gid,
+            self.status,
+            self.hpcuser.count(),
+            self.creator.username,
+            self.version,
+        )
 
 
 # ------------------------------------------------------------------------------
@@ -538,6 +603,30 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
         help_text="Currently active version of the project object"
     )
 
+    def __repr__(self):
+        return (
+            "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={},"
+            "current_version={})"
+        ).format(
+            self.__class__.__name__,
+            self.id,
+            self.name,
+            self.group.name,
+            self.delegate.username if self.delegate else None,
+            self.gid,
+            self.status,
+            self.members.count(),
+            self.creator.username,
+            self.current_version,
+        )
+
+    def __str__(self):
+        return "{} (owner: {}, delegate: {})".format(
+            self.name,
+            self.group.owner.username,
+            self.delegate.username if self.delegate else None,
+        )
+
 
 class HpcProjectVersion(HpcProjectAbstract):
     """HpcProjectVersion model"""
@@ -556,6 +645,20 @@ class HpcProjectVersion(HpcProjectAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+    def __repr__(self):
+        return "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={},version={})".format(
+            self.__class__.__name__,
+            self.id,
+            self.name,
+            self.group.name,
+            self.delegate.username if self.delegate else None,
+            self.gid,
+            self.status,
+            self.members.count(),
+            self.creator.username,
+            self.version,
+        )
 
 
 # ------------------------------------------------------------------------------

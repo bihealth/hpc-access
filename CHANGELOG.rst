@@ -41,6 +41,7 @@ UserSec
 - Added models for HPC projects and project requests (#4)
 - Added HPC project detail view (#8)
 - Added HPC project create request views (#8)
+- Added representation to HPC group, user and project model (#79)
 
 AdminSec
 --------
@@ -57,3 +58,7 @@ AdminSec
 - Added logic for approving HPC user create request (#60)
 - Added LDAP Connector class to fetch username by email alongside LDAP authentication (#60)
 - Enabled email sending when HPC user create request is accepted (#60)
+- Added HPC project detail view (#8)
+- Added HPC project create request views (#8)
+- Fixed bug where creating HPC project didn't add members to version object (#79)
+- Fixed bug where creating HPC group didn't add owner to version object (#79)

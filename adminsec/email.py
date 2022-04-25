@@ -177,7 +177,7 @@ def send_user_invite(recipient_list, inviter, request=None):
 
 def send_user_added_to_project_notification(project, request=None):
     subject = "Added to project on BIH cluster"
-    recipient_list = [m.user.email for m in project.members.all()]
+    recipient_list = [m.user.email for m in project.members.exclude(user__isnull=True)]
     message = MESSAGE_USER_ADDED_TO_PROJECT_NOTIFICATION.format(
         project_name=project.name,
         project_folder=project.folder,
