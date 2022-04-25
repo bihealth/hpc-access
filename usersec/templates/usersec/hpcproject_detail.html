@@ -17,14 +17,8 @@
             Overview
           </a>
           {% if not admin %}
-            <a class="btn btn-primary"
-               href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.uuid %}"
-            >
-              <i class="iconify" data-icon="mdi:user"></i>
-              Add User
-            </a>
             <a class="btn btn-primary disabled"
-               href="#hpcgroup-change"
+               href="#hpcproject-change"
             >
               <i class="iconify" data-icon="mdi:update"></i>
               Request Change
@@ -47,28 +41,37 @@
                 {% endfor %}
               </dl>
             </dd>
-            <dt class="col-sm-3">Owner</dt>
-            <dd class="col-sm-9"><a href="{% url 'usersec:hpcuser-overview' hpcuser=object.owner.uuid %}">{{ object.owner.user.name }}</a></dd>
-
-            <dt class="col-sm-3">Delegate</dt>
-            <dd class="col-sm-9">{{ object.delegate.user.name|default:"<em class='text-muted'>not named</em>" }}</dd>
 
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration }}</dd>
 
+            <dt class="col-sm-3">Owner</dt>
+            <dd class="col-sm-9">
+              <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.group.owner.uuid %}">{{ object.group.owner.user.name }}</a>
+              <strong class="small text-muted">{{ object.group.owner.username }}</strong>
+            </dd>
+
+            <dt class="col-sm-3">Delegate</dt>
+            <dd class="col-sm-9">
+              {% if object.delegate %}
+                <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.delegate.uuid %}">{{ object.delegate.user.name }}</a>
+                <strong class="small text-muted">{{ object.delegate.username }}</strong>
+              {% else %}
+                <em class="text-muted">not named</em>
+              {% endif %}
+            </dd>
+
             <dt class="col-sm-3">
               Members
-              <span class="badge rounded-pill bg-secondary">{{ object.hpcuser.count }}</span>
+              <span class="badge rounded-pill bg-secondary">{{ object.members.count }}</span>
             </dt>
             <dd class="col-sm-9">
               <ul class="list-unstyled">
-                {% for member in object.hpcuser.all %}
+                {% for member in object.members.all %}
                   <li>
-                    <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
-                    <span class="small text-muted fw-bold">{{ member.username }}</span>
+                    <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.uuid %}">{{ member.user.name }}</a>
+                    <strong class="small text-muted">{{ member.username }}</strong>
                   </li>
-                {% empty %}
-                  <li><em class="text-muted">No members (?)</em></li>
                 {% endfor %}
               </ul>
             </dd>

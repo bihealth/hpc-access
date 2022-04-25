@@ -15,8 +15,8 @@
           {% if admin %}
             {% include "usersec/modules/request_buttons_admin.html" %}
           {% else %}
-            <a class="btn btn-secondary" href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.group.uuid %}">
-              <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+            <a class="btn btn-secondary" href="{% url 'home' %}">
+              <i class="iconify" data-icon="mdi:home"></i>
               Overview
             </a>
             {% include "usersec/modules/request_buttons_user.html" %}

@@ -13,7 +13,7 @@
         </span>
         <span class="float-end">
           <a class="btn btn-secondary" href="{% url 'home' %}">
-            <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+            <i class="iconify" data-icon="mdi:home"></i>
             Overview
           </a>
           {% if not admin %}
@@ -51,23 +51,6 @@
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration }}</dd>
           </dl>
-        </div>
-        <div class="col-sm-6">
-          {% if comment_history %}
-            <div class="alert alert-info">
-              <h5 class="alert-heading">Comments</h5>
-              <hr>
-              <ul class="list-unstyled">
-                {% for comment in comment_history %}
-                  <li>
-                    <small>{{ comment.1|date:"Y-d-m H:i" }}</small>
-                    <strong>{{ comment.0 }}</strong>:
-                    {{ comment.2 }}
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% endif %}
         </div>
       </div>
     </div>

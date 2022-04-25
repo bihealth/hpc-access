@@ -11,6 +11,8 @@ from usersec.tests.factories import (
     HpcUserFactory,
     HpcUserCreateRequestFactory,
     HPCUSERCREATEREQUESTFORM_DATA_VALID,
+    HpcProjectCreateRequestFactory,
+    HpcProjectFactory,
 )
 
 
@@ -58,6 +60,9 @@ class TestRulesBase(TestCase):
         self.hpc_group = HpcGroupFactory()
         self.hpc_other_group = HpcGroupFactory()
 
+        # Create HPC project
+        self.hpc_project = HpcProjectFactory(group=self.hpc_group)
+
         # Create HPC users
         self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
         self.hpc_delegate = HpcUserFactory(user=self.user_delegate, primary_group=self.hpc_group)
@@ -72,12 +77,25 @@ class TestRulesBase(TestCase):
         self.hpc_group.delegate = self.hpc_delegate
         self.hpc_group.save()
 
+        # Set project group, delegate and members
+        self.hpc_project.delegate = self.hpc_member_other_group
+        self.hpc_project.members.add(self.hpc_owner, self.hpc_member, self.hpc_member_other_group)
+        self.hpc_project.save()
+
         # Create HPC group create request
         self.hpc_group_create_request = HpcGroupCreateRequestFactory(requester=self.user_pending)
 
         # Create HPC user create request
         self.hpc_user_create_request = HpcUserCreateRequestFactory(
             requester=self.user_owner, group=self.hpc_group
+        )
+
+        # Create HPC project create request
+        self.hpc_project_create_request = HpcProjectCreateRequestFactory(
+            requester=self.user_owner, group=self.hpc_group
+        )
+        self.hpc_project_create_request.members.add(
+            self.hpc_owner, self.hpc_member, self.hpc_member_other_group
         )
 
     def assert_permissions_granted(self, perm, obj, users):
@@ -179,6 +197,27 @@ class TestRules(TestRulesBase):
             )  # noqa: E1101
         )
 
+    def test_is_project_manager_owner_true(self):
+        self.assertTrue(
+            rules.test_rule(
+                "usersec.is_project_manager", self.user_owner, self.hpc_project
+            )  # noqa: E1101
+        )
+
+    def test_is_project_manager_delegate_true(self):
+        self.assertTrue(
+            rules.test_rule(
+                "usersec.is_project_manager", self.user_member_other_group, self.hpc_project
+            )  # noqa: E1101
+        )
+
+    def test_is_project_manager_member_false(self):
+        self.assertFalse(
+            rules.test_rule(
+                "usersec.is_project_manager", self.user_member, self.hpc_project
+            )  # noqa: E1101
+        )
+
 
 class TestPermissions(TestRulesBase):
     """Tests for permissions without views."""
@@ -253,6 +292,77 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.manage_hpcusercreaterequest"
         self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_user_create_request, bad_users)
+
+    def test_view_hpcproject(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_hpcadmin,
+            self.user_member2,
+            self.user,
+        ]
+        perm = "usersec.view_hpcproject"
+        self.assert_permissions_granted(perm, self.hpc_project, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project, bad_users)
+
+    def test_view_hpcprojectcreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.view_hpcprojectcreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project_create_request, bad_users)
+
+    def test_create_hpcprojectcreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.create_hpcprojectcreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_group, good_users)
+        self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+
+    def test_manage_hpcprojectcreaterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.manage_hpcprojectcreaterequest"
+        self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project_create_request, bad_users)
 
     def test_view_hpcgroup(self):
         good_users = [
@@ -625,6 +735,28 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_pending,
             self.user_hpcadmin,
             self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_detail_view(self):
+        url = reverse(
+            "usersec:hpcproject-detail",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_delegate,
+            self.user_hpcadmin,
+            self.user_member2,
             self.user,
         ]
 

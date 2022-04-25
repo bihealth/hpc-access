@@ -91,16 +91,16 @@ can_view_hpcgroupcreaterequest = is_group_requester
 can_manage_hpcgroupcreaterequest = is_group_requester
 
 
-# HpcUserCreateRequest based
+# Hpc*CreateRequest based
 # ------------------------------------------------------------------------------
 
 
 @rules.predicate  # noqa: E1101
-def _is_group_owner_by_hpcusercreaterequest(user, hpcusercreaterequest):
-    if hpcusercreaterequest is None:
+def _is_group_owner_by_createrequest(user, createrequest):
+    if createrequest is None:
         return False
 
-    owner = hpcusercreaterequest.group.owner
+    owner = createrequest.group.owner
 
     if owner:
         return owner.user == user
@@ -109,11 +109,11 @@ def _is_group_owner_by_hpcusercreaterequest(user, hpcusercreaterequest):
 
 
 @rules.predicate  # noqa: E1101
-def _is_group_delegate_by_hpcusercreaterequest(user, hpcusercreaterequest):
-    if hpcusercreaterequest is None:
+def _is_group_delegate_by_createrequest(user, createrequest):
+    if createrequest is None:
         return False
 
-    delegate = hpcusercreaterequest.group.delegate
+    delegate = createrequest.group.delegate
 
     if delegate:
         return delegate.user == user
@@ -121,19 +121,13 @@ def _is_group_delegate_by_hpcusercreaterequest(user, hpcusercreaterequest):
     return False
 
 
-is_group_owner_by_hpcusercreaterequest = (
-    ~is_hpcadmin & is_cluster_user & _is_group_owner_by_hpcusercreaterequest
-)
-is_group_delegate_by_hpcusercreaterequest = (
-    ~is_hpcadmin & is_cluster_user & _is_group_delegate_by_hpcusercreaterequest
+is_group_owner_by_createrequest = ~is_hpcadmin & is_cluster_user & _is_group_owner_by_createrequest
+is_group_delegate_by_createrequest = (
+    ~is_hpcadmin & is_cluster_user & _is_group_delegate_by_createrequest
 )
 
-can_view_hpcusercreaterequest = (
-    is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
-can_manage_hpcusercreaterequest = (
-    is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
+can_view_createrequest = is_group_owner_by_createrequest | is_group_delegate_by_createrequest
+can_manage_createrequest = is_group_owner_by_createrequest | is_group_delegate_by_createrequest
 
 
 # HpcGroup based
@@ -170,7 +164,43 @@ is_group_delegate = ~is_hpcadmin & is_cluster_user & _is_group_delegate
 is_group_manager = is_group_owner | is_group_delegate
 
 can_view_hpcgroup = is_group_owner | is_group_delegate | is_group_member
-can_create_hpcusercreaterequest = is_group_owner | is_group_delegate
+can_create_createrequest = is_group_owner | is_group_delegate
+
+
+# HpcProject based
+# ------------------------------------------------------------------------------
+
+
+@rules.predicate  # noqa: E1101
+def _is_project_member(user, project):
+    if project is None:
+        return False
+
+    return project.members.contains(user.hpcuser_user.first())
+
+
+@rules.predicate  # noqa: E1101
+def _is_project_owner(user, project):
+    if project is None:
+        return False
+
+    return project.group.owner == user.hpcuser_user.first()
+
+
+@rules.predicate  # noqa: E1101
+def _is_project_delegate(user, project):
+    if project is None:
+        return False
+
+    return user.hpcuser_user.filter(hpcproject_delegate=project).exists()
+
+
+is_project_member = ~is_hpcadmin & is_cluster_user & _is_project_member
+is_project_owner = ~is_hpcadmin & is_cluster_user & _is_project_owner
+is_project_delegate = ~is_hpcadmin & is_cluster_user & _is_project_delegate
+is_project_manager = is_project_owner | is_project_delegate
+
+can_view_hpcproject = is_project_owner | is_project_delegate | is_project_member
 
 
 # ------------------------------------------------------------------------------
@@ -181,6 +211,7 @@ can_create_hpcusercreaterequest = is_group_owner | is_group_delegate
 rules.add_rule("usersec.is_cluster_user", is_cluster_user)  # noqa: E1101
 rules.add_rule("usersec.has_pending_group_request", has_pending_group_request)  # noqa: E1101
 rules.add_rule("usersec.is_group_manager", is_group_manager)  # noqa: E1101
+rules.add_rule("usersec.is_project_manager", is_project_manager)  # noqa: E1101
 
 
 # ------------------------------------------------------------------------------
@@ -196,13 +227,9 @@ rules.add_perm("usersec.view_hpcuser", can_view_hpcuser)  # noqa: E1101
 # HpcUserCreateRequest related
 # ------------------------------------------------------------------------------
 
-rules.add_perm("usersec.view_hpcusercreaterequest", can_view_hpcusercreaterequest)  # noqa: E1101
-rules.add_perm(
-    "usersec.create_hpcusercreaterequest", can_create_hpcusercreaterequest
-)  # noqa: E1101
-rules.add_perm(
-    "usersec.manage_hpcusercreaterequest", can_manage_hpcusercreaterequest
-)  # noqa: E1101
+rules.add_perm("usersec.view_hpcusercreaterequest", can_view_createrequest)  # noqa: E1101
+rules.add_perm("usersec.create_hpcusercreaterequest", can_create_createrequest)  # noqa: E1101
+rules.add_perm("usersec.manage_hpcusercreaterequest", can_manage_createrequest)  # noqa: E1101
 
 # HpcGroup related
 # ------------------------------------------------------------------------------
@@ -219,3 +246,15 @@ rules.add_perm(
 rules.add_perm(
     "usersec.manage_hpcgroupcreaterequest", can_manage_hpcgroupcreaterequest
 )  # noqa: E1101
+
+# HpcProject related
+# ------------------------------------------------------------------------------
+
+rules.add_perm("usersec.view_hpcproject", can_view_hpcproject)  # noqa: E1101
+
+# HpcProjectCreateRequest related
+# ------------------------------------------------------------------------------
+
+rules.add_perm("usersec.view_hpcprojectcreaterequest", can_view_createrequest)  # noqa: E1101
+rules.add_perm("usersec.create_hpcprojectcreaterequest", can_create_createrequest)  # noqa: E1101
+rules.add_perm("usersec.manage_hpcprojectcreaterequest", can_manage_createrequest)  # noqa: E1101

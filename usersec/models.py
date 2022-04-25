@@ -1,6 +1,5 @@
 import uuid as uuid_object
 
-from django.contrib.auth import user_logged_in
 from django.db import models, transaction
 from django.urls import reverse
 from factory.django import get_model
@@ -465,9 +464,6 @@ class HpcProjectAbstract(HpcObjectAbstract):
     group = models.ForeignKey(
         HpcGroup,
         related_name="%(class)s",
-        # Must be nullable because user and group reference each other
-        # TODO: make sure there are no permanent owner-less groups
-        null=True,
         help_text="Group that requested project. Group PI is owner of project",
         on_delete=models.CASCADE,
     )
@@ -515,16 +511,16 @@ class HpcProjectAbstract(HpcObjectAbstract):
         help_text="Status of the project object",
     )
 
-    #: POSIX id of the group on the cluster.
+    #: POSIX id of the project on the cluster.
     gid = models.IntegerField(null=True, help_text="Id of the project on the cluster")
 
-    #: POSIX name of the group on the cluster.
+    #: POSIX name of the project on the cluster.
     name = models.CharField(max_length=64, help_text="Name of the project on the cluster")
 
-    #: Folder ot the group on the cluster.
+    #: Folder ot the project on the cluster.
     folder = models.CharField(max_length=64, help_text="Path to the project folder on the cluster")
 
-    #: Expiration date of the group
+    #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
@@ -1009,7 +1005,6 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         HpcGroup,
         related_name="%(class)s",
         help_text="Group the request belongs to",
-        null=True,
         on_delete=models.CASCADE,
     )
 
@@ -1028,6 +1023,15 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         HpcUser,
         related_name="%(class)s_members",
         help_text="Members of the project",
+    )
+
+    #: Name of the project
+    name = models.CharField(max_length=512, help_text="Description of the groups work")
+
+    #: Description of the project.
+    description = models.CharField(
+        max_length=512,
+        help_text="Additional information about the user",
     )
 
     #: Expiration date of the project
@@ -1092,6 +1096,13 @@ class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
         HpcUser,
         related_name="%(class)s_members",
         help_text="Members of the project",
+    )
+
+    #: Description of the project.
+    description = models.CharField(
+        max_length=512,
+        null=True,
+        help_text="Additional information about the user",
     )
 
     #: Expiration date of the project
@@ -1164,29 +1175,3 @@ class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
-
-
-# ------------------------------------------------------------------------------
-# Handlers
-# ------------------------------------------------------------------------------
-
-
-def handle_ldap_login(sender, user, **kwargs):
-    """Signal for LDAP login handling"""
-
-    if hasattr(user, "ldap_username"):
-
-        # Make domain in username uppercase
-        if user.username.find("@") != -1 and user.username.split("@")[1].islower():
-            u_split = user.username.split("@")
-            user.username = u_split[0] + "@" + u_split[1].upper()
-            user.save()
-
-        # Save user name from first_name and last_name into name
-        if user.name in ["", None]:
-            if user.first_name != "":
-                user.name = user.first_name + (" " + user.last_name if user.last_name != "" else "")
-                user.save()
-
-
-user_logged_in.connect(handle_ldap_login)

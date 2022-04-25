@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+  <div class="row">
+    <h2>
+      {% if update %}
+        Update HPC Project Request
+      {% else %}
+        Request HPC Project
+      {% endif %}
+    </h2>
+  </div>
+
+  {% include "usersec/modules/comments.html" %}
+
+  <div class="container-fluid">
+    <form method="post">
+      {% csrf_token %}
+      {% if admin %}
+        <dl class="row">
+          <dt class="col-sm-3">Resources</dt>
+          <dd class="col-sm-9">
+            <dl class="row">
+              {% for key, value in object.resources_requested.items %}
+                <dt class="col-sm-3 text-muted">{{ key }}</dt>
+                <dd class="col-sm-9">{{ value }}</dd>
+              {% endfor %}
+            </dl>
+          </dd>
+
+          <dt class="col-sm-3">Requester</dt>
+          <dd class="col-sm-9">{{ object.requester.username }}</dd>
+
+          <dt class="col-sm-3">Description</dt>
+          <dd class="col-sm-9">{{ object.description }}</dd>
+
+          <dt class="col-sm-3">Expiration</dt>
+          <dd class="col-sm-9">{{ object.expiration }}</dd>
+        </dl>
+      {% endif %}
+
+      {{ form|crispy }}
+
+      {% if update %}
+        <a class="btn btn-secondary"
+          {% if admin %}
+           href="{% url 'adminsec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
+          {% else %}
+           href="{% url 'usersec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
+          {% endif %}
+        >
+          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+          Cancel
+        </a>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">
+        {% if update %}
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:comment"></i>
+            Request Revision
+          {% else %}
+            <i class="iconify" data-icon="mdi:refresh"></i>
+            Update
+          {% endif %}
+        {% else %}
+          <i class="iconify" data-icon="mdi:upload"></i>
+          Submit
+        {% endif %}
+      </button>
+    </form>
+  </div>
+
+{% endblock content %}

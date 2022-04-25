@@ -29,7 +29,7 @@ class PrimaryLDAPBackend(LDAPBackend):
             ldap_user = _LDAPUser(self, username=username.strip())
         user = ldap_user.authenticate(password)
 
-        if not user.hpcuser_user.exists():
+        if user and not user.hpcuser_user.exists():
             username = django_to_hpc_username(user.username)
             hpcuser = HpcUser.objects.filter(username=username)
 
@@ -61,7 +61,7 @@ class SecondaryLDAPBackend(LDAPBackend):
         ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
         user = ldap_user.authenticate(password)
 
-        if not user.hpcuser_user.exists():
+        if user and not user.hpcuser_user.exists():
             username = django_to_hpc_username(user.username)
             hpcuser = HpcUser.objects.filter(username=username)
 
@@ -82,17 +82,38 @@ class SecondaryLDAPBackend(LDAPBackend):
         return username.split("@")[0]
 
 
-@receiver(populate_user, sender=PrimaryLDAPBackend)
-def primary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
+# ------------------------------------------------------------------------------
+# Handlers
+# ------------------------------------------------------------------------------
+
+
+def _ldap_auth_handler(user, ldap_user, **kwargs):
+    """Signal for LDAP login handling"""
+
     phone = ldap_user.attrs.get("telephoneNumber")
 
     if phone:
         user.phone = phone[0]
+
+    if hasattr(user, "ldap_username"):
+        # Make domain in username uppercase
+        if user.username.find("@") != -1 and user.username.split("@")[1].islower():
+            u_split = user.username.split("@")
+            user.username = u_split[0] + "@" + u_split[1].upper()
+            user.save()
+
+        # Save user name from first_name and last_name into name
+        if user.name in ["", None]:
+            if user.first_name != "":
+                user.name = user.first_name + (" " + user.last_name if user.last_name != "" else "")
+                user.save()
+
+
+@receiver(populate_user, sender=PrimaryLDAPBackend)
+def primary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
+    _ldap_auth_handler(user, ldap_user, **kwargs)
 
 
 @receiver(populate_user, sender=SecondaryLDAPBackend)
 def secondary_ldap_auth_handler(user, ldap_user, **kwargs):  # noqa: W0613
-    phone = ldap_user.attrs.get("telephoneNumber")
-
-    if phone:
-        user.phone = phone[0]
+    _ldap_auth_handler(user, ldap_user, **kwargs)

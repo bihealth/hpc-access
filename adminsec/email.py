@@ -35,7 +35,7 @@ if settings.ENABLE_LDAP_SECONDARY:
 # ------------------------------------------------------------------------------
 
 
-MESSAGE_INVITE = r"""
+MESSAGE_USER_INVITE = r"""
 You've been invited by
 
   {inviter}
@@ -48,6 +48,34 @@ on the BIH cluster. The following link will require you to login with your
 {institute} credentials. This will complete the registration.
 
 {invitation_link}
+
+Cheers,
+  Gatekeeper
+
+This email has been automatically generated.
+""".lstrip()
+
+
+MESSAGE_USER_ADDED_TO_PROJECT_NOTIFICATION = r"""
+Hello,
+
+you have been added to the project {project_name}.
+
+Its location on the cluster: {project_folder}
+
+Leader of the project is {project_owner_name}.
+
+Cheers,
+  Gatekeeper
+
+This email has been automatically generated.
+""".lstrip()
+
+
+MESSAGE_PROJECT_CREATED_NOTIFICATION = r"""
+Dear {full_name},
+
+the project {project_name} has been approved and created.
 
 Cheers,
   Gatekeeper
@@ -117,7 +145,7 @@ Cheers,
 """.lstrip()
 
 
-def send_invite(recipient_list, inviter, request=None):
+def send_user_invite(recipient_list, inviter, request=None):
     institute = "???"
     invitation_link = "???"
 
@@ -137,12 +165,33 @@ def send_invite(recipient_list, inviter, request=None):
         invitation_link = request.build_absolute_uri(reverse("home"))
 
     subject = "Invitation for a BIH Cluster account"
-    message = MESSAGE_INVITE.format(
+    message = MESSAGE_USER_INVITE.format(
         site_title=settings.SITE_TITLE,
         inviter=inviter.user.name,
         ag=inviter.primary_group.name,
         institute=institute,
         invitation_link=invitation_link,
+    )
+    return send_mail(subject, message, recipient_list, request)
+
+
+def send_user_added_to_project_notification(project, request=None):
+    subject = "Added to project on BIH cluster"
+    recipient_list = [m.user.email for m in project.members.all()]
+    message = MESSAGE_USER_ADDED_TO_PROJECT_NOTIFICATION.format(
+        project_name=project.name,
+        project_folder=project.folder,
+        project_owner_name=project.group.owner.user.name,
+    )
+    return send_mail(subject, message, recipient_list, request)
+
+
+def send_project_created_notification(project, request=None):
+    subject = "Project approved and created"
+    recipient_list = [project.group.owner.user.email]
+    message = MESSAGE_PROJECT_CREATED_NOTIFICATION.format(
+        full_name=project.group.owner.user.name,
+        project_name=project.name,
     )
     return send_mail(subject, message, recipient_list, request)
 
