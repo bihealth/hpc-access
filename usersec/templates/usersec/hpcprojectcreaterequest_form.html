@@ -18,7 +18,7 @@
   {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
-    <form method="post" id="submit" data-is-admin="{{ admin }}" data-owner-id="{{ object.group.owner.id }}">
+    <form method="post" id="submit" data-is-admin="{{ admin }}" data-owner-id="{% if group %}{{ group.owner.id }}{% else %}{{ object.group.owner.id }}{% endif %}">
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
@@ -58,7 +58,11 @@
 
       {% for field in form.visible_fields %}
         <div class="fieldWrapper {% if field.label == "Members" %}d-none{% endif %}">
-          {{ field.errors }}
+          {% if field.errors %}
+            <div class="alert alert-danger" role="alert">
+              {{ field.errors }}
+            </div>
+          {% endif %}
           <div class="input-group mb-3">
             <span class="input-group-text">
               {% if field.field.required %}
@@ -120,11 +124,6 @@
 {% block inline_javascript %}
   <script>
     $(document).ready(function() {
-      let members_field = $("#id_members");
-      let members_selected = $("#membersSelected");
-      let owner_id = $("#submit").data("owner-id").toString();
-      let delegate_id = null;
-
       $("#addMember").click(addMember)
       $(".mergeToJson").change(mergeToJson);
       $("#id_delegate").change(addDelegateMember);

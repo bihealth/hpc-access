@@ -568,6 +568,11 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
         kwargs.update({"user": self.request.user, "group": self.get_object()})
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({"group": self.get_object()})
+        return context
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
