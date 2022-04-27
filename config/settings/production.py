@@ -135,6 +135,8 @@ CUSTOM_JS_INCLUDES = env.list(
     default=[
         "/static/local/js/bootstrap.bundle.min.js",
         "/static/local/js/bundle.tracing.min.js",
+        "/static/local/js/popper.min.js",
+        "/static/local/js/jquery-3.6.0.min.js",
     ],
 )
 CUSTOM_CSS_INCLUDES = env.list(
