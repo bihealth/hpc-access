@@ -42,6 +42,12 @@ UserSec
 - Added HPC project detail view (#8)
 - Added HPC project create request views (#8)
 - Added representation to HPC group, user and project model (#79)
+- Comment fields are optional for non-admins (#77)
+- Form field ``resources_requested`` is hidden and content compiled from from additional ``tier1`` and ``tier2`` fields (#77)
+- Form field ``members`` is hidden and collected from a dropdown field with add button (#77)
+- Form field ``expiration`` is hidden and gets a default of +1 year (#77)
+- Owner and delegate automatically  added to ``members`` field (#77)
+- Added consent button to group request form (#77)
 
 AdminSec
 --------

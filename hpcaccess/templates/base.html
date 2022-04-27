@@ -37,23 +37,28 @@
     {% block javascript %}
       <!-- Bootstrap JS -->
       {% if not disable_cdn_includes %}
-      <script defer
-              src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-      ></script>
-      <script defer
-              src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"
-              integrity="sha512-OvBgP9A2JBgiRad/mM36mkzXSXaJE9BEIENnVEmeZdITvwT09xnxLtT4twkCa8m/loMbPHsvPl0T8lRGVBwjlQ=="
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-      ></script>
-      <!-- Sentry SDK for browsers -->
-      <script defer
-              src="https://browser.sentry-cdn.com/6.17.9/bundle.tracing.min.js"
-              integrity="sha384-FItuQ+AF7gqljIq5rozCj0vTwFbFlxfi7HCL/AHpP6jtDXICPcQyHXOceH/poGUw"
-              crossorigin="anonymous"
-      ></script>
+        <script
+                src="https://code.jquery.com/jquery-3.6.0.min.js"
+                integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+                crossorigin="anonymous"
+        ></script>
+        <script defer
+                src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+                crossorigin="anonymous"
+                referrerpolicy="no-referrer"
+        ></script>
+        <script defer
+                src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"
+                integrity="sha512-OvBgP9A2JBgiRad/mM36mkzXSXaJE9BEIENnVEmeZdITvwT09xnxLtT4twkCa8m/loMbPHsvPl0T8lRGVBwjlQ=="
+                crossorigin="anonymous"
+                referrerpolicy="no-referrer"
+        ></script>
+        <!-- Sentry SDK for browsers -->
+        <script defer
+                src="https://browser.sentry-cdn.com/6.17.9/bundle.tracing.min.js"
+                integrity="sha384-FItuQ+AF7gqljIq5rozCj0vTwFbFlxfi7HCL/AHpP6jtDXICPcQyHXOceH/poGUw"
+                crossorigin="anonymous"
+        ></script>
       {% endif %}
       <script
               type="text/javascript"

@@ -16,15 +16,15 @@ from usersec.models import (
     HpcProjectCreateRequest,
 )
 from usersec.tests.factories import (
-    HPCGROUPCREATEREQUESTFORM_DATA_VALID,
+    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
     HpcGroupCreateRequestFactory,
     HpcUserFactory,
     HpcGroupFactory,
     HpcUserCreateRequestFactory,
-    HPCUSERCREATEREQUESTFORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
     HpcProjectFactory,
     HpcProjectCreateRequestFactory,
-    HPCPROJECTCREATEREQUESTFORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
 )
 
 
@@ -92,7 +92,7 @@ class TestOrphanUserView(TestViewBase):
 
     def test_post_form_valid(self):
         with self.login(self.user):
-            data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
             response = self.client.post(reverse("usersec:orphan-user"), data=data)
             request = HpcGroupCreateRequest.objects.first()
             self.assertRedirects(
@@ -108,7 +108,7 @@ class TestOrphanUserView(TestViewBase):
 
     def test_post_form_invalid(self):
         with self.login(self.user):
-            data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
             data["resources_requested"] = ""
             response = self.client.post(reverse("usersec:orphan-user"), data=data)
             self.assertEqual(
@@ -236,6 +236,8 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
             "description": "description changed",
+            "tier1": 100,
+            "tier2": 200,
             "expiration": "2050-01-01",
         }
 
@@ -277,6 +279,8 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": "",
             "description": "description changed",
+            "tier1": 100,
+            "tier2": 200,
             "expiration": "2050-01-01",
         }
 
@@ -447,7 +451,7 @@ class TestHpcUserCreateRequestCreateView(TestViewBase):
 
     def test_post_form_valid(self):
         with self.login(self.user_owner):
-            data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCUSERCREATEREQUEST_FORM_DATA_VALID)
             response = self.client.post(
                 reverse(
                     "usersec:hpcusercreaterequest-create", kwargs={"hpcgroup": self.hpc_group.uuid}
@@ -468,7 +472,7 @@ class TestHpcUserCreateRequestCreateView(TestViewBase):
 
     def test_post_form_invalid(self):
         with self.login(self.user_owner):
-            data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCUSERCREATEREQUEST_FORM_DATA_VALID)
             data["resources_requested"] = ""
             response = self.client.post(
                 reverse(
@@ -608,6 +612,8 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
+            "tier1": 100,
+            "tier2": 200,
             "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
@@ -649,6 +655,8 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": "",
+            "tier1": 100,
+            "tier2": 200,
             "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
@@ -763,7 +771,7 @@ class TestHpcProjectCreateRequestCreateView(TestViewBase):
 
     def test_post_form_valid(self):
         with self.login(self.user_owner):
-            data = dict(HPCPROJECTCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCPROJECTCREATEREQUEST_FORM_DATA_VALID)
             data["members"] = [self.hpc_owner.id]
             response = self.client.post(
                 reverse(
@@ -787,7 +795,7 @@ class TestHpcProjectCreateRequestCreateView(TestViewBase):
 
     def test_post_form_invalid(self):
         with self.login(self.user_owner):
-            data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+            data = dict(HPCUSERCREATEREQUEST_FORM_DATA_VALID)
             response = self.client.post(
                 reverse(
                     "usersec:hpcprojectcreaterequest-create",
@@ -943,6 +951,8 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
+            "tier1": 100,
+            "tier2": 200,
             "expiration": self.obj.expiration,
             "name": self.obj.name,
             "description": self.obj.description,

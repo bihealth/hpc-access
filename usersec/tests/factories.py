@@ -41,8 +41,10 @@ def hpc_obj_to_dict(obj):
 
 
 #: Valid data for HpcGroupCreateRequestForm.
-HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
+HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
+    "tier1": 100,
+    "tier2": 200,
     "description": "some group description",
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -50,8 +52,10 @@ HPCGROUPCREATEREQUESTFORM_DATA_VALID = {
 
 
 #: Valid data for HpcUserCreateRequestForm.
-HPCUSERCREATEREQUESTFORM_DATA_VALID = {
+HPCUSERCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
+    "tier1": 100,
+    "tier2": 200,
     "email": "user@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -59,8 +63,10 @@ HPCUSERCREATEREQUESTFORM_DATA_VALID = {
 
 
 #: Valid data for HpcProjectCreateRequestForm.
-HPCPROJECTCREATEREQUESTFORM_DATA_VALID = {
+HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
+    "tier1": 100,
+    "tier2": 200,
     "description": "some project description",
     "name": "some-project",
     "expiration": "2022-01-01",

@@ -699,7 +699,9 @@ class HpcRequestAbstract(HpcObjectAbstract):
     )
 
     #: Comment for communication.
-    comment = models.TextField(help_text="Comment request or summarize revision")
+    comment = models.TextField(
+        blank=True, null=True, help_text="Comment request or summarize revision"
+    )
 
     def get_comment_history(self):
         history = self.version_history.exclude(comment__exact="").exclude(comment__isnull=True)
@@ -1129,12 +1131,15 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
     )
 
     #: Name of the project
-    name = models.CharField(max_length=512, help_text="Description of the groups work")
+    name = models.CharField(
+        max_length=512,
+        help_text="Please use only alphanumeric characters, dashes or underscores and no spaces.",
+    )
 
     #: Description of the project.
     description = models.CharField(
         max_length=512,
-        help_text="Additional information about the user",
+        help_text="Concise description of the project.",
     )
 
     #: Expiration date of the project

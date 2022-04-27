@@ -91,6 +91,11 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
             kwargs={"hpcgroupcreaterequest": uuid},
         )
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
@@ -133,12 +138,7 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
 
     template_name = "usersec/hpcgroupcreaterequest_form.html"
     model = HpcGroupCreateRequest
-    fields = [
-        "resources_requested",
-        "description",
-        "expiration",
-        "comment",
-    ]
+    form_class = HpcGroupCreateRequestForm
     slug_field = "uuid"
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "usersec.manage_hpcgroupcreaterequest"
@@ -147,6 +147,11 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
     def get_success_url(self):
         return reverse(
@@ -299,6 +304,11 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
         """
         return self.get_object()
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
@@ -349,12 +359,7 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
 
     template_name = "usersec/hpcusercreaterequest_form.html"
     model = HpcUserCreateRequest
-    fields = [
-        "resources_requested",
-        "email",
-        "expiration",
-        "comment",
-    ]
+    form_class = HpcUserCreateRequestForm
     slug_field = "uuid"
     slug_url_kwarg = "hpcusercreaterequest"
     permission_required = "usersec.manage_hpcusercreaterequest"
@@ -363,6 +368,11 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
     def get_success_url(self):
         return reverse(
@@ -553,6 +563,11 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
         """
         return self.get_object()
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user, "group": self.get_object()})
+        return kwargs
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
@@ -563,6 +578,7 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
 
         # Adding members possible only with saved object
         obj.members.set(form.cleaned_data["members"])
+        obj.version_history.last().members.set(form.cleaned_data["members"])
 
         if not obj:
             messages.error(self.request, "Couldn't create group request.")
@@ -605,16 +621,8 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     """HPC project create request update view."""
 
     template_name = "usersec/hpcprojectcreaterequest_form.html"
+    form_class = HpcProjectCreateRequestForm
     model = HpcProjectCreateRequest
-    fields = [
-        "resources_requested",
-        "members",
-        "delegate",
-        "expiration",
-        "comment",
-        "name",
-        "description",
-    ]
     slug_field = "uuid"
     slug_url_kwarg = "hpcprojectcreaterequest"
     permission_required = "usersec.manage_hpcprojectcreaterequest"
@@ -623,6 +631,11 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
     def get_success_url(self):
         return reverse(
@@ -648,6 +661,9 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         if not obj:
             messages.error(self.request, "Couldn't update project request.")
             return HttpResponseRedirect(reverse("home"))
+
+        obj.members.set(form.cleaned_data["members"])
+        obj.version_history.last().members.set(form.cleaned_data["members"])
 
         messages.success(self.request, "Project request updated.")
         return HttpResponseRedirect(self.get_success_url())
