@@ -19,6 +19,7 @@ General
 - Reworked github CI workflow (#6)
 - Added ``popper.js`` library for tooltip support (#64)
 - Added ldap3 dependency (#60)
+- Fixed CDN include feature
 
 UserSec
 -------
