@@ -3,6 +3,8 @@
 {% get_current_language as LANGUAGE_CODE %}
 {% get_django_setting 'SITE_TITLE' as SITE_TITLE %}
 {% get_django_setting 'DISABLE_CDN_INCLUDES' as disable_cdn_includes %}
+{% get_django_setting 'CUSTOM_JS_INCLUDES' as custom_js_includes %}
+{% get_django_setting 'CUSTOM_CSS_INCLUDES' as custom_css_includes %}
 
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
@@ -19,12 +21,16 @@
     {% block css %}
     <!-- Latest compiled and minified Bootstrap CSS -->
     {% if not disable_cdn_includes %}
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css"
-          integrity="sha512-GQGU0fMMi238uA+a/bdWJfpUGKUkBdgfFdgBm72SUQ6BeyWjoY/ton0tEjH+OSH9iP4Dfh+7HM0I9f5eR0L/4w=="
-          crossorigin="anonymous"
-          referrerpolicy="no-referrer"
-    />
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css"
+            integrity="sha512-GQGU0fMMi238uA+a/bdWJfpUGKUkBdgfFdgBm72SUQ6BeyWjoY/ton0tEjH+OSH9iP4Dfh+7HM0I9f5eR0L/4w=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+      />
+    {% else %}
+      {% for css_inc in custom_css_includes %}
+        <link rel="stylesheet" type="text/css" href="{{ css_inc }}" />
+      {% endfor %}
     {% endif %}
 
     <!-- Your stuff: Third-party CSS libraries go here -->
@@ -59,7 +65,13 @@
                 integrity="sha384-FItuQ+AF7gqljIq5rozCj0vTwFbFlxfi7HCL/AHpP6jtDXICPcQyHXOceH/poGUw"
                 crossorigin="anonymous"
         ></script>
+      {% else %}
+        {# Custom Javascript includes #}
+        {% for js_inc in custom_js_includes %}
+          <script type="text/javascript" src="{{ js_inc }}"></script>
+        {% endfor %}
       {% endif %}
+
       <script
               type="text/javascript"
               src="{% static 'js/iconify.min.js' %}"
