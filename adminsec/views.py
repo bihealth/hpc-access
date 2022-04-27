@@ -634,8 +634,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                     expiration=obj.expiration,
                 )
                 project.members.set(obj.members.all())
-                project_version = project.version_history.last()
-                project_version.members.set(obj.members.all())
+                project.version_history.last().members.set(obj.members.all())
 
         except Exception as e:
             messages.error(self.request, "Could not create project object: {}".format(e))

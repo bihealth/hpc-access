@@ -5,12 +5,12 @@ from test_plus.test import TestCase
 
 from usersec.models import HpcGroupCreateRequest
 from usersec.tests.factories import (
-    HPCGROUPCREATEREQUESTFORM_DATA_VALID,
+    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
     HpcUserFactory,
     HpcUserCreateRequestFactory,
-    HPCUSERCREATEREQUESTFORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
     HpcProjectCreateRequestFactory,
     HpcProjectFactory,
 )
@@ -503,7 +503,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user_pending,
         ]
-        data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
 
         self.assert_permissions_on_url(
             good_users,
@@ -578,7 +578,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user,
         ]
-        data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
 
         self.assert_permissions_on_url(
             good_users,
@@ -803,7 +803,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user,
         ]
-        data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCUSERCREATEREQUEST_FORM_DATA_VALID)
 
         self.assert_permissions_on_url(
             good_users,

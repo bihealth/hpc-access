@@ -17,7 +17,7 @@
   {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
-    <form method="post">
+    <form method="post" id="submit" data-is-admin="{{ admin }}">
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
@@ -41,7 +41,30 @@
           <dd class="col-sm-9">{{ object.expiration }}</dd>
         </dl>
       {% endif %}
-      {{ form|crispy }}
+
+      {% for field in form.hidden_fields %}
+        {{ field }}
+      {% endfor %}
+
+      {% for field in form.visible_fields %}
+        <div class="fieldWrapper">
+          {{ field.errors }}
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              {% if field.field.required %}
+                <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
+              {% else %}
+                {{ field.label }}
+              {% endif %}
+            </span>
+            {{ field }}
+          </div>
+          {% if field.help_text %}
+            <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+
       {% if update %}
         <a class="btn btn-secondary"
           {% if admin %}
@@ -72,3 +95,17 @@
   </div>
 
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    $(document).ready(function() {
+      $("#submit").submit(function(event) {
+        alert("Submitting")
+        if (!$(this).data("is-admin")) {
+          alert("mergin JSON")
+          mergeToJson();
+        }
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

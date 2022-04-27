@@ -12,24 +12,26 @@
         Request HPC group
       {% endif %}
     </h2>
-    <p>
-      As the first step is for <strong>principal investigators and group leaders</strong> to create a <strong>group</strong> on the cluster which gives their group/lab members a primary entity on the cluster.
-    </p>
-    <p>
-      <strong>Only &quot;group leaders&quot; can do this.</strong>
-      Example of group leaders are principal investigators, leaders of scientific or technical units, and junior group leaders.
-      As a group leader, you take responsibility for the action of your users on the cluster.
-      Please provide a link to your group at Charite/MDC in the comment field for verification.
-    </p>
-    <p>
-      You can add members to your groups and designate a delegate later on in the process.
-    </p>
+    {% if not admin %}
+      <p>
+        As the first step is for <strong>principal investigators and group leaders</strong> to create a <strong>group</strong> on the cluster which gives their group/lab members a primary entity on the cluster.
+      </p>
+      <p>
+        <strong>Only &quot;group leaders&quot; can do this.</strong>
+        Example of group leaders are principal investigators, leaders of scientific or technical units, and junior group leaders.
+        As a group leader, you take responsibility for the action of your users on the cluster.
+        Please provide a link to your group at Charite/MDC in the comment field for verification.
+      </p>
+      <p>
+        You can add members to your groups and designate a delegate later on in the process.
+      </p>
+    {% endif %}
   </div>
 
   {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
-    <form method="post">
+    <form method="post" id="submit" data-is-admin="{{ admin }}">
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
@@ -53,7 +55,41 @@
           <dd class="col-sm-9">{{ object.expiration }}</dd>
         </dl>
       {% endif %}
-      {{ form|crispy }}
+
+      {% for field in form.hidden_fields %}
+        {{ field }}
+      {% endfor %}
+
+      {% for field in form.visible_fields %}
+        <div class="fieldWrapper">
+          {{ field.errors }}
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              {% if field.field.required %}
+                <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
+              {% else %}
+                {{ field.label }}
+              {% endif %}
+            </span>
+            {{ field }}
+          </div>
+          {% if field.help_text %}
+            <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      {% if not admin %}
+        <div class="fieldWrapper">
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <input type="checkbox" class="form-check-input m-0" name="consent" id="id_consent">
+            </span>
+            <span class="form-control fw-bold">I confirm that I am PI and provided some information/link in the comment field.</span>
+          </div>
+        </div>
+      {% endif %}
+
       {% if update %}
         <a class="btn btn-secondary"
           {% if admin %}
@@ -66,7 +102,7 @@
           Cancel
         </a>
       {% endif %}
-      <button class="btn btn-primary" type="submit">
+      <button class="btn btn-primary {% if not admin %}disabled{% endif %}" type="submit" id="id_submit_button">
         {% if update %}
           {% if admin %}
             <i class="iconify" data-icon="mdi:comment"></i>
@@ -82,5 +118,21 @@
       </button>
     </form>
   </div>
-
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    $(document).ready(function() {
+      $(".mergeToJson").change(mergeToJson);
+      $("#id_consent").click(consent);
+
+      jsonToFields();
+
+      $("#submit").submit(function(event) {
+        if (!$(this).data("is-admin")) {
+          mergeToJson();
+        }
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

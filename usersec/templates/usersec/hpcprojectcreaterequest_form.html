@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% load crispy_forms_tags %}
+{% load common %}
 
 {% block content %}
 
@@ -17,7 +18,7 @@
   {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
-    <form method="post">
+    <form method="post" id="submit" data-is-admin="{{ admin }}" data-owner-id="{{ object.group.owner.id }}">
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
@@ -37,12 +38,54 @@
           <dt class="col-sm-3">Description</dt>
           <dd class="col-sm-9">{{ object.description }}</dd>
 
+          <dt class="col-sm-3">Members <span class="badge rounded-pill bg-secondary">{{ object.members.count }}</span></dt>
+          <dd class="col-sm-9">
+            <ul class="list-unstyled">
+              {% for member in object.members.all %}
+                <li>{{ member }}</li>
+              {% endfor %}
+            </ul>
+          </dd>
+
           <dt class="col-sm-3">Expiration</dt>
           <dd class="col-sm-9">{{ object.expiration }}</dd>
         </dl>
       {% endif %}
 
-      {{ form|crispy }}
+      {% for field in form.hidden_fields %}
+        {{ field }}
+      {% endfor %}
+
+      {% for field in form.visible_fields %}
+        <div class="fieldWrapper {% if field.label == "Members" %}d-none{% endif %}">
+          {{ field.errors }}
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              {% if field.field.required %}
+                <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
+              {% else %}
+                {{ field.label }}
+              {% endif %}
+            </span>
+            {{ field }}
+            {% if field.label == "Select Members" %}
+              <button class="btn btn-secondary" type="button" id="addMember">
+                <i class="iconify" data-icon="mdi:plus"></i>
+                Add
+              </button>
+            {% endif %}
+          </div>
+          {% if field.help_text %}
+            <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
+          {% endif %}
+          {% if field.label == "Select Members" %}
+            <h6>Members selected</h6>
+            <div class="mb-4" id="membersSelected">
+              <em class="text-danger fst-italic">No members selected.</em>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
 
       {% if update %}
         <a class="btn btn-secondary"
@@ -72,5 +115,30 @@
       </button>
     </form>
   </div>
-
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    $(document).ready(function() {
+      let members_field = $("#id_members");
+      let members_selected = $("#membersSelected");
+      let owner_id = $("#submit").data("owner-id").toString();
+      let delegate_id = null;
+
+      $("#addMember").click(addMember)
+      $(".mergeToJson").change(mergeToJson);
+      $("#id_delegate").change(addDelegateMember);
+
+      addOwnerMember();
+      addDelegateMember();
+      buildSelectedMembers();
+      jsonToFields();
+
+      $("#submit").submit(function(event) {
+        if (!$(this).data("is-admin")) {
+          mergeToJson();
+        }
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

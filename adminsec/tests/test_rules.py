@@ -13,9 +13,9 @@ from usersec.models import (
     HpcProject,
 )
 from usersec.tests.factories import (
-    HPCGROUPCREATEREQUESTFORM_DATA_VALID,
-    HPCUSERCREATEREQUESTFORM_DATA_VALID,
-    HPCPROJECTCREATEREQUESTFORM_DATA_VALID,
+    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
 )
 from usersec.tests.test_rules import TestRulesBase
 
@@ -243,7 +243,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user,
         ]
-        data = dict(HPCGROUPCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
 
         def rollback_callback():
             u = HpcGroupCreateRequest.objects.last()
@@ -429,7 +429,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user,
         ]
-        data = dict(HPCUSERCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCUSERCREATEREQUEST_FORM_DATA_VALID)
 
         def rollback_callback():
             u = HpcUserCreateRequest.objects.last()
@@ -605,7 +605,7 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member_other_group,
             self.user,
         ]
-        data = dict(HPCPROJECTCREATEREQUESTFORM_DATA_VALID)
+        data = dict(HPCPROJECTCREATEREQUEST_FORM_DATA_VALID)
         data["members"] = [m.id for m in self.hpc_project_create_request.members.all()]
 
         def rollback_callback():

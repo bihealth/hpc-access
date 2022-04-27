@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django import forms
 from django.conf import settings
+from django.utils import timezone
 
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -20,27 +23,36 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
             "comment",
         ]
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
-        if user and user.is_hpcadmin:
-            self.fields["resources_requested"].widget = forms.HiddenInput()
-            self.fields["expiration"].widget = forms.HiddenInput()
+
+        self.fields["expiration"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].widget = forms.HiddenInput()
+
+        # Add fields for storage. Will be merged into resources_requested field.
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+
+            self.fields["tier1"] = forms.IntegerField(
+                required=True, help_text="Default storage in TB"
+            )
+            self.fields["tier1"].initial = 1
+            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2"] = forms.IntegerField(
+                required=True, help_text="Long-term storage in TB"
+            )
+            self.fields["tier2"].initial = 1
+            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+
+        else:
             self.fields["description"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
 
-    def clean(self):
-        """Override clean to extend the checks."""
-        cleaned_data = super().clean()
-        resources = cleaned_data.get("resources_requested", {})
-
-        if not resources:
-            return
-
-        # Resources requested must be a dict
-        if not isinstance(resources, dict):
-            self.add_error("resources_requested", "Resources must be a dictionary!")
-            return
-
-        return cleaned_data
+        # Some cosmetics
+        self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
 
 
 class HpcUserCreateRequestForm(forms.ModelForm):
@@ -55,25 +67,45 @@ class HpcUserCreateRequestForm(forms.ModelForm):
             "comment",
         ]
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
-        if user and user.is_hpcadmin:
-            self.fields["resources_requested"].widget = forms.HiddenInput()
-            self.fields["expiration"].widget = forms.HiddenInput()
+
+        self.fields["expiration"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].widget = forms.HiddenInput()
+
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+
+            # Add fields for storage. Will be merged into resources_requested field.
+            self.fields["tier1"] = forms.IntegerField(
+                required=True, help_text="Default storage in TB"
+            )
+            self.fields["tier1"].initial = 1
+            self.fields["tier1"].widget = forms.HiddenInput()
+            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2"] = forms.IntegerField(
+                required=True, help_text="Long-term storage in TB"
+            )
+            self.fields["tier2"].initial = 1
+            self.fields["tier2"].widget = forms.HiddenInput()
+            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+
+        else:
             self.fields["email"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
+
+        # Some cosmetics
+        self.fields["email"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
 
     def clean(self):
         """Override clean to extend the checks."""
         cleaned_data = super().clean()
-        resources = cleaned_data.get("resources_requested", {})
         email = cleaned_data.get("email")
 
-        if not (resources and email):
-            return
-
-        # Resources requested must be a dict
-        if not isinstance(resources, dict):
-            self.add_error("resources_requested", "Resources must be a dictionary!")
+        if not email:
             return
 
         email_split = email.split("@")
@@ -98,40 +130,69 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
     class Meta:
         model = HpcProjectCreateRequest
         fields = [
+            "name",
+            "members",
+            "description",
+            "delegate",
+            "comment",
             "resources_requested",
             "expiration",
-            "delegate",
-            "name",
-            "comment",
-            "members",
             "description",
         ]
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, group=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Exclude members that have no User associated
-        self.fields["members"].queryset = self.fields["members"].queryset.exclude(user__isnull=True)
+        if hasattr(self.instance, "group"):
+            group = self.instance.group
 
-        if user and user.is_hpcadmin:
-            self.fields["resources_requested"].widget = forms.HiddenInput()
-            self.fields["expiration"].widget = forms.HiddenInput()
+        # Exclude users from delegate selection that have no User associated
+        self.fields["delegate"].queryset = (
+            self.fields["delegate"].queryset.exclude(user__isnull=True).exclude(id=group.owner.id)
+        )
+
+        self.fields["expiration"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].widget = forms.HiddenInput()
+
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+
+            # Exclude users from member selection that have no User associated
+            self.fields["members_dropdown"] = forms.ModelChoiceField(
+                queryset=self.fields["members"].queryset.exclude(user__isnull=True),
+                label="Select Members",
+                help_text="Select members one by one and click add",
+                required=False,
+            )
+            self.fields["members_dropdown"].widget.attrs["class"] = "form-control"
+
+            # Add fields for storage. Will be merged into resources_requested field.
+            self.fields["tier1"] = forms.IntegerField(
+                required=True, help_text="Default storage in TB"
+            )
+            self.fields["tier1"].initial = 1
+            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2"] = forms.IntegerField(
+                required=True, help_text="Long-term storage in TB"
+            )
+            self.fields["tier2"].initial = 1
+            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+
+        else:
             self.fields["delegate"].widget = forms.HiddenInput()
             self.fields["name"].widget = forms.HiddenInput()
-            self.fields["members"].widget = forms.MultipleHiddenInput()
             self.fields["description"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
+
+        # Some cosmetics
+        self.fields["name"].widget.attrs["class"] = "form-control"
+        self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["delegate"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
 
     def clean(self):
-        """Override clean to extend the checks."""
         cleaned_data = super().clean()
-        resources = cleaned_data.get("resources_requested", {})
-
-        if not resources:
-            return
-
-        # Resources requested must be a dict
-        if not isinstance(resources, dict):
-            self.add_error("resources_requested", "Resources must be a dictionary!")
-            return
 
         return cleaned_data
