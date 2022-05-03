@@ -11,6 +11,11 @@ from usersec.models import (
 )
 
 
+DEFAULT_USER_RESOURCES = {"tier1": "1", "tier2": "0"}
+DEFAULT_GROUP_RESOURCES = {"tier1": "1", "tier2": "0"}
+DEFAULT_PROJECT_RESOURCES = {"tier1": "1", "tier2": "0"}
+
+
 class HpcGroupCreateRequestForm(forms.ModelForm):
     """Form for HpcGroupCreateRequest."""
 
@@ -44,7 +49,7 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage [TB]",
             )
-            self.fields["tier1"].initial = 1
+            self.fields["tier1"].initial = DEFAULT_GROUP_RESOURCES["tier1"]
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2"] = forms.IntegerField(
@@ -55,7 +60,7 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage [TB]",
             )
-            self.fields["tier2"].initial = 0
+            self.fields["tier2"].initial = DEFAULT_GROUP_RESOURCES["tier2"]
             self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
@@ -90,6 +95,7 @@ class HpcUserCreateRequestForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].initial = DEFAULT_USER_RESOURCES
 
         if not user.is_hpcadmin:
             self.fields["expiration"].disabled = True
@@ -97,29 +103,6 @@ class HpcUserCreateRequestForm(forms.ModelForm):
             self.fields["expiration"].help_text = (
                 "Default expiring date is fixed to 1 year. " "It can be extended on request."
             )
-
-            # Add fields for storage. Will be merged into resources_requested field.
-            self.fields["tier1"] = forms.IntegerField(
-                required=True,
-                help_text=(
-                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
-                    "for computation."
-                ),
-                label="Fast Active Storage [TB]",
-            )
-            self.fields["tier1"].initial = 1
-            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
-
-            self.fields["tier2"] = forms.IntegerField(
-                required=True,
-                help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "Alternatively, you can use your group storage at Charite or MDC."
-                ),
-                label="Long-Term Storage [TB]",
-            )
-            self.fields["tier2"].initial = 0
-            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["email"].widget = forms.HiddenInput()
@@ -210,7 +193,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage [TB]",
             )
-            self.fields["tier1"].initial = 1
+            self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2"] = forms.IntegerField(
@@ -221,7 +204,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage [TB]",
             )
-            self.fields["tier2"].initial = 0
+            self.fields["tier2"].initial = DEFAULT_PROJECT_RESOURCES["tier2"]
             self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:

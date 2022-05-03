@@ -106,15 +106,3 @@
   </div>
 
 {% endblock content %}
-
-{% block inline_javascript %}
-  <script>
-    $(document).ready(function() {
-      $("#submit").submit(function(event) {
-        if (!$(this).data("is-admin")) {
-          mergeToJson();
-        }
-      });
-    });
-  </script>
-{% endblock inline_javascript %}
