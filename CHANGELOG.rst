@@ -49,6 +49,7 @@ UserSec
 - Form field ``expiration`` is hidden and gets a default of +1 year (#77)
 - Owner and delegate automatically  added to ``members`` field (#77)
 - Added consent button to group request form (#77)
+- Revised texts in forms and added info texts on user actions (#87)
 
 AdminSec
 --------

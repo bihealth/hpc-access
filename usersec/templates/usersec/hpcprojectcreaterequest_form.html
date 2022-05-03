@@ -22,7 +22,7 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
-          <dt class="col-sm-3">Resources</dt>
+          <dt class="col-sm-3">Resource Quotas</dt>
           <dd class="col-sm-9">
             <dl class="row">
               {% for key, value in object.resources_requested.items %}

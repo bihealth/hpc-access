@@ -200,6 +200,24 @@ class RequestTesterMixin:
         expected = reverse("usersec:{}-retract".format(name), kwargs={name: obj.uuid})
         self.assertEqual(obj.get_retract_url(), expected)
 
+    def _test_display_status(self):
+        data = {
+            REQUEST_STATUS_INITIAL: "initial",
+            REQUEST_STATUS_ACTIVE: "pending",
+            REQUEST_STATUS_REVISION: "revision required",
+            REQUEST_STATUS_REVISED: "pending (revised)",
+            REQUEST_STATUS_APPROVED: "approved",
+            REQUEST_STATUS_DENIED: "denied",
+            REQUEST_STATUS_RETRACTED: "retracted",
+        }
+
+        for key, value in data.items():
+            obj = self.factory(requester=self.user, status=key)
+            self.assertEqual(obj.display_status(), value)
+
+        obj = self.factory(requester=self.user, status="???")
+        self.assertEqual(obj.display_status(), "unknown status")
+
 
 class VersionTesterMixin:
     """Mixin for testing version-related methods."""
@@ -595,6 +613,9 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_retract_url(self):
         self._test_get_retract_url()
 
+    def test_display_status(self):
+        self._test_display_status()
+
 
 class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcGroupCreateRequest model"""
@@ -693,6 +714,9 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_get_retract_url(self):
         self._test_get_retract_url()
+
+    def test_display_status(self):
+        self._test_display_status()
 
 
 class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -793,6 +817,9 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_retract_url(self):
         self._test_get_retract_url()
 
+    def test_display_status(self):
+        self._test_display_status()
+
 
 class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcUserChangeRequest model"""
@@ -891,6 +918,9 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_get_retract_url(self):
         self._test_get_retract_url()
+
+    def test_display_status(self):
+        self._test_display_status()
 
 
 class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -991,6 +1021,9 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_get_retract_url(self):
         self._test_get_retract_url()
 
+    def test_display_status(self):
+        self._test_display_status()
+
 
 class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcUserDeleteRequest model"""
@@ -1090,6 +1123,9 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_get_retract_url(self):
         self._test_get_retract_url()
 
+    def test_display_status(self):
+        self._test_display_status()
+
 
 class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcProjectChangeRequest model"""
@@ -1188,6 +1224,9 @@ class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_get_retract_url(self):
         self._test_get_retract_url()
+
+    def test_display_status(self):
+        self._test_display_status()
 
 
 class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -1292,6 +1331,9 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_get_retract_url(self):
         self._test_get_retract_url()
 
+    def test_display_status(self):
+        self._test_display_status()
+
 
 class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcProjectDeleteRequest model"""
@@ -1390,3 +1432,6 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_get_retract_url(self):
         self._test_get_retract_url()
+
+    def test_display_status(self):
+        self._test_display_status()

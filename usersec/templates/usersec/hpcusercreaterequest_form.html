@@ -14,6 +14,13 @@
     </h2>
   </div>
 
+  <p>
+    You can invite users with a Charite and MDC account to your group.
+    The user first has to accept the invitation and then HPC administration will approve the request after a sanity check.
+    Users can only be member of one group.
+    If a user should collaborate with another group, request an additional project and invite all relevant members to that project.
+  </p>
+
   {% include "usersec/modules/comments.html" %}
 
   <div class="container-fluid">
@@ -21,7 +28,7 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
-          <dt class="col-sm-3">Resources</dt>
+          <dt class="col-sm-3">Resource Quotas</dt>
           <dd class="col-sm-9">
             <dl class="row">
               {% for key, value in object.resources_requested.items %}

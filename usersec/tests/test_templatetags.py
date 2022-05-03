@@ -24,6 +24,7 @@ from usersec.templatetags.common import (
     colorize_object_status,
     colorize_request_status,
     get_detail_url,
+    lookup,
 )
 from usersec.tests.factories import HpcUserFactory
 
@@ -73,3 +74,8 @@ class TestCommon(TestCase):
         url = get_detail_url(hpcuser, user)
         expected = reverse("usersec:hpcuser-detail", kwargs={"hpcuser": hpcuser.uuid})
         self.assertEqual(url, expected)
+
+    def test_lookup(self):
+        data = {"key": "value"}
+        self.assertEqual(lookup(data, "key"), "value")
+        self.assertEqual(lookup(data, "nonsense"), "unknown")

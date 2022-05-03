@@ -38,14 +38,6 @@
               </li>
             </ul>
           </div>
-          <hr />
-          <h6>Resources</h6>
-          <dl class="row">
-            {% for key, value in object.resources_requested.items %}
-              <dt class="col-sm-3 text-muted">{{ key }}</dt>
-              <dd class="col-sm-9">{{ value }}</dd>
-            {% endfor %}
-          </dl>
         </div>
       </div>
     </div>
@@ -90,12 +82,13 @@
 
           <hr />
 
-          <h6>Resources</h6>
+          <h6>Resource Quotas</h6>
           <dl class="row">
-            {% for key, value in object.primary_group.resources_requested.items %}
-              <dt class="col-sm-3 text-muted">{{ key }}</dt>
-              <dd class="col-sm-9">{{ value }}</dd>
-            {% endfor %}
+            <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
+            <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier1" }} TB</dd>
+
+            <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
+            <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier2" }} TB</dd>
           </dl>
 
           <h6>Members <span class="badge rounded-pill bg-secondary">{{ object.primary_group.hpcuser.count }}</span></h6>

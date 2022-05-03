@@ -35,7 +35,7 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
-          <dt class="col-sm-3">Resources</dt>
+          <dt class="col-sm-3">Resource Quotas</dt>
           <dd class="col-sm-9">
             <dl class="row">
               {% for key, value in object.resources_requested.items %}
@@ -89,7 +89,14 @@
             <span class="input-group-text">
               <input type="checkbox" class="form-check-input m-0" name="consent" id="id_consent">
             </span>
-            <span class="form-control fw-bold">I confirm that I am PI and provided some information/link in the comment field.</span>
+            <label for="id_consent">
+              <span class="form-control fw-bold">
+                I confirm that I am a group leader and provided some information/link in the comment field.<sup class="text-danger">*</sup>
+              </span>
+            </label>
+            <p class="help small text-muted fst-italic">
+              You must confirm that you are a group leader before you can submit the form.
+            </p>
           </div>
         </div>
       {% endif %}
