@@ -26,6 +26,7 @@ from usersec.forms import (
     HpcGroupCreateRequestForm,
     HpcUserCreateRequestForm,
     HpcProjectCreateRequestForm,
+    DEFAULT_USER_RESOURCES,
 )
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -247,7 +248,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         hpcuser = HpcUser.objects.create_with_version(
             user=obj.requester,
             primary_group=hpcgroup,
-            resources_requested={"some": "default"},
+            resources_requested=DEFAULT_USER_RESOURCES,
             creator=self.request.user,
             description="PI, created together with accepting the group request.",
             username=django_to_hpc_username(obj.requester.username),

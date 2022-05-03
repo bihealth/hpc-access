@@ -145,33 +145,33 @@
     </div>
   </div>
   <div class="col-4">
-{#    <div class="card">#}
-{#      <div class="card-header">#}
-{#        <h5 class="card-title">#}
-{#          {% if admin %}#}
-{#            <i class="iconify" data-icon="mdi:refresh"></i>#}
-{#            Change Requests#}
-{#          {% else %}#}
-{#            <a class="btn btn-sm btn-primary disabled">#}
-{#              <i class="iconify" data-icon="mdi:refresh"></i>#}
-{#              Update User#}
-{#            </a>#}
-{#          {% endif %}#}
-{#        </h5>#}
-{#      </div>#}
-{#      <ul class="list-group list-group-flush">#}
-{#        {% for obj in hpcuserchangerequests %}#}
-{#          <li class="list-group-item">#}
-{#            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>#}
-{#            <span class="badge bg-{{ obj.status|colorize_request_status }}">#}
-{#              {{ obj.display_status }}#}
-{#            </span>#}
-{#          </li>#}
-{#        {% empty %}#}
-{#          <li class="list-group-item"><em class="text-muted">No requests.</em></li>#}
-{#        {% endfor %}#}
-{#      </ul>#}
-{#    </div>#}
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          {% if admin %}
+            <i class="iconify" data-icon="mdi:refresh"></i>
+            Change Requests
+          {% else %}
+            <a class="btn btn-sm btn-primary disabled">
+              <i class="iconify" data-icon="mdi:refresh"></i>
+              Update User
+            </a>
+          {% endif %}
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for obj in hpcuserchangerequests %}
+          <li class="list-group-item">
+            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+            <span class="badge bg-{{ obj.status|colorize_request_status }}">
+              {{ obj.display_status }}
+            </span>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
+        {% endfor %}
+      </ul>
+    </div>
   </div>
   <div class="col-4">
     <div class="card">

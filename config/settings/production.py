@@ -133,7 +133,7 @@ DISABLE_CDN_INCLUDES = env.bool("DISABLE_CDN_INCLUDES", default=False)
 CUSTOM_JS_INCLUDES = env.list(
     "CUSTOM_JS_INCLUDES",
     default=[
-        "/static/local/js/bootstrap.bundle.min.js",
+        "/static/local/js/bootstrap.min.js",
         "/static/local/js/bundle.tracing.min.js",
         "/static/local/js/popper.min.js",
         "/static/local/js/jquery-3.6.0.min.js",
