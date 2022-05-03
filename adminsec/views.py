@@ -630,7 +630,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                     description=obj.description,
                     resources_requested=obj.resources_requested,
                     creator=self.request.user,
-                    status=OBJECT_STATUS_INITIAL,
+                    status=OBJECT_STATUS_ACTIVE,
                     expiration=obj.expiration,
                 )
                 project.members.set(obj.members.all())

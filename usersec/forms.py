@@ -26,33 +26,52 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["expiration"].widget = forms.HiddenInput()
         self.fields["resources_requested"].widget = forms.HiddenInput()
 
         # Add fields for storage. Will be merged into resources_requested field.
         if not user.is_hpcadmin:
+            self.fields["expiration"].disabled = True
             self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].help_text = (
+                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+            )
 
             self.fields["tier1"] = forms.IntegerField(
-                required=True, help_text="Default storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
+                    "for computation."
+                ),
+                label="Fast Active Storage [TB]",
             )
             self.fields["tier1"].initial = 1
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2"] = forms.IntegerField(
-                required=True, help_text="Long-term storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage [TB]",
             )
-            self.fields["tier2"].initial = 1
+            self.fields["tier2"].initial = 0
             self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["description"].widget = forms.HiddenInput()
+            self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
 
         # Some cosmetics
         self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
+        self.fields["comment"].help_text = (
+            "For the initial group creation request provide some 'proof' that you are a group leader such as linking "
+            "to your group website at Charite or MDC."
+        )
 
 
 class HpcUserCreateRequestForm(forms.ModelForm):
@@ -70,33 +89,46 @@ class HpcUserCreateRequestForm(forms.ModelForm):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["expiration"].widget = forms.HiddenInput()
         self.fields["resources_requested"].widget = forms.HiddenInput()
 
         if not user.is_hpcadmin:
+            self.fields["expiration"].disabled = True
             self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].help_text = (
+                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+            )
 
             # Add fields for storage. Will be merged into resources_requested field.
             self.fields["tier1"] = forms.IntegerField(
-                required=True, help_text="Default storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
+                    "for computation."
+                ),
+                label="Fast Active Storage [TB]",
             )
             self.fields["tier1"].initial = 1
-            self.fields["tier1"].widget = forms.HiddenInput()
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2"] = forms.IntegerField(
-                required=True, help_text="Long-term storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage [TB]",
             )
-            self.fields["tier2"].initial = 1
-            self.fields["tier2"].widget = forms.HiddenInput()
+            self.fields["tier2"].initial = 0
             self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["email"].widget = forms.HiddenInput()
+            self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
 
         # Some cosmetics
         self.fields["email"].widget.attrs["class"] = "form-control"
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
 
@@ -151,11 +183,14 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["delegate"].queryset.exclude(user__isnull=True).exclude(id=group.owner.id)
         )
 
-        self.fields["expiration"].widget = forms.HiddenInput()
         self.fields["resources_requested"].widget = forms.HiddenInput()
 
         if not user.is_hpcadmin:
+            self.fields["expiration"].disabled = True
             self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].help_text = (
+                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+            )
 
             # Exclude users from member selection that have no User associated
             self.fields["members_dropdown"] = forms.ModelChoiceField(
@@ -168,26 +203,38 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
             # Add fields for storage. Will be merged into resources_requested field.
             self.fields["tier1"] = forms.IntegerField(
-                required=True, help_text="Default storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
+                    "for computation."
+                ),
+                label="Fast Active Storage [TB]",
             )
             self.fields["tier1"].initial = 1
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2"] = forms.IntegerField(
-                required=True, help_text="Long-term storage in TB"
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage [TB]",
             )
-            self.fields["tier2"].initial = 1
+            self.fields["tier2"].initial = 0
             self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["delegate"].widget = forms.HiddenInput()
             self.fields["name"].widget = forms.HiddenInput()
             self.fields["description"].widget = forms.HiddenInput()
+            self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
 
         # Some cosmetics
         self.fields["name"].widget.attrs["class"] = "form-control"
         self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
         self.fields["delegate"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3

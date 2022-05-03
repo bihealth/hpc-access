@@ -71,3 +71,9 @@ def colorize_object_status(status):
 def get_detail_url(obj, user):
     """Return the color for a given status."""
     return obj.get_detail_url(user)
+
+
+@register.filter
+def lookup(dikt, key):
+    """Return a value from a dictionary or 'unknown'."""
+    return dikt.get(key, "unknown")

@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from test_plus.test import TestCase
 
 from usersec.forms import (
@@ -28,24 +31,16 @@ class TestHpcGroupCreateRequestForm(TestCase):
     def test_form_valid(self):
         form = HpcGroupCreateRequestForm(user=self.user, data=self.data_valid)
         self.assertTrue(form.is_valid())
+        expiration_expected = timezone.now() + timedelta(weeks=52)
+        self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
+        self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
+        self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)
 
     def test_form_invalid_resources_requested_missing(self):
         data_invalid = {**self.data_valid, "resources_requested": {}}
         form = HpcGroupCreateRequestForm(user=self.user, data=data_invalid)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["resources_requested"], ["This field is required."])
-
-    def test_form_invalid_expiration_missing(self):
-        data_invalid = {**self.data_valid, "expiration": ""}
-        form = HpcGroupCreateRequestForm(user=self.user, data=data_invalid)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["expiration"], ["This field is required."])
-
-    def test_form_invalid_description_missing(self):
-        data_invalid = {**self.data_valid, "description": ""}
-        form = HpcGroupCreateRequestForm(user=self.user, data=data_invalid)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["description"], ["This field is required."])
 
     def test_form_valid_hpcadmin(self):
         form = HpcGroupCreateRequestForm(user=self.user_hpcadmin, data=self.data_valid)
@@ -72,18 +67,16 @@ class TestHpcUserCreateRequestForm(TestCase):
     def test_form_valid(self):
         form = HpcUserCreateRequestForm(user=self.user, data=self.data_valid)
         self.assertTrue(form.is_valid())
+        expiration_expected = timezone.now() + timedelta(weeks=52)
+        self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
+        self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
+        self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)
 
     def test_form_invalid_resources_requested_missing(self):
         data_invalid = {**self.data_valid, "resources_requested": {}}
         form = HpcUserCreateRequestForm(user=self.user, data=data_invalid)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["resources_requested"], ["This field is required."])
-
-    def test_form_invalid_expiration_missing(self):
-        data_invalid = {**self.data_valid, "expiration": ""}
-        form = HpcUserCreateRequestForm(user=self.user, data=data_invalid)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["expiration"], ["This field is required."])
 
     def test_form_invalid_email_missing(self):
         data_invalid = {**self.data_valid, "email": ""}
@@ -132,24 +125,16 @@ class TestHpcProjectCreateRequestForm(TestCase):
             user=self.user, group=self.hpc_group, data=self.data_valid
         )
         self.assertTrue(form.is_valid())
+        expiration_expected = timezone.now() + timedelta(weeks=52)
+        self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
+        self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
+        self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)
 
     def test_form_invalid_resources_requested_missing(self):
         data_invalid = {**self.data_valid, "resources_requested": {}}
         form = HpcProjectCreateRequestForm(user=self.user, group=self.hpc_group, data=data_invalid)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["resources_requested"], ["This field is required."])
-
-    def test_form_invalid_expiration_missing(self):
-        data_invalid = {**self.data_valid, "expiration": ""}
-        form = HpcProjectCreateRequestForm(user=self.user, group=self.hpc_group, data=data_invalid)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["expiration"], ["This field is required."])
-
-    def test_form_invalid_description_missing(self):
-        data_invalid = {**self.data_valid, "description": ""}
-        form = HpcProjectCreateRequestForm(user=self.user, group=self.hpc_group, data=data_invalid)
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["description"], ["This field is required."])
 
     def test_form_invalid_name_missing(self):
         data_invalid = {**self.data_valid, "name": ""}

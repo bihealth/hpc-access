@@ -301,6 +301,7 @@ class HpcUserAbstract(HpcObjectAbstract):
     description = models.CharField(
         max_length=512,
         null=True,
+        blank=True,
         help_text="Additional information about the user",
     )
 
@@ -405,7 +406,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
         related_name="%(class)s_delegate",
         null=True,
         blank=True,
-        help_text="User registered as delegate of the group",
+        help_text="The optional delegate can act on behalf of the project owner",
         on_delete=models.SET_NULL,
     )
 
@@ -416,7 +417,12 @@ class HpcGroupAbstract(HpcObjectAbstract):
     resources_used = models.JSONField(null=True, blank=True)
 
     #: Description of what the group is working on.
-    description = models.CharField(max_length=512, help_text="Description of the groups work")
+    description = models.CharField(
+        max_length=512,
+        help_text="Concise description of what kind of computations the group performs on the cluster",
+        null=True,
+        blank=True,
+    )
 
     #: Django User creating the object.
     creator = models.ForeignKey(
@@ -539,7 +545,7 @@ class HpcProjectAbstract(HpcObjectAbstract):
         related_name="%(class)s_delegate",
         null=True,
         blank=True,
-        help_text="User registered as delegate of the project",
+        help_text="The optional delegate can act on behalf of the project owner",
         on_delete=models.SET_NULL,
     )
 
@@ -557,7 +563,12 @@ class HpcProjectAbstract(HpcObjectAbstract):
     resources_used = models.JSONField(null=True, blank=True)
 
     #: Description of what the project is working on.
-    description = models.CharField(max_length=512, help_text="Description of the groups work")
+    description = models.CharField(
+        max_length=512,
+        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        null=True,
+        blank=True,
+    )
 
     #: Django User creating the object.
     creator = models.ForeignKey(
@@ -739,6 +750,19 @@ class HpcRequestAbstract(HpcObjectAbstract):
     def is_revision(self):
         return self.status == REQUEST_STATUS_REVISION
 
+    def display_status(self):
+        mapping = {
+            REQUEST_STATUS_INITIAL: "initial",
+            REQUEST_STATUS_ACTIVE: "pending",
+            REQUEST_STATUS_REVISION: "revision required",
+            REQUEST_STATUS_REVISED: "pending (revised)",
+            REQUEST_STATUS_APPROVED: "approved",
+            REQUEST_STATUS_DENIED: "denied",
+            REQUEST_STATUS_RETRACTED: "retracted",
+        }
+
+        return mapping.get(self.status, "unknown status")
+
 
 # HpcGroupRequest related
 # ------------------------------------------------------------------------------
@@ -774,7 +798,12 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     resources_requested = models.JSONField()
 
     #: Description of what the group is working on.
-    description = models.CharField(max_length=512, help_text="Description of the groups work")
+    description = models.CharField(
+        max_length=512,
+        help_text="Concise description of what kind of computations the group performs on the cluster",
+        null=True,
+        blank=True,
+    )
 
     #: Expiration date of the group.
     expiration = models.DateTimeField(help_text="Expiration date of the group")
@@ -832,7 +861,7 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
         related_name="%(class)s_delegate",
         null=True,
         blank=True,
-        help_text="User registered as delegate of the group",
+        help_text="The optional delegate can act on behalf of the group owner",
         on_delete=models.SET_NULL,
     )
 
@@ -1119,7 +1148,7 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         related_name="%(class)s_delegate",
         null=True,
         blank=True,
-        help_text="User registered as delegate of the project",
+        help_text="The optional delegate can act on behalf of the project owner",
         on_delete=models.SET_NULL,
     )
 
@@ -1133,13 +1162,15 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
     #: Name of the project
     name = models.CharField(
         max_length=512,
-        help_text="Please use only alphanumeric characters, dashes or underscores and no spaces.",
+        help_text="Please use only alphanumeric characters, dashes or underscores and no spaces",
     )
 
     #: Description of the project.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of the project.",
+        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        null=True,
+        blank=True,
     )
 
     #: Expiration date of the project
@@ -1195,7 +1226,7 @@ class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
         related_name="%(class)s_delegate",
         null=True,
         blank=True,
-        help_text="User registered as delegate of the project",
+        help_text="The optional delegate can act on behalf of the project owner",
         on_delete=models.SET_NULL,
     )
 
@@ -1210,6 +1241,7 @@ class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
     description = models.CharField(
         max_length=512,
         null=True,
+        blank=True,
         help_text="Additional information about the user",
     )
 

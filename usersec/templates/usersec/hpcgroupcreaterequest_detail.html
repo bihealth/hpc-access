@@ -9,7 +9,7 @@
       <h4 class="card-title">
         HPC Group Request
         <span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.status|lower }}
+          {{ object.display_status }}
         </span>
         <span class="float-end">
           {% if admin %}
@@ -21,16 +21,39 @@
       </h4>
     </div>
     <div class="card-body">
+      {% if object.status == "ACTIVE" %}
+      <div class="row">
+        <div class="col-12 alert alert-info">
+          We are working on your request and you will receive an email once we approve it.
+          Once your request has been approved, you can adjust the amount of resources that you applied for.
+        </div>
+      </div>
+      {% elif object.status == "RETRACTED" %}
+      <div class="row">
+        <div class="col-12 alert alert-warning">
+          You have retracted your group creation request.
+          Click &quot;Re-activate&quot; to re-apply for group creation.
+        </div>
+      </div>
+      {% elif object.status == "REVISION" %}
+      <div class="row">
+        <div class="col-12 alert alert-warning">
+          We have asked for you to revise your group request.
+          See our comment and please answer any question and/or update the resource requests.
+        </div>
+      </div>
+      {% endif %}
       <div class="row">
         <div class="col-sm-6">
           <dl class="row">
-            <dt class="col-sm-3">Resources</dt>
+            <dt class="col-sm-3">Resource Quotas</dt>
             <dd class="col-sm-9">
               <dl class="row">
-                {% for key, value in object.resources_requested.items %}
-                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
-                  <dd class="col-sm-9">{{ value }}</dd>
-                {% endfor %}
+                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1" }} TB</dd>
+
+                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2" }} TB</dd>
               </dl>
             </dd>
             <dt class="col-sm-3">Requester</dt>

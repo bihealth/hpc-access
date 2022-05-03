@@ -9,7 +9,7 @@
       <h4 class="card-title">
         HPC Project Request
         <span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.status|lower }}
+          {{ object.display_status }}
         </span>
         <span class="float-end">
           {% if admin %}
@@ -17,7 +17,7 @@
           {% else %}
             <a class="btn btn-secondary" href="{% url 'home' %}">
               <i class="iconify" data-icon="mdi:home"></i>
-              Overview
+              Go to Overview
             </a>
             {% include "usersec/modules/request_buttons_user.html" %}
           {% endif %}
@@ -28,13 +28,14 @@
       <div class="row">
         <div class="col-sm-6">
           <dl class="row">
-            <dt class="col-sm-3">Resources</dt>
+            <dt class="col-sm-3">Resource Quotas</dt>
             <dd class="col-sm-9">
               <dl class="row">
-                {% for key, value in object.resources_requested.items %}
-                  <dt class="col-sm-3 text-muted">{{ key }}</dt>
-                  <dd class="col-sm-9">{{ value }}</dd>
-                {% endfor %}
+                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1" }} TB</dd>
+
+                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2" }} TB</dd>
               </dl>
             </dd>
 
