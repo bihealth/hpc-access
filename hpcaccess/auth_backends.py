@@ -4,9 +4,6 @@ from django_auth_ldap.backend import LDAPBackend, _LDAPUser, populate_user
 
 # Username domains for primary and secondary LDAP backends
 # Optional
-from adminsec.views import django_to_hpc_username
-from usersec.models import HpcUser, OBJECT_STATUS_ACTIVE
-
 LDAP_DOMAIN = getattr(settings, "AUTH_LDAP_USERNAME_DOMAIN", None)
 # Required for LDAP2
 LDAP2_DOMAIN = getattr(settings, "AUTH_LDAP2_USERNAME_DOMAIN", None)
@@ -29,16 +26,6 @@ class PrimaryLDAPBackend(LDAPBackend):
             ldap_user = _LDAPUser(self, username=username.strip())
         user = ldap_user.authenticate(password)
 
-        if user and not user.hpcuser_user.exists():
-            username = django_to_hpc_username(user.username)
-            hpcuser = HpcUser.objects.filter(username=username)
-
-            if hpcuser.count() == 1:
-                hpcuser = hpcuser.first()
-                hpcuser.user = user
-                hpcuser.status = OBJECT_STATUS_ACTIVE
-                hpcuser.save_with_version()
-
         return user
 
     def ldap_to_django_username(self, username):
@@ -60,16 +47,6 @@ class SecondaryLDAPBackend(LDAPBackend):
 
         ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
         user = ldap_user.authenticate(password)
-
-        if user and not user.hpcuser_user.exists():
-            username = django_to_hpc_username(user.username)
-            hpcuser = HpcUser.objects.filter(username=username)
-
-            if hpcuser.count() == 1:
-                hpcuser = hpcuser.first()
-                hpcuser.user = user
-                hpcuser.status = OBJECT_STATUS_ACTIVE
-                hpcuser.save_with_version()
 
         return user
 

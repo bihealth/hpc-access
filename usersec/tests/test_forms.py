@@ -1,6 +1,5 @@
-from datetime import timedelta
-
 from django.utils import timezone
+from django.utils.datetime_safe import datetime
 from test_plus.test import TestCase
 
 from usersec.forms import (
@@ -31,7 +30,7 @@ class TestHpcGroupCreateRequestForm(TestCase):
     def test_form_valid(self):
         form = HpcGroupCreateRequestForm(user=self.user, data=self.data_valid)
         self.assertTrue(form.is_valid())
-        expiration_expected = timezone.now() + timedelta(weeks=52)
+        expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
         self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
         self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
         self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)
@@ -67,7 +66,7 @@ class TestHpcUserCreateRequestForm(TestCase):
     def test_form_valid(self):
         form = HpcUserCreateRequestForm(user=self.user, data=self.data_valid)
         self.assertTrue(form.is_valid())
-        expiration_expected = timezone.now() + timedelta(weeks=52)
+        expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
         self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
         self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
         self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)
@@ -125,7 +124,7 @@ class TestHpcProjectCreateRequestForm(TestCase):
             user=self.user, group=self.hpc_group, data=self.data_valid
         )
         self.assertTrue(form.is_valid())
-        expiration_expected = timezone.now() + timedelta(weeks=52)
+        expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
         self.assertEqual(form.cleaned_data["expiration"].year, expiration_expected.year)
         self.assertEqual(form.cleaned_data["expiration"].month, expiration_expected.month)
         self.assertEqual(form.cleaned_data["expiration"].day, expiration_expected.day)

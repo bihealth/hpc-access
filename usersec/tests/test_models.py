@@ -36,6 +36,13 @@ from usersec.models import (
     REQUEST_STATUS_ACTIVE,
     REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
+    HpcGroupInvitation,
+    HpcGroupInvitationVersion,
+    HpcProjectInvitation,
+    HpcProjectInvitationVersion,
+    INVITATION_STATUS_ACCEPTED,
+    INVITATION_STATUS_PENDING,
+    INVITATION_STATUS_REJECTED,
 )
 from usersec.tests.factories import (
     HpcGroupFactory,
@@ -52,6 +59,8 @@ from usersec.tests.factories import (
     HpcProjectDeleteRequestFactory,
     hpc_obj_to_dict,
     hpc_version_obj_to_dict,
+    HpcGroupInvitationFactory,
+    HpcProjectInvitationFactory,
 )
 
 
@@ -426,6 +435,16 @@ class TestHpcUser(VersionTesterMixin, TestCase):
 
     def test_get_detail_url_admin(self):
         self._test_get_detail_url_admin()
+
+    def test_get_pending_invitations(self):
+        user = self.factory()
+        HpcProjectInvitationFactory(user=user, status=INVITATION_STATUS_PENDING)
+        HpcProjectInvitationFactory(user=user, status=INVITATION_STATUS_ACCEPTED)
+        HpcProjectInvitationFactory(user=user, status=INVITATION_STATUS_REJECTED)
+        self.assertEqual(
+            list(HpcProjectInvitation.objects.filter(user=user, status=INVITATION_STATUS_PENDING)),
+            list(user.get_pending_invitations()),
+        )
 
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
@@ -1435,3 +1454,68 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_display_status(self):
         self._test_display_status()
+
+
+class TestHpcGroupInvitation(VersionTesterMixin, TestCase):
+    """Tests for HpcGroupInvitation model"""
+
+    model = HpcGroupInvitation
+    version_model = HpcGroupInvitationVersion
+    factory = HpcGroupInvitationFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        supplementaries = {
+            "hpcusercreaterequest": HpcUserCreateRequestFactory(),
+            "username": "some-user",
+        }
+        self._test_save_with_version_new(**supplementaries)
+
+    def test_save_with_version_existing(self):
+        update = {"status": INVITATION_STATUS_ACCEPTED}
+        self._test_save_with_version_existing(**update)
+
+    def test_get_latest_version(self):
+        update = {"status": INVITATION_STATUS_ACCEPTED}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()
+
+
+class TestHpcProjectInvitation(VersionTesterMixin, TestCase):
+    """Tests for HpcProjectInvitation model"""
+
+    model = HpcProjectInvitation
+    version_model = HpcProjectInvitationVersion
+    factory = HpcProjectInvitationFactory
+
+    def test_create_with_version(self):
+        self._test_create_with_version()
+
+    def test_create_with_version_two(self):
+        self._test_create_with_version_two()
+
+    def test_save_with_version_new(self):
+        supplementaries = {
+            "project": HpcProjectFactory(),
+            "hpcprojectcreaterequest": HpcProjectCreateRequestFactory(),
+            "user": HpcUserFactory(),
+        }
+        self._test_save_with_version_new(**supplementaries)
+
+    def test_save_with_version_existing(self):
+        update = {"status": INVITATION_STATUS_ACCEPTED}
+        self._test_save_with_version_existing(**update)
+
+    def test_get_latest_version(self):
+        update = {"status": INVITATION_STATUS_ACCEPTED}
+        self._test_get_latest_version(**update)
+
+    def test_get_latest_version_not_available(self):
+        self._test_get_latest_version_not_available()

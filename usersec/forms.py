@@ -1,8 +1,7 @@
-from datetime import timedelta
-
 from django import forms
 from django.conf import settings
 from django.utils import timezone
+from django.utils.datetime_safe import datetime
 
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -32,36 +31,18 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].initial = DEFAULT_GROUP_RESOURCES
 
         # Add fields for storage. Will be merged into resources_requested field.
         if not user.is_hpcadmin:
             self.fields["expiration"].disabled = True
-            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
             self.fields["expiration"].help_text = (
-                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace period. "
+                "It can be extended on request."
             )
-
-            self.fields["tier1"] = forms.IntegerField(
-                required=True,
-                help_text=(
-                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
-                    "for computation."
-                ),
-                label="Fast Active Storage [TB]",
-            )
-            self.fields["tier1"].initial = DEFAULT_GROUP_RESOURCES["tier1"]
-            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
-
-            self.fields["tier2"] = forms.IntegerField(
-                required=True,
-                help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "Alternatively, you can use your group storage at Charite or MDC."
-                ),
-                label="Long-Term Storage [TB]",
-            )
-            self.fields["tier2"].initial = DEFAULT_GROUP_RESOURCES["tier2"]
-            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["description"].widget = forms.HiddenInput()
@@ -99,9 +80,12 @@ class HpcUserCreateRequestForm(forms.ModelForm):
 
         if not user.is_hpcadmin:
             self.fields["expiration"].disabled = True
-            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
             self.fields["expiration"].help_text = (
-                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace period. "
+                "It can be extended on request."
             )
 
         else:
@@ -170,9 +154,12 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
         if not user.is_hpcadmin:
             self.fields["expiration"].disabled = True
-            self.fields["expiration"].initial = timezone.now() + timedelta(weeks=52)
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
             self.fields["expiration"].help_text = (
-                "Default expiring date is fixed to 1 year. " "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace period. "
+                "It can be extended on request."
             )
 
             # Exclude users from member selection that have no User associated

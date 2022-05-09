@@ -20,6 +20,8 @@ from usersec.models import (
     HpcProjectChangeRequest,
     HpcProjectDeleteRequest,
     HpcProject,
+    HpcProjectInvitation,
+    HpcGroupInvitation,
 )
 
 # ------------------------------------------------------------------------------
@@ -287,3 +289,24 @@ class HpcProjectDeleteRequestFactory(HpcProjectRequestFactoryBase):
 
     class Meta:
         model = HpcProjectDeleteRequest
+
+
+class HpcProjectInvitationFactory(HpcObjectFactoryBase):
+    """Factory for HpcProjectInvitation model"""
+
+    class Meta:
+        model = HpcProjectInvitation
+
+    project = factory.SubFactory(HpcProjectFactory)
+    hpcprojectcreaterequest = factory.SubFactory(HpcProjectCreateRequestFactory)
+    user = factory.SubFactory(HpcUserFactory)
+
+
+class HpcGroupInvitationFactory(HpcObjectFactoryBase):
+    """Factory for HpcGroupInvitation model"""
+
+    class Meta:
+        model = HpcGroupInvitation
+
+    hpcusercreaterequest = factory.SubFactory(HpcUserCreateRequestFactory)
+    username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)

@@ -6,15 +6,15 @@
 
   <h3 class="mt-4">Welcome, {{ object.user.name }}!</h3>
   <p class="text-muted">
-    This is the user landing page and holds information about your user and links to the
-    working group you are affiliated with.
+    This is the user landing page that holds information about your user,
+    the group you belong to and projects you are member of.
   </p>
   <div class="row">
     <div class="col-4">
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            <a href="{% url 'usersec:hpcuser-detail' hpcuser=object.uuid %}"><i class="iconify" data-icon="mdi:user"></i></a>
+            <i class="iconify" data-icon="mdi:user"></i>
             {{ object.user.name }}
           </h4>
           <h6 class="card-subtitle text-muted">
@@ -46,7 +46,7 @@
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            <a href="{% url 'usersec:hpcgroup-detail' hpcgroup=object.primary_group.uuid %}"><i class="iconify" data-icon="mdi:user-group"></i></a>
+            <i class="iconify" data-icon="mdi:user-group"></i>
             {{ object.primary_group.name }}
             {% if object.hpcgroup_owner.exists %}
               <i class="iconify text-warning" data-icon="mdi:medal"></i>
@@ -55,7 +55,7 @@
             {% endif %}
           </h4>
           <h6 class="card-subtitle text-muted">
-            {{ object.primary_group.description }}
+            {{ object.primary_group.description|default:"Information about your work group" }}
           </h6>
         </div>
         <div class="card-body">
@@ -113,19 +113,120 @@
             Projects
           </h4>
           <h6 class="card-subtitle text-muted">
-            List of all associated projects.
+            List of all associated projects
           </h6>
         </div>
-        <ul class="list-group list-group-flush">
-          {% for project in user.hpcuser_user.first.hpcproject_members.all %}
-            <li class="list-group-item">
-              <i class="iconify" data-icon="mdi:package-variant"></i>
-              <a href="{% url 'usersec:hpcproject-detail' hpcproject=project.uuid %}">{{ project.name }}</a>
-            </li>
+        {% if object.get_pending_invitations %}
+          <div class="card-body">
+            <h6 class="card-title">
+              <i class="iconify text-warning" data-icon="mdi:star"></i>
+              Open Invitations
+            </h6>
+            <div class="accordion" id="projectInvitationAccordion">
+              {% for invitation in object.get_pending_invitations %}
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingProjectInvitation{{ forloop.counter0 }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#invitation-collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="invitation-collapse{{ forloop.counter0 }}">
+                      <i class="iconify me-2" data-icon="mdi:package-variant-closed"></i>
+                      {{ invitation.project.name }}
+                    </button>
+                  </h2>
+                  <div id="invitation-collapse{{ forloop.counter0 }}" class="accordion-collapse collapse" aria-labelledby="headingProjectInvitation{{ forloop.counter0 }}" data-bs-parent="#projectInvitationAccordion">
+                    <div class="accordion-body">
+                      <ul class="list-unstyled list-group text-muted">
+                        <li>
+                          <i class="iconify" data-icon="mdi:medal"></i>
+                          <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.group.owner.uuid %}">{{ invitation.project.group.owner.user.name }}</a>
+                          <span class="small text-muted fw-bold">{{ project.group.owner.username }}</span>
+                        </li>
+                        {% if invitation.project.delegate %}
+                          <li>
+                            <i class="iconify" data-icon="mdi:medal-outline"></i>
+                            <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
+                            <span class="small text-muted fw-bold">{{ project.delegate.username }}</span>
+                          </li>
+                        {% endif %}
+                        {% if invitation.project.description %}
+                          <li>
+                            <i class="iconify" data-icon="mdi:text"></i>
+                            <span class="text-muted">{{ invitation.project.description }}</span>
+                          </li>
+                        {% endif %}
+                      </ul>
+                    </div>
+                  </div>
+                  <span class="btn-group d-flex">
+                    <a class="btn btn-success" href="{% url 'usersec:hpcprojectinvitation-accept' hpcprojectinvitation=invitation.uuid %}">
+                      <i class="iconify" data-icon="mdi:check-bold"></i>
+                      Accept
+                    </a>
+                    <a class="btn btn-danger" href="{% url 'usersec:hpcprojectinvitation-reject' hpcprojectinvitation=invitation.uuid %}">
+                      <i class="iconify" data-icon="mdi:cancel"></i>
+                      Reject
+                    </a>
+                  </span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        <div class="accordion accordion-flush" id="projectAccordion">
+          {% for project in object.hpcproject_members.all %}
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingProject{{ forloop.counter0 }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter0 }}">
+                  <i class="iconify me-2" data-icon="mdi:package-variant"></i>
+                  {{ project.name }}
+                </button>
+              </h2>
+              <div id="collapse{{ forloop.counter0 }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter0 }}" data-bs-parent="#projectAccordion">
+                <div class="accordion-body">
+                  <ul class="list-unstyled text-muted">
+                    <li>
+                      <i class="iconify" data-icon="mdi:medal"></i>
+                      <a href="{% url 'usersec:hpcuser-overview' hpcuser=project.group.owner.uuid %}">{{ project.group.owner.user.name }}</a>
+                      <span class="small text-muted fw-bold">{{ project.group.owner.username }}</span>
+                    </li>
+                    {% if project.delegate %}
+                      <li>
+                        <i class="iconify" data-icon="mdi:medal-outline"></i>
+                        <a href="{% url 'usersec:hpcuser-overview' hpcuser=project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
+                        <span class="small text-muted fw-bold">{{ project.delegate.username }}</span>
+                      </li>
+                    {% endif %}
+                    <li title="Expiration date" data-bs-toggle="tooltip">
+                      <span class="iconify" data-icon="mdi:clock"></span>
+                      {{ project.expiration }}
+                    </li>
+                  </ul>
+
+                  <hr />
+
+                  <h6>Resource Quotas</h6>
+                  <dl class="row">
+                    <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
+                    <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier1" }} TB</dd>
+
+                    <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
+                    <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier2" }} TB</dd>
+                  </dl>
+
+                  <h6>Members <span class="badge rounded-pill bg-secondary">{{ project.members.count }}</span></h6>
+                  <ul class="list-unstyled">
+                    {% for member in project.members.all %}
+                      <li>
+                        <a href="{% url 'usersec:hpcuser-detail' hpcuser=project.uuid %}">{{ member.user.name }}</a>
+                        <strong class="small text-muted">{{ member.username }}</strong>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
           {% empty %}
-            <li class="list-group-item"><em class="text-muted">No projects.</em></li>
+            <div class="card-body text-muted fst-italic">No projects.</div>
           {% endfor %}
-        </ul>
+        </div>
       </div>
     </div>
   </div>

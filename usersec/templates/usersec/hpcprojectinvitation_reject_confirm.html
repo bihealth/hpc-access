@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  {% include "usersec/modules/confirm.html" with action="Reject" object_type="HPC project invitation" %}
+
+{% endblock content %}

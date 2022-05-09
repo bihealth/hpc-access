@@ -30,6 +30,11 @@ from usersec.models import (
     REQUEST_STATUS_REVISION,
     HpcProject,
     HpcProjectCreateRequest,
+    HpcGroupInvitation,
+    INVITATION_STATUS_ACCEPTED,
+    OBJECT_STATUS_ACTIVE,
+    INVITATION_STATUS_REJECTED,
+    HpcProjectInvitation,
 )
 
 MSG_NO_AUTH = "User not authorized for requested action"
@@ -57,7 +62,7 @@ class HomeView(LoginRequiredMixin, View):
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 
-        elif rules.test_rule("usersec.is_cluster_user", request.user):  # noqa: E1101
+        elif rules.test_rule("usersec.is_cluster_user", request.user):
             return redirect(
                 reverse(
                     "usersec:hpcuser-overview",
@@ -65,13 +70,22 @@ class HomeView(LoginRequiredMixin, View):
                 )
             )
 
-        elif rules.test_rule("usersec.has_pending_group_request", request.user):  # noqa: E1101
+        elif rules.test_rule("usersec.has_pending_group_request", request.user):
             return redirect(
                 reverse(
                     "usersec:hpcgroupcreaterequest-detail",
                     kwargs={
                         "hpcgroupcreaterequest": request.user.hpcgroupcreaterequest_requester.first().uuid
                     },
+                )
+            )
+
+        elif rules.test_rule("usersec.has_group_invitation", request.user):
+            invitation = HpcGroupInvitation.objects.get(username=request.user.username)
+            return redirect(
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": invitation.uuid},
                 )
             )
 
@@ -240,9 +254,7 @@ class HpcUserView(HpcPermissionMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         group = context["object"].primary_group
-        is_manager = rules.test_rule(
-            "usersec.is_group_manager", self.request.user, group
-        )  # noqa: E1101
+        is_manager = rules.test_rule("usersec.is_group_manager", self.request.user, group)
         context["manager"] = is_manager
 
         if is_manager:
@@ -758,3 +770,166 @@ class HpcProjectChangeRequestRetractView(View):
 
 class HpcProjectChangeRequestReactivateView(View):
     pass
+
+
+class HpcGroupInvitationDetailView(HpcPermissionMixin, DetailView):
+    """HPC group invitation detail view."""
+
+    template_name = "usersec/hpcgroupinvitation_detail.html"
+    model = HpcGroupInvitation
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupinvitation"
+    permission_required = "usersec.manage_hpcgroupinvitation"
+
+
+class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC group invitation accept view."""
+
+    model = HpcGroupInvitation
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupinvitation"
+    permission_required = "usersec.manage_hpcgroupinvitation"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        if self.request.user.is_superuser:
+            messages.error(
+                request,
+                "Superuser is not allowed to accept invitations. This would lead to inconsistencies.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": obj.uuid},
+                )
+            )
+
+        obj.status = INVITATION_STATUS_ACCEPTED
+        obj.save_with_version()
+
+        try:
+            from adminsec.views import django_to_hpc_username
+
+            hpcuser = HpcUser.objects.create_with_version(
+                user=request.user,
+                primary_group=obj.hpcusercreaterequest.group,
+                resources_requested=obj.hpcusercreaterequest.resources_requested,
+                creator=obj.hpcusercreaterequest.editor,
+                username=django_to_hpc_username(obj.username),
+                status=OBJECT_STATUS_ACTIVE,
+                expiration=obj.hpcusercreaterequest.expiration,
+            )
+
+        except Exception as e:
+            messages.error(request, "Could not create user: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": obj.uuid},
+                )
+            )
+
+        messages.success(request, "Invitation successfully accepted and user created.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": hpcuser.uuid},
+            )
+        )
+
+
+class HpcGroupInvitationRejectView(HpcPermissionMixin, DeleteView):
+    """HPC group invitation reject view."""
+
+    template_name_suffix = "_reject_confirm"
+    model = HpcGroupInvitation
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupinvitation"
+    permission_required = "usersec.manage_hpcgroupinvitation"
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = INVITATION_STATUS_REJECTED
+        obj.save_with_version()
+        messages.success(request, "Invitation successfully rejected.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcgroupinvitation-detail",
+                kwargs={"hpcgroupinvitation": obj.uuid},
+            )
+        )
+
+
+class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC project invitation accept view."""
+
+    model = HpcProjectInvitation
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectinvitation"
+    permission_required = "usersec.manage_hpcprojectinvitation"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        if request.user.is_superuser:
+            messages.error(
+                request,
+                "Superuser is not allowed to accept invitations. This would lead to inconsistencies.",
+            )
+            return HttpResponseRedirect(reverse("home"))
+
+        obj.status = INVITATION_STATUS_ACCEPTED
+        obj.save_with_version()
+
+        project = obj.project
+
+        try:
+            if obj.hpcprojectcreaterequest.delegate:
+                if request.user.hpcuser_user.filter(
+                    id=obj.hpcprojectcreaterequest.delegate.id
+                ).exists():
+                    project.delegate = obj.hpcprojectcreaterequest.delegate
+
+            project.save_with_version()
+            project.members.add(obj.user)
+            project.version_history.last().members.add(obj.user)
+
+        except Exception as e:
+            messages.error(request, "Could not add user to project: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
+                )
+            )
+
+        messages.success(request, "Successfully joined the project.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
+            )
+        )
+
+
+class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
+    """HPC project invitation reject view."""
+
+    template_name_suffix = "_reject_confirm"
+    model = HpcProjectInvitation
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectinvitation"
+    permission_required = "usersec.manage_hpcprojectinvitation"
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = INVITATION_STATUS_REJECTED
+        obj.save_with_version()
+        messages.success(self.request, "Invitation successfully rejected.")
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": obj.user.uuid},
+            )
+        )
