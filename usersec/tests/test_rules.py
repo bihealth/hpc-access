@@ -1,9 +1,10 @@
 import rules
+from django.conf import settings
 
 from django.urls import reverse
 from test_plus.test import TestCase
 
-from usersec.models import HpcGroupCreateRequest
+from usersec.models import HpcGroupCreateRequest, HpcUserCreateRequest, HpcUser
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
     HpcGroupCreateRequestFactory,
@@ -13,6 +14,8 @@ from usersec.tests.factories import (
     HPCUSERCREATEREQUEST_FORM_DATA_VALID,
     HpcProjectCreateRequestFactory,
     HpcProjectFactory,
+    HpcProjectInvitationFactory,
+    HpcGroupInvitationFactory,
 )
 
 
@@ -52,9 +55,12 @@ class TestRulesBase(TestCase):
         self.user_member_other_group = self.make_user("member_no_group")
 
         # Pending user
-        self.user_pending = self.make_user("pending@CHARITE")
+        self.user_pending = self.make_user("pending@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
         self.user_pending.name = "John Doe"
         self.user_pending.save()
+
+        # Invited user
+        self.user_invited = self.make_user("invited@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
 
         # Create HPC groups
         self.hpc_group = HpcGroupFactory()
@@ -97,6 +103,16 @@ class TestRulesBase(TestCase):
         self.hpc_project_create_request.members.add(
             self.hpc_owner, self.hpc_member, self.hpc_member_other_group
         )
+
+        # Create HPC project invitation
+        self.hpc_project_invitation = HpcProjectInvitationFactory(
+            user=self.hpc_member2, project=self.hpc_project
+        )
+
+        # Create HPC group invitation
+        self.hpc_group_invitation = HpcGroupInvitationFactory(username=self.user_invited.username)
+        self.hpc_group_invitation.hpcusercreaterequest.group = self.hpc_group
+        self.hpc_group_invitation.hpcusercreaterequest.save()
 
     def assert_permissions_granted(self, perm, obj, users):
         for user in users:
@@ -167,56 +183,48 @@ class TestRules(TestRulesBase):
         self.assertTrue(rules.test_rule("usersec.is_cluster_user", self.user_member))  # noqa: E1101
 
     def test_has_pending_group_request_false(self):
-        self.assertFalse(
-            rules.test_rule("usersec.has_pending_group_request", self.user)
-        )  # noqa: E1101
+        self.assertFalse(rules.test_rule("usersec.has_pending_group_request", self.user))
 
     def test_has_pending_group_request_true(self):
-        self.assertTrue(
-            rules.test_rule("usersec.has_pending_group_request", self.user_pending)
-        )  # noqa: E1101
+        self.assertTrue(rules.test_rule("usersec.has_pending_group_request", self.user_pending))
 
     def test_is_group_manager_owner_true(self):
         self.assertTrue(
-            rules.test_rule(
-                "usersec.is_group_manager", self.user_owner, self.hpc_group
-            )  # noqa: E1101
+            rules.test_rule("usersec.is_group_manager", self.user_owner, self.hpc_group)
         )
 
     def test_is_group_manager_delegate_true(self):
         self.assertTrue(
-            rules.test_rule(
-                "usersec.is_group_manager", self.user_delegate, self.hpc_group
-            )  # noqa: E1101
+            rules.test_rule("usersec.is_group_manager", self.user_delegate, self.hpc_group)
         )
 
     def test_is_group_manager_member_false(self):
         self.assertFalse(
-            rules.test_rule(
-                "usersec.is_group_manager", self.user_member, self.hpc_group
-            )  # noqa: E1101
+            rules.test_rule("usersec.is_group_manager", self.user_member, self.hpc_group)
         )
 
     def test_is_project_manager_owner_true(self):
         self.assertTrue(
-            rules.test_rule(
-                "usersec.is_project_manager", self.user_owner, self.hpc_project
-            )  # noqa: E1101
+            rules.test_rule("usersec.is_project_manager", self.user_owner, self.hpc_project)
         )
 
     def test_is_project_manager_delegate_true(self):
         self.assertTrue(
             rules.test_rule(
                 "usersec.is_project_manager", self.user_member_other_group, self.hpc_project
-            )  # noqa: E1101
+            )
         )
 
     def test_is_project_manager_member_false(self):
         self.assertFalse(
-            rules.test_rule(
-                "usersec.is_project_manager", self.user_member, self.hpc_project
-            )  # noqa: E1101
+            rules.test_rule("usersec.is_project_manager", self.user_member, self.hpc_project)
         )
+
+    def test_has_group_invitation_true(self):
+        self.assertTrue(rules.test_rule("usersec.has_group_invitation", self.user_invited))
+
+    def test_has_group_invitation_false(self):
+        self.assertFalse(rules.test_rule("usersec.has_group_invitation", self.user))
 
 
 class TestPermissions(TestRulesBase):
@@ -234,6 +242,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.view_hpcuser"
         self.assert_permissions_granted(perm, self.hpc_member, good_users)
@@ -252,6 +261,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.view_hpcusercreaterequest"
         self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
@@ -270,6 +280,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.create_hpcusercreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
@@ -288,6 +299,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.manage_hpcusercreaterequest"
         self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
@@ -305,6 +317,7 @@ class TestPermissions(TestRulesBase):
             self.user_hpcadmin,
             self.user_member2,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.view_hpcproject"
         self.assert_permissions_granted(perm, self.hpc_project, good_users)
@@ -323,6 +336,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.view_hpcprojectcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
@@ -341,6 +355,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.create_hpcprojectcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
@@ -359,6 +374,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.manage_hpcprojectcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
@@ -372,7 +388,7 @@ class TestPermissions(TestRulesBase):
             self.user_member,
             self.user_member2,
         ]
-        bad_users = [self.user_hpcadmin, self.user_member_other_group, self.user]
+        bad_users = [self.user_hpcadmin, self.user_member_other_group, self.user, self.user_invited]
         perm = "usersec.view_hpcgroup"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
@@ -387,6 +403,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.view_hpcgroupcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
@@ -402,6 +419,7 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user_pending,
+            self.user_invited,
         ]
         perm = "usersec.create_hpcgroupcreaterequest"
         self.assert_permissions_granted(perm, None, good_users)
@@ -417,10 +435,43 @@ class TestPermissions(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
             self.user,
+            self.user_invited,
         ]
         perm = "usersec.manage_hpcgroupcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_group_create_request, bad_users)
+
+    def test_manage_hpcgroupinvitation(self):
+        good_users = [self.superuser, self.user_invited]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.manage_hpcgroupinvitation"
+        self.assert_permissions_granted(perm, self.hpc_group_invitation, good_users)
+        self.assert_permissions_denied(perm, self.hpc_group_invitation, bad_users)
+
+    def test_manage_hpcprojectinvitation(self):
+        good_users = [self.superuser, self.user_member2]
+        bad_users = [
+            self.user_pending,
+            self.user_invited,
+            self.user_hpcadmin,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+        perm = "usersec.manage_hpcprojectinvitation"
+        self.assert_permissions_granted(perm, self.hpc_project_invitation, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project_invitation, bad_users)
 
 
 class TestPermissionsInViews(TestRulesBase):
@@ -808,18 +859,18 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(
             good_users,
             url,
-            "GET",
-            200,
+            "POST",
+            302,
             req_kwargs=data,
-            redirect_url=reverse(
-                "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+            lazy_url_callback=lambda: reverse(
+                "usersec:hpcusercreaterequest-detail",
+                kwargs={"hpcusercreaterequest": HpcUserCreateRequest.objects.last().uuid},
             ),
         )
         self.assert_permissions_on_url(
             bad_users,
             url,
-            "GET",
+            "POST",
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
@@ -846,3 +897,222 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_invitation_detail_view(self):
+        url = reverse(
+            "usersec:hpcgroupinvitation-detail",
+            kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_invited,
+        ]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_invitation_accept_view(self):
+        url = reverse(
+            "usersec:hpcgroupinvitation-accept",
+            kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+        )
+        good_users = [
+            self.user_invited,
+        ]
+        not_so_good_users = [
+            self.superuser,
+        ]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            302,
+            lazy_url_callback=lambda: reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": HpcUser.objects.last().uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            not_so_good_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcgroupinvitation-detail",
+                kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_invitation_reject_view_get(self):
+        url = reverse(
+            "usersec:hpcgroupinvitation-reject",
+            kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_invited,
+        ]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_invitation_reject_view_post(self):
+        url = reverse(
+            "usersec:hpcgroupinvitation-reject",
+            kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_invited,
+        ]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcgroupinvitation-detail",
+                kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_invitation_accept_view(self):
+        url = reverse(
+            "usersec:hpcprojectinvitation-accept",
+            kwargs={"hpcprojectinvitation": self.hpc_project_invitation.uuid},
+        )
+        good_users = [
+            self.user_member2,
+        ]
+        not_so_good_users = [
+            self.superuser,
+        ]
+        bad_users = [
+            self.user_invited,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            302,
+            lazy_url_callback=lambda user: reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
+            ),
+            lazy_arg="user",
+        )
+        self.assert_permissions_on_url(
+            not_so_good_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("home"),
+        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_invitation_reject_view_get(self):
+        url = reverse(
+            "usersec:hpcprojectinvitation-reject",
+            kwargs={"hpcprojectinvitation": self.hpc_project_invitation.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_member2,
+        ]
+        bad_users = [
+            self.user_invited,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_invitation_reject_view_post(self):
+        url = reverse(
+            "usersec:hpcprojectinvitation-reject",
+            kwargs={"hpcprojectinvitation": self.hpc_project_invitation.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_member2,
+        ]
+        bad_users = [
+            self.user_invited,
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": self.hpc_project_invitation.user.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))

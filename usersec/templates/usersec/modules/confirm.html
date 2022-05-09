@@ -1,21 +1,35 @@
 <div class="row">
-  <h2>{{ action }} {{ object_type }}</h2>
+  <h2>
+    {{ action }} {{ object_type }}
+  </h2>
 </div>
 
 <div class="row">
   <form method="post">
     {% csrf_token %}
     <p>
-      Are you sure you want to <strong>{{ action|lower }}</strong> the {{ object_type }}?
+      Are you sure you want to
+      <strong {% if action == "Deny" or action == "Reject" %}class="text-danger"{% endif %}>
+        {{ action|upper }}
+      </strong>
+      the {{ object_type }}?
     </p>
     {{ form }}
     <a class="btn btn-secondary" onclick="history.back()">
       <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
       Cancel
     </a>
-    <button class="btn btn-success" type="submit">
+    <button class="btn
+              {% if action == "Deny" or action == "Reject" %}
+                btn-danger
+              {% else %}
+                btn-success
+              {% endif %}
+            "
+            type="submit"
+    >
       <i class="iconify" data-icon="mdi:check-bold"></i>
-      {{ action }}
+      Confirm
     </button>
   </form>
 </div>

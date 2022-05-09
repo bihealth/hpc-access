@@ -50,6 +50,9 @@ UserSec
 - Owner and delegate automatically  added to ``members`` field (#77)
 - Added consent button to group request form (#77)
 - Revised texts in forms and added info texts on user actions (#87)
+- Added models for group and project invitations (#91)
+- User can accept or reject a group invitation before potentially creating the user (#91)
+- User can accept or reject a project invitation before potentially joining the group (#91)
 
 AdminSec
 --------
@@ -70,3 +73,5 @@ AdminSec
 - Added HPC project create request views (#8)
 - Fixed bug where creating HPC project didn't add members to version object (#79)
 - Fixed bug where creating HPC group didn't add owner to version object (#79)
+- ``HpcUser`` is not created upon accepting a user request, but an ``HpcGroupInvitation`` object (#91)
+- Accepting a project create request creates an ``HpcProjectInvitation`` object for each requested member (#91)

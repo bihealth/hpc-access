@@ -283,4 +283,35 @@ urlpatterns = [
         view=views.HpcProjectDeleteRequestReactivateView.as_view(),
         name="hpcprojectdeleterequest-reactivate",
     ),
+    # ------------------------------------------------------------------------------
+    # HpcGroupInvitation related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcgroupinvitation/<uuid:hpcgroupinvitation>/detail/",
+        view=views.HpcGroupInvitationDetailView.as_view(),
+        name="hpcgroupinvitation-detail",
+    ),
+    path(
+        "hpcgroupinvitation/<uuid:hpcgroupinvitation>/accept/",
+        view=views.HpcGroupInvitationAcceptView.as_view(),
+        name="hpcgroupinvitation-accept",
+    ),
+    path(
+        "hpcgroupinvitation/<uuid:hpcgroupinvitation>/reject/",
+        view=views.HpcGroupInvitationRejectView.as_view(),
+        name="hpcgroupinvitation-reject",
+    ),
+    # ------------------------------------------------------------------------------
+    # HpcProjectInvitation related
+    # ------------------------------------------------------------------------------
+    path(
+        "hpcprojectinvitation/<uuid:hpcprojectinvitation>/accept/",
+        view=views.HpcProjectInvitationAcceptView.as_view(),
+        name="hpcprojectinvitation-accept",
+    ),
+    path(
+        "hpcprojectinvitation/<uuid:hpcprojectinvitation>/reject/",
+        view=views.HpcProjectInvitationRejectView.as_view(),
+        name="hpcprojectinvitation-reject",
+    ),
 ]

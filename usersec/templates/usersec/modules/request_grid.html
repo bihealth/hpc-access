@@ -30,7 +30,7 @@
             Create Requests
           </h5>
         </div>
-        <ul class="list-group list-group-flush">
+        <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
           {% for obj in hpcgroupcreaterequests %}
             <li class="list-group-item">
               <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -63,7 +63,7 @@
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcusercreaterequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.email }}</a>
@@ -95,7 +95,7 @@
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcprojectcreaterequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.name }}</a>
@@ -130,7 +130,7 @@
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcgroupchangerequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -159,7 +159,7 @@
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcuserchangerequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -188,7 +188,7 @@
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcgroupchangerequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -211,16 +211,16 @@
         <h5 class="card-title">
           {% if admin %}
             <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete
+            Delete Requests
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete
+              Delete Requests
             </a>
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcgroupdeleterequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -240,16 +240,16 @@
         <h5 class="card-title">
           {% if admin %}
             <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete
+            Delete Requests
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete
+              Delete Requests
             </a>
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcuserdeleterequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
@@ -269,16 +269,16 @@
         <h5 class="card-title">
           {% if admin %}
             <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete
+            Delete Requests
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete
+              Delete Requests
             </a>
           {% endif %}
         </h5>
       </div>
-      <ul class="list-group list-group-flush">
+      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
         {% for obj in hpcprojectdeleterequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>

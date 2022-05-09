@@ -14,6 +14,10 @@ from usersec.models import (
     REQUEST_STATUS_APPROVED,
     HpcUserCreateRequest,
     HpcProjectCreateRequest,
+    HpcUser,
+    INVITATION_STATUS_ACCEPTED,
+    INVITATION_STATUS_PENDING,
+    INVITATION_STATUS_REJECTED,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -25,6 +29,8 @@ from usersec.tests.factories import (
     HpcProjectFactory,
     HpcProjectCreateRequestFactory,
     HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
+    HpcGroupInvitationFactory,
+    HpcProjectInvitationFactory,
 )
 
 
@@ -49,9 +55,19 @@ class TestViewBase(TestCase):
         self.user_owner.save()
 
         self.hpc_group = HpcGroupFactory()
-        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
+        self.hpc_owner = HpcUserFactory(
+            user=self.user_owner, primary_group=self.hpc_group, creator=self.user_hpcadmin
+        )
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
+
+        self.user_member = self.make_user("member")
+        self.user_member.email = "member@example.com"
+        self.user_member.save()
+
+        self.hpc_member = HpcUserFactory(
+            user=self.user_member, primary_group=self.hpc_group, creator=self.user_hpcadmin
+        )
 
         # Create project
         self.hpc_project = HpcProjectFactory(group=self.hpc_group)
@@ -1106,3 +1122,222 @@ class TestHpcProjectCreateRequestRectivateView(TestViewBase):
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcGroupInvitationDetailView(TestViewBase):
+    """Tests for HpcGroupInvitationDetailView."""
+
+    def setUp(self):
+        super().setUp()
+
+        # Invited user
+        self.user_invited = self.make_user("invited@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
+
+        # Create HPC group invitation
+        self.obj = HpcGroupInvitationFactory(username=self.user_invited.username)
+        self.obj.hpcusercreaterequest.group = self.hpc_group
+        self.obj.hpcusercreaterequest.save()
+
+    def test_get(self):
+        with self.login(self.user_invited):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.obj)
+
+
+class TestHpcGroupInvitationAcceptView(TestViewBase):
+    """Tests for HpcGroupInvitationAcceptView."""
+
+    def setUp(self):
+        super().setUp()
+
+        # Invited user
+        self.user_invited = self.make_user("invited@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
+
+        # Create HPC group invitation
+        self.obj = HpcGroupInvitationFactory(username=self.user_invited.username)
+        self.obj.hpcusercreaterequest.group = self.hpc_group
+        self.obj.hpcusercreaterequest.save()
+
+    def test_get(self):
+        with self.login(self.user_invited):
+            self.assertEqual(HpcUser.objects.count(), 2)
+
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupinvitation-accept",
+                    kwargs={"hpcgroupinvitation": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(HpcUser.objects.count(), 3)
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": HpcUser.objects.last().uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully accepted and user created.")
+
+            self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, INVITATION_STATUS_ACCEPTED)
+
+
+class TestHpcGroupInvitationRejectView(TestViewBase):
+    """Tests for HpcGroupInvitationRejectView."""
+
+    def setUp(self):
+        super().setUp()
+
+        # Invited user
+        self.user_invited = self.make_user("invited@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
+
+        # Create HPC group invitation
+        self.obj = HpcGroupInvitationFactory(username=self.user_invited.username)
+        self.obj.hpcusercreaterequest.group = self.hpc_group
+        self.obj.hpcusercreaterequest.save()
+
+    def test_get(self):
+        with self.login(self.user_invited):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupinvitation-reject",
+                    kwargs={"hpcgroupinvitation": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.obj)
+
+    def test_post(self):
+        with self.login(self.user_invited):
+            self.assertEqual(HpcUser.objects.count(), 2)
+
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcgroupinvitation-reject",
+                    kwargs={"hpcgroupinvitation": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(HpcUser.objects.count(), 2)
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
+
+            self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, INVITATION_STATUS_REJECTED)
+
+
+class TestHpcProjectInvitationAcceptView(TestViewBase):
+    """Tests for HpcProjectInvitationAcceptView."""
+
+    def setUp(self):
+        super().setUp()
+
+        request = HpcProjectCreateRequestFactory()
+
+        # Create HPC project invitation
+        self.obj = HpcProjectInvitationFactory(
+            user=self.hpc_member, project=self.hpc_project, hpcprojectcreaterequest=request
+        )
+
+    def test_get(self):
+        with self.login(self.user_member):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectinvitation-accept",
+                    kwargs={"hpcprojectinvitation": self.obj.uuid},
+                )
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": HpcUser.objects.last().uuid},
+                ),
+            )
+
+            self.assertEqual(
+                list(self.hpc_project.members.all()), [self.hpc_owner, self.hpc_member]
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully joined the project.")
+
+            self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, INVITATION_STATUS_ACCEPTED)
+
+
+class TestHpcProjectInvitationRejectView(TestViewBase):
+    """Tests for HpcProjectInvitationRejectView."""
+
+    def setUp(self):
+        super().setUp()
+
+        request = HpcProjectCreateRequestFactory()
+
+        # Create HPC project invitation
+        self.obj = HpcProjectInvitationFactory(
+            user=self.hpc_member, project=self.hpc_project, hpcprojectcreaterequest=request
+        )
+
+    def test_get(self):
+        with self.login(self.user_member):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectinvitation-reject",
+                    kwargs={"hpcprojectinvitation": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], self.obj)
+
+    def test_post(self):
+        with self.login(self.user_member):
+            self.assertEqual(HpcUser.objects.count(), 2)
+
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectinvitation-reject",
+                    kwargs={"hpcprojectinvitation": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(HpcUser.objects.count(), 2)
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuser-overview",
+                    kwargs={"hpcuser": self.hpc_member.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
+
+            self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, INVITATION_STATUS_REJECTED)

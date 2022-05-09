@@ -22,11 +22,14 @@ from usersec.models import (
     HpcUser,
     HpcGroup,
     HpcProject,
+    HpcGroupInvitation,
+    HpcProjectInvitation,
 )
 from usersec.tests.factories import (
     HpcGroupCreateRequestFactory,
     HpcUserCreateRequestFactory,
     HpcProjectCreateRequestFactory,
+    HpcUserFactory,
 )
 from usersec.tests.test_views import TestViewBase
 
@@ -215,10 +218,7 @@ class TestHpcGroupCreateRequestRevisionView(TestViewBase):
             )
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcgroupcreaterequest-detail",
-                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             self.obj.refresh_from_db()
@@ -270,10 +270,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcgroupcreaterequest-detail",
-                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))
@@ -288,7 +285,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             hpcusers = HpcUser.objects.all()
 
             self.assertEqual(hpcgroups.count(), 2)
-            self.assertEqual(hpcusers.count(), 2)
+            self.assertEqual(hpcusers.count(), 3)
 
             hpcuser = hpcusers.last()  # noqa: E1101
             hpcgroup = hpcgroups.last()  # noqa: E1101
@@ -335,10 +332,7 @@ class TestHpcGroupCreateRequestDenyView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcgroupcreaterequest-detail",
-                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))
@@ -487,10 +481,7 @@ class TestHpcUserCreateRequestRevisionView(TestViewBase):
             )
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcusercreaterequest-detail",
-                    kwargs={"hpcusercreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             self.obj.refresh_from_db()
@@ -537,8 +528,6 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
             settings.AUTH_LDAP_USERNAME_DOMAIN,
         )
 
-        self.assertEqual(HpcUser.objects.count(), 1)
-
         with self.login(self.user_hpcadmin):
             response = self.client.post(
                 reverse(
@@ -549,25 +538,21 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcusercreaterequest-detail",
-                    kwargs={"hpcusercreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(len(messages), 2)
             self.assertEqual(str(messages[0]), "Email sent to {}".format(self.obj.email))
-            self.assertEqual(str(messages[1]), "Request approved and user created.")
+            self.assertEqual(str(messages[1]), "Request approved and invitation created.")
+
+            self.assertEqual(HpcGroupInvitation.objects.count(), 1)
+            invitation = HpcGroupInvitation.objects.first()
+            self.assertEqual(invitation.username, "new_user@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_APPROVED)
-
-            self.assertEqual(HpcUser.objects.count(), 2)
-            user = HpcUser.objects.last()
-            self.assertEqual(user.username, "new_user_" + settings.INSTITUTE_USERNAME_SUFFIX)
-            self.assertIsNone(user.user)
 
             mock_get_ldap_username_domain_by_mail.assert_called_with(self.obj.email)
             mock_connect.assert_called_once()
@@ -607,10 +592,7 @@ class TestHpcUserCreateRequestDenyView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcusercreaterequest-detail",
-                    kwargs={"hpcusercreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))
@@ -762,10 +744,7 @@ class TestHpcProjectCreateRequestRevisionView(TestViewBase):
             )
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcprojectcreaterequest-detail",
-                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             self.obj.refresh_from_db()
@@ -789,10 +768,17 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
 
     def setUp(self):
         super().setUp()
+        user_delegate = self.make_user("delegate")
+        user_delegate.email = "delegate@example.com"
+        user_delegate.save()
+        self.hpc_delegate = HpcUserFactory(user=user_delegate, primary_group=self.hpc_group)
         self.obj = HpcProjectCreateRequestFactory(
-            requester=self.user_owner, group=self.hpc_group, status=REQUEST_STATUS_ACTIVE
+            requester=self.user_owner,
+            group=self.hpc_group,
+            status=REQUEST_STATUS_ACTIVE,
+            delegate=self.hpc_delegate,
         )
-        self.obj.members.add(self.hpc_owner)
+        self.obj.members.add(self.hpc_owner, self.hpc_member, self.hpc_delegate)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
@@ -816,10 +802,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcprojectcreaterequest-detail",
-                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))
@@ -833,14 +816,21 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertEqual(self.obj.status, REQUEST_STATUS_APPROVED)
 
             self.assertEqual(HpcProject.objects.count(), 2)
+            self.assertEqual(HpcProjectInvitation.objects.count(), 2)
 
             hpcproject = HpcProject.objects.get(name=self.obj.name)
             hpcproject_version = hpcproject.version_history.last()
 
+            invitation1 = HpcProjectInvitation.objects.first()
+            invitation2 = HpcProjectInvitation.objects.last()
+
+            self.assertEqual(invitation1.user, self.hpc_member)
+            self.assertEqual(invitation2.user, self.hpc_delegate)
+
             self.assertEqual(hpcproject.group.owner, self.hpc_owner)
             self.assertEqual(hpcproject.name, self.obj.name)
-            self.assertEqual(list(hpcproject.members.all()), list(self.obj.members.all()))
-            self.assertEqual(list(hpcproject_version.members.all()), list(self.obj.members.all()))
+            self.assertEqual(list(hpcproject.members.all()), [self.hpc_owner])
+            self.assertEqual(list(hpcproject_version.members.all()), [self.hpc_owner])
 
             self.assertEqual(len(mail.outbox), 2)
 
@@ -877,10 +867,7 @@ class TestHpcProjectCreateRequestDenyView(TestViewBase):
 
             self.assertRedirects(
                 response,
-                reverse(
-                    "adminsec:hpcprojectcreaterequest-detail",
-                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
-                ),
+                reverse("adminsec:overview"),
             )
 
             messages = list(get_messages(response.wsgi_request))

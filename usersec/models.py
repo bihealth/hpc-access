@@ -331,7 +331,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},current_version={})".format(
             self.__class__.__name__,
             self.id,
-            self.user.username if self.user else "None",
+            self.user.username if self.user else None,
             self.username,
             self.uid,
             self.primary_group.name,
@@ -341,9 +341,10 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         )
 
     def __str__(self):
-        return "{} ({})".format(
-            self.user.name if self.user else "User not connected", self.username
-        )
+        return "{} ({})".format(self.user.name, self.username)
+
+    def get_pending_invitations(self):
+        return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
 
 
 class HpcUserVersion(HpcUserAbstract):
@@ -368,7 +369,7 @@ class HpcUserVersion(HpcUserAbstract):
         return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},version={})".format(
             self.__class__.__name__,
             self.id,
-            self.user.username if self.user else "None",
+            self.user.username if self.user else None,
             self.username,
             self.uid,
             self.primary_group.name,
@@ -1310,6 +1311,150 @@ class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
     #: Link to actual (non-version) object.
     belongs_to = models.ForeignKey(
         HpcProjectDeleteRequest,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+#: Invitation created and waiting for decision.
+INVITATION_STATUS_PENDING = "PENDING"
+
+#: Invitation rejected by user.
+INVITATION_STATUS_REJECTED = "REJECTED"
+
+#: Invitation accepted by user.
+INVITATION_STATUS_ACCEPTED = "ACCEPTED"
+
+#: Invitation accepted by user.
+INVITATION_STATUS_EXPIRED = "EXPIRED"
+
+#: Choices of invitation status.
+INVITATION_STATUS_CHOICES = (
+    (INVITATION_STATUS_PENDING, INVITATION_STATUS_PENDING),
+    (INVITATION_STATUS_ACCEPTED, INVITATION_STATUS_ACCEPTED),
+    (INVITATION_STATUS_REJECTED, INVITATION_STATUS_REJECTED),
+    (INVITATION_STATUS_EXPIRED, INVITATION_STATUS_EXPIRED),
+)
+
+
+class HpcInvitationAbstract(HpcObjectAbstract):
+    """HpcInvitation abstract base class."""
+
+    class Meta:
+        abstract = True
+
+    #: Status of the object.
+    status = models.CharField(
+        max_length=16,
+        choices=INVITATION_STATUS_CHOICES,
+        default=INVITATION_STATUS_PENDING,
+        help_text="Status of the project invitation",
+    )
+
+
+class HpcProjectInvitationAbstract(HpcInvitationAbstract):
+    """HpcProjectInvitation abstract base class."""
+
+    class Meta:
+        abstract = True
+
+    #: Link to HPC project
+    project = models.ForeignKey(
+        HpcProject, help_text="Project the user has been invited to", on_delete=models.CASCADE
+    )
+
+    #: Link to HPC project create request
+    hpcprojectcreaterequest = models.ForeignKey(
+        HpcProjectCreateRequest,
+        help_text="Project create request that initiated the invitation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    #: Link to HPC project change request
+    hpcprojectchangerequest = models.ForeignKey(
+        HpcProjectChangeRequest,
+        help_text="Project change request that initiated the invitation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    #: Link to HPC user
+    user = models.ForeignKey(
+        HpcUser, help_text="Invited user", on_delete=models.CASCADE, related_name="%(class)ss"
+    )
+
+
+class HpcProjectInvitation(VersionManagerMixin, HpcProjectInvitationAbstract):
+    """HpcProjectInvitation model."""
+
+    #: Set custom manager
+    objects = VersionManager()
+
+    #: Currently active version of the project delete request object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the project delete request object"
+    )
+
+
+class HpcProjectInvitationVersion(HpcProjectInvitationAbstract):
+    """HpcProjectInvitationVersion model."""
+
+    #: Version number of the project invitation object.
+    version = models.IntegerField(help_text="Version number of this project invitation object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcProjectInvitation,
+        null=True,
+        related_name="version_history",
+        help_text="Object this version belongs to",
+        on_delete=models.CASCADE,
+    )
+
+
+class HpcGroupInvitationAbstract(HpcInvitationAbstract):
+    """HpcGroupInvitation abstract base class."""
+
+    class Meta:
+        abstract = True
+
+    #: Link to HPC user create request
+    hpcusercreaterequest = models.ForeignKey(
+        HpcUserCreateRequest,
+        help_text="User create request that initiated the invitation",
+        on_delete=models.CASCADE,
+    )
+
+    #: Username
+    username = models.CharField(max_length=255, help_text="Username the invitation is valid for")
+
+
+class HpcGroupInvitation(VersionManagerMixin, HpcGroupInvitationAbstract):
+    """HpcGroupInvitation model."""
+
+    #: Set custom manager
+    objects = VersionManager()
+
+    #: Currently active version of the group invitation object.
+    current_version = models.IntegerField(
+        help_text="Currently active version of the group invitation object"
+    )
+
+
+class HpcGroupInvitationVersion(HpcGroupInvitationAbstract):
+    """HpcGroupInvitationVersion model."""
+
+    #: Version number of the group invitation object.
+    version = models.IntegerField(help_text="Version number of this group invitation object")
+
+    #: Link to actual (non-version) object.
+    belongs_to = models.ForeignKey(
+        HpcGroupInvitation,
         null=True,
         related_name="version_history",
         help_text="Object this version belongs to",

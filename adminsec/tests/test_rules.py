@@ -154,10 +154,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
@@ -204,10 +201,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
         )
@@ -256,10 +250,7 @@ class TestPermissionsInViews(TestRulesBase):
             "POST",
             302,
             req_kwargs=data,
-            redirect_url=reverse(
-                "adminsec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(
@@ -340,10 +331,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
@@ -390,10 +378,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
         )
@@ -442,10 +427,7 @@ class TestPermissionsInViews(TestRulesBase):
             "POST",
             302,
             req_kwargs=data,
-            redirect_url=reverse(
-                "adminsec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(
@@ -516,10 +498,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
@@ -566,10 +545,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "POST",
             302,
-            redirect_url=reverse(
-                "adminsec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
         )
@@ -619,10 +595,7 @@ class TestPermissionsInViews(TestRulesBase):
             "POST",
             302,
             req_kwargs=data,
-            redirect_url=reverse(
-                "adminsec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
-            ),
+            redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
         )
         self.assert_permissions_on_url(

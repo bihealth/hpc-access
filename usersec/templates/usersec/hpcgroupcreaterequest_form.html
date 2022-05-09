@@ -134,16 +134,7 @@
 {% block inline_javascript %}
   <script>
     $(document).ready(function() {
-      $(".mergeToJson").change(mergeToJson);
       $("#id_consent").click(consent);
-
-      jsonToFields();
-
-      $("#submit").submit(function(event) {
-        if (!$(this).data("is-admin")) {
-          mergeToJson();
-        }
-      });
     });
   </script>
 {% endblock inline_javascript %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <h1>
+    You've been invited to the BIH cluster to join group
+    <span class="text-danger">{{ object.hpcusercreaterequest.group.name }}</span>
+  </h1>
+
+  <p>
+    This is some informative text.
+  </p>
+
+  <div class="fieldWrapper">
+    <div class="input-group mb-3">
+      <span class="input-group-text">
+        <input type="checkbox" class="form-check-input m-0" name="consent" id="id_consent">
+      </span>
+      <label for="id_consent">
+        <span class="form-control fw-bold">
+          I consent.<sup class="text-danger">*</sup>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <a
+    class="btn btn-success disabled"
+    id="id_submit_button"
+    href="{% url 'usersec:hpcgroupinvitation-accept' hpcgroupinvitation=object.uuid %}"
+  >
+    <i class="iconify" data-icon="mdi:check-bold"></i>
+    Accept
+  </a>
+  <a class="btn btn-danger"
+     href="{% url 'usersec:hpcgroupinvitation-reject' hpcgroupinvitation=object.uuid %}"
+  >
+    <i class="iconify" data-icon="mdi:cancel"></i>
+    Reject
+  </a>
+
+
+{% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    $(document).ready(function() {
+      $("#id_consent").click(consent);
+    });
+  </script>
+{% endblock inline_javascript %}

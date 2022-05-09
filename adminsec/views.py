@@ -1,13 +1,12 @@
 import unicodedata
-from datetime import timedelta
-
 
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.datetime_safe import datetime
 from django.views import View
 from django.views.generic import (
     DetailView,
@@ -34,10 +33,11 @@ from usersec.models import (
     HpcUser,
     OBJECT_STATUS_ACTIVE,
     HpcUserCreateRequest,
-    OBJECT_STATUS_INITIAL,
     HpcProject,
     HpcProjectCreateRequest,
     HpcGroupVersion,
+    HpcGroupInvitation,
+    HpcProjectInvitation,
 )
 from usersec.views import HpcPermissionMixin
 
@@ -83,6 +83,10 @@ def django_to_hpc_username(username):
     username, domain = data
 
     return ldap_to_hpc_username(username, domain)
+
+
+def ldap_to_django_username(username, domain):
+    return f"{username}{LDAP_USERNAME_SEPARATOR}{domain}"
 
 
 def convert_to_posix(name):
@@ -183,18 +187,13 @@ class HpcGroupCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     slug_field = "uuid"
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         context["admin"] = True
         return context
-
-    def get_success_url(self):
-        return reverse(
-            "adminsec:hpcgroupcreaterequest-detail",
-            kwargs={"hpcgroupcreaterequest": self.get_object().uuid},
-        )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -253,7 +252,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             description="PI, created together with accepting the group request.",
             username=django_to_hpc_username(obj.requester.username),
             status=OBJECT_STATUS_ACTIVE,
-            expiration=timezone.now() + timedelta(weeks=52),
+            expiration=datetime(year=timezone.now().year + 1, month=1, day=31),
         )
 
         # Set group owner
@@ -268,12 +267,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         hpcgroup_version.save()
 
         messages.success(self.request, "Request approved and group and user created.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
@@ -302,12 +296,7 @@ class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj.editor = self.request.user
         obj.deny_with_version()
         messages.success(self.request, "Request successfully denied.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcUserDetailView(HpcPermissionMixin, DetailView):
@@ -357,18 +346,13 @@ class HpcUserCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     slug_field = "uuid"
     slug_url_kwarg = "hpcusercreaterequest"
     permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         context["admin"] = True
         return context
-
-    def get_success_url(self):
-        return reverse(
-            "adminsec:hpcusercreaterequest-detail",
-            kwargs={"hpcusercreaterequest": self.get_object().uuid},
-        )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -421,18 +405,12 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                HpcUser.objects.create_with_version(
-                    user=None,
-                    primary_group=obj.group,
-                    resources_requested=obj.resources_requested,
-                    creator=self.request.user,
-                    username=ldap_to_hpc_username(username, domain),
-                    status=OBJECT_STATUS_INITIAL,
-                    expiration=obj.expiration,
+                HpcGroupInvitation.objects.create_with_version(
+                    hpcusercreaterequest=obj, username=ldap_to_django_username(username, domain)
                 )
 
         except Exception as e:
-            messages.error(self.request, "Could not create user object: {}".format(e))
+            messages.error(self.request, "Could not create invitation object: {}".format(e))
             return HttpResponseRedirect(
                 reverse(
                     "adminsec:hpcusercreaterequest-detail",
@@ -452,13 +430,8 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             obj.editor = self.request.user
             obj.approve_with_version()
 
-        messages.success(self.request, "Request approved and user created.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": obj.uuid},
-            )
-        )
+        messages.success(self.request, "Request approved and invitation created.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcUserCreateRequestDenyView(HpcPermissionMixin, DeleteView):
@@ -487,12 +460,7 @@ class HpcUserCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj.editor = self.request.user
         obj.deny_with_version()
         messages.success(self.request, "Request successfully denied.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcGroupDeleteRequestDetailView(View):
@@ -574,18 +542,13 @@ class HpcProjectCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     slug_field = "uuid"
     slug_url_kwarg = "hpcprojectcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["update"] = True
         context["admin"] = True
         return context
-
-    def get_success_url(self):
-        return reverse(
-            "adminsec:hpcprojectcreaterequest-detail",
-            kwargs={"hpcprojectcreaterequest": self.get_object().uuid},
-        )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -627,15 +590,26 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                 project = HpcProject.objects.create_with_version(
                     group=obj.group,
                     name=obj.name,
-                    delegate=obj.delegate,
                     description=obj.description,
                     resources_requested=obj.resources_requested,
                     creator=self.request.user,
                     status=OBJECT_STATUS_ACTIVE,
                     expiration=obj.expiration,
                 )
-                project.members.set(obj.members.all())
-                project.version_history.last().members.set(obj.members.all())
+                project.members.add(obj.group.owner)
+                project.version_history.last().members.add(obj.group.owner)
+
+                # Create invitations for users
+                for member in obj.members.all():
+                    if member == obj.group.owner:
+                        continue
+
+                    HpcProjectInvitation.objects.create_with_version(
+                        project=project,
+                        hpcprojectcreaterequest=obj,
+                        user=member,
+                    )
+                    # TODO send invitation
 
         except Exception as e:
             messages.error(self.request, "Could not create project object: {}".format(e))
@@ -662,12 +636,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             obj.approve_with_version()
 
         messages.success(self.request, "Request approved and project created.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcProjectCreateRequestDenyView(HpcPermissionMixin, DeleteView):
@@ -696,12 +665,7 @@ class HpcProjectCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj.editor = self.request.user
         obj.deny_with_version()
         messages.success(self.request, "Request successfully denied.")
-        return HttpResponseRedirect(
-            reverse(
-                "adminsec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcUserDeleteRequestDetailView(View):
