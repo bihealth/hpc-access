@@ -1,3 +1,10 @@
+{% if not omit_home_button %}
+  <a class="btn btn-secondary" href="{% url 'home' %}">
+    <i class="iconify" data-icon="mdi:home"></i>
+    Go to Overview
+  </a>
+{% endif %}
+
 <span class="btn-group">
   {% if not is_decided %}
     {% if not is_active %}

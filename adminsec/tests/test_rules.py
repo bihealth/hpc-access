@@ -11,11 +11,13 @@ from usersec.models import (
     HpcGroup,
     HpcProjectCreateRequest,
     HpcProject,
+    HpcGroupChangeRequest,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
     HPCUSERCREATEREQUEST_FORM_DATA_VALID,
     HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
+    HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
 )
 from usersec.tests.test_rules import TestRulesBase
 
@@ -266,6 +268,172 @@ class TestPermissionsInViews(TestRulesBase):
         url = reverse(
             "adminsec:hpcgroupcreaterequest-detail",
             kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_approve_view_get(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-approve",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_approve_view_post(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-approve",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        def rollback_callback():
+            u = HpcGroupChangeRequest.objects.last()
+            u.status = REQUEST_STATUS_ACTIVE
+            u.save()
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse("adminsec:overview"),
+            rollback_callback=rollback_callback,
+        )
+        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_deny_view_get(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-deny",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_deny_view_post(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-deny",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        data = {"comment": "Request denied!"}
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        def rollback_callback():
+            u = HpcGroupChangeRequest.objects.last()
+            u.status = REQUEST_STATUS_ACTIVE
+            u.save()
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse("adminsec:overview"),
+            req_kwargs=data,
+            rollback_callback=rollback_callback,
+        )
+        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_revision_view_get(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-revision",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_group_change_request_revision_view_post(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-revision",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        good_users = [self.superuser, self.user_hpcadmin]
+        bad_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member_other_group,
+            self.user,
+        ]
+        data = dict(HPCGROUPCHANGEREQUEST_FORM_DATA_VALID)
+
+        def rollback_callback():
+            u = HpcGroupChangeRequest.objects.last()
+            u.status = REQUEST_STATUS_ACTIVE
+            u.save()
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("adminsec:overview"),
+            rollback_callback=rollback_callback,
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+        )
+
+    def test_hpc_group_change_request_detail_view(self):
+        url = reverse(
+            "adminsec:hpcgroupchangerequest-detail",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
         )
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [

@@ -6,6 +6,7 @@ from usersec.forms import (
     HpcGroupCreateRequestForm,
     HpcUserCreateRequestForm,
     HpcProjectCreateRequestForm,
+    HpcGroupChangeRequestForm,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -13,6 +14,7 @@ from usersec.tests.factories import (
     HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
     HpcUserFactory,
     HpcGroupFactory,
+    HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
 )
 
 
@@ -48,6 +50,69 @@ class TestHpcGroupCreateRequestForm(TestCase):
     def test_form_invalid_hpcadmin_comment_missing(self):
         data_invalid = {**self.data_valid, "comment": ""}
         form = HpcGroupCreateRequestForm(user=self.user_hpcadmin, data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["comment"], ["This field is required."])
+
+
+class TestHpcGroupChangeRequestForm(TestCase):
+    """Tests for HpcGroupChangeRequest form."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.make_user("user")
+        self.user_owner = self.make_user("owner")
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+        self.hpc_group = HpcGroupFactory()
+        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
+        self.hpc_group.owner = self.hpc_owner
+        self.hpc_group.save()
+
+        self.data_valid = HPCGROUPCHANGEREQUEST_FORM_DATA_VALID
+
+    def test_form_initials(self):
+        form = HpcGroupChangeRequestForm(user=self.user_owner, group=self.hpc_group)
+        self.assertEqual(form.fields["description"].initial, self.hpc_group.description)
+        expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
+        self.assertEqual(form.fields["expiration"].initial, expiration_expected)
+        self.assertEqual(form.fields["delegate"].initial, self.hpc_group.delegate)
+        self.assertEqual(
+            form.fields["resources_requested"].initial, self.hpc_group.resources_requested
+        )
+        self.assertEqual(
+            form.fields["tier1"].initial, self.hpc_group.resources_requested.get("tier1")
+        )
+        self.assertEqual(
+            form.fields["tier2"].initial, self.hpc_group.resources_requested.get("tier2")
+        )
+
+    def test_form_valid(self):
+        form = HpcGroupChangeRequestForm(
+            user=self.user_owner, group=self.hpc_group, data=self.data_valid
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_resources_requested_missing(self):
+        data_invalid = {**self.data_valid, "resources_requested": {}}
+        form = HpcGroupChangeRequestForm(
+            user=self.user_owner, group=self.hpc_group, data=data_invalid
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["resources_requested"], ["This field is required."])
+
+    def test_form_valid_hpcadmin(self):
+        form = HpcGroupChangeRequestForm(
+            user=self.user_hpcadmin, group=self.hpc_group, data=self.data_valid
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_hpcadmin_comment_missing(self):
+        data_invalid = {**self.data_valid, "comment": ""}
+        form = HpcGroupChangeRequestForm(
+            user=self.user_hpcadmin, group=self.hpc_group, data=data_invalid
+        )
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["comment"], ["This field is required."])
 

@@ -9,7 +9,7 @@
     {% csrf_token %}
     <p>
       Are you sure you want to
-      <strong {% if action == "Deny" or action == "Reject" %}class="text-danger"{% endif %}>
+      <strong {% if action == "Deny" or action == "Reject" or action == "Retract" %}class="text-danger"{% endif %}>
         {{ action|upper }}
       </strong>
       the {{ object_type }}?
@@ -20,7 +20,7 @@
       Cancel
     </a>
     <button class="btn
-              {% if action == "Deny" or action == "Reject" %}
+              {% if action == "Deny" or action == "Reject" or action == "Retract" %}
                 btn-danger
               {% else %}
                 btn-success
