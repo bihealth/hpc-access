@@ -7,6 +7,7 @@ from usersec.models import (
     HpcGroupCreateRequest,
     HpcUserCreateRequest,
     HpcProjectCreateRequest,
+    HpcGroupChangeRequest,
 )
 
 
@@ -58,6 +59,73 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
             "For the initial group creation request provide some 'proof' that you are a group leader such as linking "
             "to your group website at Charite or MDC."
         )
+
+
+class HpcGroupChangeRequestForm(forms.ModelForm):
+    """Form for HpcGroupChangeRequest."""
+
+    class Meta:
+        model = HpcGroupChangeRequest
+        fields = [
+            "resources_requested",
+            "delegate",
+            "description",
+            "expiration",
+            "comment",
+        ]
+
+    def __init__(self, *args, user, group, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["resources_requested"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].initial = group.resources_requested
+        self.fields["description"].initial = group.description
+        self.fields["delegate"].initial = group.delegate
+
+        # Add fields for storage. Will be merged into resources_requested field.
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
+            self.fields[
+                "expiration"
+            ].help_text = "Default expiration date is set to end of the current year with one month grace period."
+
+            # Add fields for storage. Will be merged into resources_requested field.
+            self.fields["tier1"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
+                    "for computation."
+                ),
+                label="Fast Active Storage [TB]",
+            )
+            self.fields["tier1"].initial = group.resources_requested["tier1"]
+            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage [TB]",
+            )
+            self.fields["tier2"].initial = group.resources_requested["tier2"]
+            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+
+        else:
+            self.fields["delegate"].widget = forms.HiddenInput()
+            self.fields["description"].widget = forms.HiddenInput()
+            self.fields["expiration"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
+
+        # Some cosmetics
+        self.fields["delegate"].widget.attrs["class"] = "form-control"
+        self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
 
 
 class HpcUserCreateRequestForm(forms.ModelForm):

@@ -7,7 +7,7 @@
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">
-        HPC Group Request
+        HPC Group Change Request
         <span class="badge bg-{{ object.status|colorize_request_status }}">
           {{ object.display_status }}
         </span>
@@ -15,7 +15,7 @@
           {% if admin %}
             {% include "usersec/modules/request_buttons_admin.html" %}
           {% else %}
-            {% include "usersec/modules/request_buttons_user.html" with omit_home_button=1 %}
+            {% include "usersec/modules/request_buttons_user.html" %}
           {% endif %}
         </span>
       </h4>
@@ -25,21 +25,20 @@
       <div class="row">
         <div class="col-12 alert alert-info">
           We are working on your request and you will receive an email once we approve it.
-          Once your request has been approved, you can adjust the amount of resources that you applied for.
         </div>
       </div>
       {% elif object.status == "RETRACTED" %}
       <div class="row">
         <div class="col-12 alert alert-warning">
-          You have retracted your group creation request.
-          Click &quot;Re-activate&quot; to re-apply for group creation.
+          You have retracted your group change request.
+          Click &quot;Re-activate&quot; to re-apply for the change.
         </div>
       </div>
       {% elif object.status == "REVISION" %}
       <div class="row">
         <div class="col-12 alert alert-warning">
-          We have asked for you to revise your group request.
-          See our comment and please answer any question and/or update the resource requests.
+          We have asked for you to revise your group change request.
+          See our comment and please answer any question.
         </div>
       </div>
       {% endif %}
@@ -61,6 +60,9 @@
 
             <dt class="col-sm-3">Description</dt>
             <dd class="col-sm-9">{{ object.description }}</dd>
+
+            <dt class="col-sm-3">Delegate</dt>
+            <dd class="col-sm-9">{{ object.delegate|default:"<em class='text-muted'>No delegate</em>" }}</dd>
 
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration }}</dd>

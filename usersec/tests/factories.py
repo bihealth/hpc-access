@@ -53,6 +53,17 @@ HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
 }
 
 
+#: Valid data for HpcGroupChangeRequestForm.
+HPCGROUPCHANGEREQUEST_FORM_DATA_VALID = {
+    "resources_requested": json.dumps({"resource": 111}),
+    "tier1": 111,
+    "tier2": 222,
+    "description": "updated group description",
+    "expiration": "2023-01-01",
+    "comment": "nothing",
+}
+
+
 #: Valid data for HpcUserCreateRequestForm.
 HPCUSERCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
@@ -121,8 +132,8 @@ class HpcGroupFactory(HpcObjectFactoryBase):
 
     owner = None  # HpcUser
     delegate = None  # HpcUser
-    resources_requested = {"null": "null"}
-    resources_used = {"null": "null"}
+    resources_requested = {"tier1": 1, "tier2": 0}
+    resources_used = {"tier1": 0.5, "tier2": 0}
     description = "this is a group"
     creator = None  # User
     gid = 2000
@@ -158,6 +169,7 @@ class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
         model = HpcGroupChangeRequest
 
     resources_requested = {"null": "null"}
+    description = "updated group description"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 

@@ -123,7 +123,7 @@
             <i class="iconify" data-icon="mdi:refresh"></i>
             Change Requests
           {% else %}
-            <a class="btn btn-sm btn-primary disabled">
+            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcgroupchangerequest-create' hpcgroup=object.primary_group.uuid %}">
               <i class="iconify" data-icon="mdi:refresh"></i>
               Update Group
             </a>
@@ -189,7 +189,7 @@
         </h5>
       </div>
       <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcgroupchangerequests %}
+        {% for obj in hpcprojectchangerequests %}
           <li class="list-group-item">
             <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
             <span class="badge bg-{{ obj.status|colorize_request_status }}">
@@ -215,7 +215,7 @@
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete Requests
+              Delete Group
             </a>
           {% endif %}
         </h5>
@@ -244,7 +244,7 @@
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete Requests
+              Delete User
             </a>
           {% endif %}
         </h5>
@@ -273,7 +273,7 @@
           {% else %}
             <a class="btn btn-sm btn-danger disabled">
               <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete Requests
+              Delete Project
             </a>
           {% endif %}
         </h5>

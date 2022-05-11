@@ -60,6 +60,26 @@ REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_RETRACTED, REQUEST_STATUS_RETRACTED),
 ]
 
+#: Invitation created and waiting for decision.
+INVITATION_STATUS_PENDING = "PENDING"
+
+#: Invitation rejected by user.
+INVITATION_STATUS_REJECTED = "REJECTED"
+
+#: Invitation accepted by user.
+INVITATION_STATUS_ACCEPTED = "ACCEPTED"
+
+#: Invitation accepted by user.
+INVITATION_STATUS_EXPIRED = "EXPIRED"
+
+#: Choices of invitation status.
+INVITATION_STATUS_CHOICES = (
+    (INVITATION_STATUS_PENDING, INVITATION_STATUS_PENDING),
+    (INVITATION_STATUS_ACCEPTED, INVITATION_STATUS_ACCEPTED),
+    (INVITATION_STATUS_REJECTED, INVITATION_STATUS_REJECTED),
+    (INVITATION_STATUS_EXPIRED, INVITATION_STATUS_EXPIRED),
+)
+
 
 # ------------------------------------------------------------------------------
 # Mixins
@@ -336,7 +356,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
             self.uid,
             self.primary_group.name,
             self.status,
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.current_version,
         )
 
@@ -374,7 +394,7 @@ class HpcUserVersion(HpcUserAbstract):
             self.uid,
             self.primary_group.name,
             self.status,
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.version,
         )
 
@@ -476,7 +496,7 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
             self.delegate.username if self.delegate else None,
             self.gid,
             self.status,
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.current_version,
         )
 
@@ -516,7 +536,7 @@ class HpcGroupVersion(HpcGroupAbstract):
             self.gid,
             self.status,
             self.hpcuser.count(),
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.version,
         )
 
@@ -628,7 +648,7 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
             self.gid,
             self.status,
             self.members.count(),
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.current_version,
         )
 
@@ -668,7 +688,7 @@ class HpcProjectVersion(HpcProjectAbstract):
             self.gid,
             self.status,
             self.members.count(),
-            self.creator.username,
+            self.creator.username if self.creator else None,
             self.version,
         )
 
@@ -864,6 +884,14 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
         blank=True,
         help_text="The optional delegate can act on behalf of the group owner",
         on_delete=models.SET_NULL,
+    )
+
+    #: Description, optional.
+    description = models.CharField(
+        max_length=512,
+        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        null=True,
+        blank=True,
     )
 
     #: Expiration date of the group
@@ -1316,27 +1344,6 @@ class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
-
-
-#: Invitation created and waiting for decision.
-INVITATION_STATUS_PENDING = "PENDING"
-
-#: Invitation rejected by user.
-INVITATION_STATUS_REJECTED = "REJECTED"
-
-#: Invitation accepted by user.
-INVITATION_STATUS_ACCEPTED = "ACCEPTED"
-
-#: Invitation accepted by user.
-INVITATION_STATUS_EXPIRED = "EXPIRED"
-
-#: Choices of invitation status.
-INVITATION_STATUS_CHOICES = (
-    (INVITATION_STATUS_PENDING, INVITATION_STATUS_PENDING),
-    (INVITATION_STATUS_ACCEPTED, INVITATION_STATUS_ACCEPTED),
-    (INVITATION_STATUS_REJECTED, INVITATION_STATUS_REJECTED),
-    (INVITATION_STATUS_EXPIRED, INVITATION_STATUS_EXPIRED),
-)
 
 
 class HpcInvitationAbstract(HpcObjectAbstract):

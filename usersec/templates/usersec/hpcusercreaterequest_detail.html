@@ -15,10 +15,6 @@
           {% if admin %}
             {% include "usersec/modules/request_buttons_admin.html" %}
           {% else %}
-            <a class="btn btn-secondary" href="{% url 'home' %}">
-              <i class="iconify" data-icon="mdi:home"></i>
-              Go to Overview
-            </a>
             {% include "usersec/modules/request_buttons_user.html" %}
           {% endif %}
         </span>

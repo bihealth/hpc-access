@@ -26,6 +26,7 @@ from usersec.forms import (
     HpcUserCreateRequestForm,
     HpcProjectCreateRequestForm,
     DEFAULT_USER_RESOURCES,
+    HpcGroupChangeRequestForm,
 )
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -38,6 +39,9 @@ from usersec.models import (
     HpcGroupVersion,
     HpcGroupInvitation,
     HpcProjectInvitation,
+    HpcGroupChangeRequest,
+    HpcProjectChangeRequest,
+    HpcUserChangeRequest,
 )
 from usersec.views import HpcPermissionMixin
 
@@ -119,13 +123,13 @@ class AdminView(HpcPermissionMixin, TemplateView):
         context["hpcprojectcreaterequests"] = HpcProjectCreateRequest.objects.active()
 
         # Add open HpcUserChangeRequest
-        context["hpcuserchangerequests"] = None
+        context["hpcuserchangerequests"] = HpcUserChangeRequest.objects.active()
 
         # Add open HpcGroupChangeRequest
-        context["hpcgroupchangerequests"] = None
+        context["hpcgroupchangerequests"] = HpcGroupChangeRequest.objects.active()
 
         # Add open HpcProjectChangeRequest
-        context["hpcprojectchangerequests"] = None
+        context["hpcprojectchangerequests"] = HpcProjectChangeRequest.objects.active()
 
         # Add open HpcGroupDeleteRequest
         context["hpcgroupdeleterequests"] = None
@@ -479,20 +483,140 @@ class HpcGroupDeleteRequestDenyView(View):
     pass
 
 
-class HpcGroupChangeRequestDetailView(View):
-    pass
+class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC group change request detail view."""
+
+    template_name = "usersec/hpcgroupchangerequest_detail.html"
+    model = HpcGroupChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["is_decided"] = obj.is_decided()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
+        context["admin"] = True
+        return context
 
 
-class HpcGroupChangeRequestRevisionView(View):
-    pass
+class HpcGroupChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
+    """HPC group change request revision view."""
+
+    template_name = "usersec/hpcgroupchangerequest_form.html"
+    model = HpcGroupChangeRequest
+    form_class = HpcGroupChangeRequestForm
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update"] = True
+        context["admin"] = True
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user, "group": self.get_object().group})
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        obj = obj.revision_with_version()
+
+        if not obj:
+            messages.error(self.request, "Couldn't update group change request.")
+            return HttpResponseRedirect(reverse("adminsec:overview"))
+
+        messages.success(self.request, "Revision requested.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcGroupChangeRequestApproveView(View):
-    pass
+class HpcGroupChangeRequestApproveView(HpcPermissionMixin, DeleteView):
+    """HpcGroupChangeRequest approve view."""
+
+    template_name_suffix = "_approve_confirm"
+    model = HpcGroupChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        try:
+            with transaction.atomic():
+                obj.group.update_with_version(
+                    delegate=obj.delegate,
+                    expiration=obj.expiration,
+                    resources_requested=obj.resources_requested,
+                    description=obj.description,
+                )
+
+        except Exception as e:
+            messages.error(self.request, "Could not update group: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcgroupchangerequest-detail",
+                    kwargs={"hpcgroupchangerequest": obj.uuid},
+                )
+            )
+
+        if settings.SEND_EMAIL:
+            pass
+
+        with transaction.atomic():
+            obj.comment = "Request approved"
+            obj.editor = self.request.user
+            obj.approve_with_version()
+
+        messages.success(self.request, "Request approved and group updated.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class HpcGroupChangeRequestDenyView(View):
-    pass
+class HpcGroupChangeRequestDenyView(HpcPermissionMixin, DeleteView):
+    """HpcGroupChangeRequest deny view."""
+
+    template_name_suffix = "_deny_confirm"
+    model = HpcGroupChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcGroupChangeRequestForm(
+            user=self.request.user,
+            group=context["object"].group,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = self.request.POST.get("comment")
+        obj.editor = self.request.user
+        obj.deny_with_version()
+        messages.success(self.request, "Request successfully denied.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcProjectDetailView(HpcPermissionMixin, DetailView):
