@@ -139,7 +139,7 @@ urlpatterns = [
     # HpcUserChangeRequest related
     # ------------------------------------------------------------------------------
     path(
-        "hpcgroup/<uuid:hpcgroup>/hpcuserchangerequest/",
+        "hpcgroup/<uuid:hpcuser>/hpcuserchangerequest/",
         view=views.HpcUserChangeRequestCreateView.as_view(),
         name="hpcuserchangerequest-create",
     ),

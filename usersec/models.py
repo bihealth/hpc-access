@@ -1056,9 +1056,6 @@ class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
     class Meta:
         abstract = True
 
-    #: Users requested resources as JSON.
-    resources_requested = models.JSONField()
-
     #: Expiration date of the user
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 

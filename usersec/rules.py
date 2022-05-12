@@ -465,8 +465,8 @@ rules.add_perm("usersec.manage_hpcusercreaterequest", can_manage_hpcusercreatere
 # ------------------------------------------------------------------------------
 
 rules.add_perm("usersec.view_hpcuserchangerequest", can_view_hpcuserchangerequest)
-rules.add_perm("usersec.create_hpcuserchangeerequest", can_create_hpcuserchangerequest)
-rules.add_perm("usersec.manage_hpcuserchangeerequest", can_manage_hpcuserchangerequest)
+rules.add_perm("usersec.create_hpcuserchangerequest", can_create_hpcuserchangerequest)
+rules.add_perm("usersec.manage_hpcuserchangerequest", can_manage_hpcuserchangerequest)
 
 # HpcGroup related
 # ------------------------------------------------------------------------------

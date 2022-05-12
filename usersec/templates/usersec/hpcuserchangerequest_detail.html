@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">
+        HPC User Change Request
+        <span class="badge bg-{{ object.status|colorize_request_status }}">
+          {{ object.display_status }}
+        </span>
+        <span class="float-end">
+          {% if admin %}
+            {% include "usersec/modules/request_buttons_admin.html" %}
+          {% else %}
+            {% include "usersec/modules/request_buttons_user.html" %}
+          {% endif %}
+        </span>
+      </h4>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-sm-6">
+          <dl class="row">
+            <dt class="col-sm-3">User</dt>
+            <dd class="col-sm-9">{{ object.user }}</dd>
+
+            <dt class="col-sm-3">Requester</dt>
+            <dd class="col-sm-9">{{ object.requester }}</dd>
+
+            <dt class="col-sm-3">Expiration</dt>
+            <dd class="col-sm-9">{{ object.expiration }}</dd>
+          </dl>
+        </div>
+        <div class="col-sm-6">
+          {% include "usersec/modules/comments.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}

@@ -132,6 +132,7 @@
 {% endblock content %}
 
 {% block inline_javascript %}
+  {{ block.super }}
   <script>
     $(document).ready(function() {
       $("#id_consent").click(consent);

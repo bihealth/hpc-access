@@ -1,18 +1,21 @@
 {% extends 'base.html' %}
 
 {% load crispy_forms_tags %}
-{% load common %}
 
 {% block content %}
 
   <div class="row">
     <h2>
       {% if update %}
-        Update HPC group change request
+        Update HPC User Change Request
       {% else %}
-        Request HPC group change
+        Request HPC User Change
       {% endif %}
     </h2>
+  </div>
+
+  <div class="alert alert-warning">
+    Change request is for user <strong>{{ user }}</strong>
   </div>
 
   {% include "usersec/modules/comments.html" %}
@@ -22,21 +25,8 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row">
-          <dt class="col-sm-3">Resource Quotas</dt>
-          <dd class="col-sm-9">
-            <dl class="row">
-              {% for key, value in object.resources_requested.items %}
-                <dt class="col-sm-3 text-muted">{{ key }}</dt>
-                <dd class="col-sm-9">{{ value }}</dd>
-              {% endfor %}
-            </dl>
-          </dd>
-
           <dt class="col-sm-3">Requester</dt>
           <dd class="col-sm-9">{{ object.requester.username }}</dd>
-
-          <dt class="col-sm-3">Description</dt>
-          <dd class="col-sm-9">{{ object.description }}</dd>
 
           <dt class="col-sm-3">Expiration</dt>
           <dd class="col-sm-9">{{ object.expiration }}</dd>
@@ -72,13 +62,17 @@
 
       {% if update %}
         <a class="btn btn-secondary"
-           href="{{ object|get_detail_url:user }}"
+          {% if admin %}
+           href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+          {% else %}
+           href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+          {% endif %}
         >
           <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
           Cancel
         </a>
       {% endif %}
-      <button class="btn btn-primary" type="submit" id="id_submit_button">
+      <button class="btn btn-primary" type="submit">
         {% if update %}
           {% if admin %}
             <i class="iconify" data-icon="mdi:comment"></i>
@@ -94,21 +88,5 @@
       </button>
     </form>
   </div>
+
 {% endblock content %}
-
-{% block inline_javascript %}
-  {{ block.super }}
-  <script>
-    $(document).ready(function() {
-      $(".mergeToJson").change(mergeToJson);
-
-      jsonToFields();
-
-      $("#submit").submit(function(event) {
-        if (!$(this).data("is-admin")) {
-          mergeToJson();
-        }
-      });
-    });
-  </script>
-{% endblock inline_javascript %}

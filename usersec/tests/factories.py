@@ -75,6 +75,13 @@ HPCUSERCREATEREQUEST_FORM_DATA_VALID = {
 }
 
 
+#: Valid data for HpcUserChangeRequestForm.
+HPCUSERCHANGEREQUEST_FORM_DATA_VALID = {
+    "expiration": "2022-01-01",
+    "comment": "nothing",
+}
+
+
 #: Valid data for HpcProjectCreateRequestForm.
 HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
@@ -228,7 +235,6 @@ class HpcUserChangeRequestFactory(HpcUserRequestFactoryBase):
     class Meta:
         model = HpcUserChangeRequest
 
-    resources_requested = {"null": "null"}
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 

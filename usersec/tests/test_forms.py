@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
 from test_plus.test import TestCase
@@ -7,6 +8,8 @@ from usersec.forms import (
     HpcUserCreateRequestForm,
     HpcProjectCreateRequestForm,
     HpcGroupChangeRequestForm,
+    HpcUserChangeRequestForm,
+    UserSelectForm,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -15,6 +18,7 @@ from usersec.tests.factories import (
     HpcUserFactory,
     HpcGroupFactory,
     HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
+    HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
 )
 
 
@@ -94,6 +98,15 @@ class TestHpcGroupChangeRequestForm(TestCase):
         )
         self.assertTrue(form.is_valid())
 
+    def test_form_invalid_expiration_missing(self):
+        data_invalid = dict(self.data_valid)
+        data_invalid["expiration"] = ""
+        form = HpcGroupChangeRequestForm(
+            user=self.user_owner, group=self.hpc_group, data=data_invalid
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["expiration"], ["This field is required."])
+
     def test_form_invalid_resources_requested_missing(self):
         data_invalid = {**self.data_valid, "resources_requested": {}}
         form = HpcGroupChangeRequestForm(
@@ -165,6 +178,46 @@ class TestHpcUserCreateRequestForm(TestCase):
         self.assertEqual(form.errors["comment"], ["This field is required."])
 
 
+class TestHpcUserChangeRequestForm(TestCase):
+    """Tests for HpcUserChangeRequest form."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.make_user("user")
+        self.user_owner = self.make_user("owner")
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+        self.data_valid = HPCUSERCHANGEREQUEST_FORM_DATA_VALID
+
+    def test_form_initials(self):
+        form = HpcUserChangeRequestForm(user=self.user_owner)
+        expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
+        self.assertEqual(form.fields["expiration"].initial, expiration_expected)
+
+    def test_form_valid(self):
+        form = HpcUserChangeRequestForm(user=self.user_owner, data=self.data_valid)
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_expiration_missing(self):
+        data_invalid = dict(self.data_valid)
+        data_invalid["expiration"] = ""
+        form = HpcUserChangeRequestForm(user=self.user_owner, data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["expiration"], ["This field is required."])
+
+    def test_form_valid_hpcadmin(self):
+        form = HpcUserChangeRequestForm(user=self.user_hpcadmin, data=self.data_valid)
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_hpcadmin_comment_missing(self):
+        data_invalid = {**self.data_valid, "comment": ""}
+        form = HpcUserChangeRequestForm(user=self.user_hpcadmin, data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["comment"], ["This field is required."])
+
+
 class TestHpcProjectCreateRequestForm(TestCase):
     """Tests for HpcProjectCreateRequest form."""
 
@@ -225,3 +278,32 @@ class TestHpcProjectCreateRequestForm(TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["comment"], ["This field is required."])
+
+
+class TestUserSelectForm(TestCase):
+    """Tests for UserSelect form."""
+
+    def setUp(self):
+        super().setUp()
+        user_owner = self.make_user("owner")
+
+        self.hpc_group = HpcGroupFactory()
+        self.hpc_owner = HpcUserFactory(user=user_owner, primary_group=self.hpc_group)
+        self.hpc_group.owner = self.hpc_owner
+        self.hpc_group.save()
+
+    def test_form(self):
+        form = UserSelectForm(group=self.hpc_group)
+
+        self.assertEqual(
+            form.fields["members"].choices,
+            [
+                (
+                    reverse(
+                        "usersec:hpcuserchangerequest-create",
+                        kwargs={"hpcuser": self.hpc_owner.uuid},
+                    ),
+                    str(self.hpc_owner),
+                )
+            ],
+        )

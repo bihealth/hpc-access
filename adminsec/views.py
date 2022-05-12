@@ -27,6 +27,7 @@ from usersec.forms import (
     HpcProjectCreateRequestForm,
     DEFAULT_USER_RESOURCES,
     HpcGroupChangeRequestForm,
+    HpcUserChangeRequestForm,
 )
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -808,20 +809,134 @@ class HpcUserDeleteRequestDenyView(View):
     pass
 
 
-class HpcUserChangeRequestDetailView(View):
-    pass
+class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC user change request detail view."""
+
+    template_name = "usersec/hpcuserchangerequest_detail.html"
+    model = HpcUserChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["is_decided"] = obj.is_decided()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
+        context["admin"] = True
+        return context
 
 
-class HpcUserChangeRequestRevisionView(View):
-    pass
+class HpcUserChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
+    """HPC user change request revision view."""
+
+    template_name = "usersec/hpcuserchangerequest_form.html"
+    model = HpcUserChangeRequest
+    form_class = HpcUserChangeRequestForm
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update"] = True
+        context["admin"] = True
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        obj = obj.revision_with_version()
+
+        if not obj:
+            messages.error(self.request, "Couldn't update user change request.")
+            return HttpResponseRedirect(reverse("adminsec:overview"))
+
+        messages.success(self.request, "Revision requested.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcUserChangeRequestApproveView(View):
-    pass
+class HpcUserChangeRequestApproveView(HpcPermissionMixin, DeleteView):
+    """HpcUserChangeRequest approve view."""
+
+    template_name_suffix = "_approve_confirm"
+    model = HpcUserChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        try:
+            with transaction.atomic():
+                obj.user.update_with_version(expiration=obj.expiration)
+
+        except Exception as e:
+            messages.error(self.request, "Could not update user: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcuserchangerequest-detail",
+                    kwargs={"hpcuserchangerequest": obj.uuid},
+                )
+            )
+
+        if settings.SEND_EMAIL:
+            pass
+
+        with transaction.atomic():
+            obj.comment = "Request approved"
+            obj.editor = self.request.user
+            obj.approve_with_version()
+
+        messages.success(self.request, "Request approved and user updated.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class HpcUserChangeRequestDenyView(View):
-    pass
+class HpcUserChangeRequestDenyView(HpcPermissionMixin, DeleteView):
+    """HpcGroupChangeRequest deny view."""
+
+    template_name_suffix = "_deny_confirm"
+    model = HpcUserChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcUserChangeRequestForm(
+            user=self.request.user,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = self.request.POST.get("comment")
+        obj.editor = self.request.user
+        obj.deny_with_version()
+        messages.success(self.request, "Request successfully denied.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcProjectDeleteRequestDetailView(View):
