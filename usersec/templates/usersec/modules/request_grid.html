@@ -152,10 +152,13 @@
             <i class="iconify" data-icon="mdi:refresh"></i>
             Change Requests
           {% else %}
-            <a class="btn btn-sm btn-primary disabled">
-              <i class="iconify" data-icon="mdi:refresh"></i>
-              Update User
-            </a>
+            <div class="input-group">
+              <button type="button" class="btn btn-sm btn-primary" id="submitMemberSelection">
+                <i class="iconify" data-icon="mdi:refresh"></i>
+                Update User
+              </button>
+              {{ form_user_select.members }}
+            </div>
           {% endif %}
         </h5>
       </div>
@@ -293,3 +296,16 @@
     </div>
   </div>
 </div>
+
+{% block inline_javascript %}
+
+  <script>
+    $("#submitMemberSelection").click(function() {
+      let member_id = $("#id_members").val();
+      if (member_id) {
+        window.location.href = member_id;
+      }
+    });
+  </script>
+
+{% endblock inline_javascript %}

@@ -1,5 +1,6 @@
 from django import forms
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
 
@@ -8,6 +9,7 @@ from usersec.models import (
     HpcUserCreateRequest,
     HpcProjectCreateRequest,
     HpcGroupChangeRequest,
+    HpcUserChangeRequest,
 )
 
 
@@ -191,6 +193,37 @@ class HpcUserCreateRequestForm(forms.ModelForm):
         return cleaned_data
 
 
+class HpcUserChangeRequestForm(forms.ModelForm):
+    """Form for HpcUserChangeRequest."""
+
+    class Meta:
+        model = HpcUserChangeRequest
+        fields = [
+            "expiration",
+            "comment",
+        ]
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
+            self.fields[
+                "expiration"
+            ].help_text = "Default expiration date is fixed to end of the current year with one month grace period. "
+
+        else:
+            self.fields["expiration"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
+
+        # Some cosmetics
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
+
+
 class HpcProjectCreateRequestForm(forms.ModelForm):
     """Form for HpcProjectCreateRequest."""
 
@@ -277,7 +310,20 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
 
-    def clean(self):
-        cleaned_data = super().clean()
 
-        return cleaned_data
+class UserSelectForm(forms.Form):
+    """Form providing a selector for users from a group."""
+
+    def __init__(self, group, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        choices = [
+            (
+                reverse("usersec:hpcuserchangerequest-create", kwargs={"hpcuser": user.uuid}),
+                str(user),
+            )
+            for user in group.hpcuser.all()
+        ]
+
+        self.fields["members"] = forms.ChoiceField(choices=choices)
+        self.fields["members"].widget.attrs["class"] = "form-control"
