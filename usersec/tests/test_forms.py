@@ -10,6 +10,7 @@ from usersec.forms import (
     HpcGroupChangeRequestForm,
     HpcUserChangeRequestForm,
     UserSelectForm,
+    ProjectSelectForm,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -19,6 +20,7 @@ from usersec.tests.factories import (
     HpcGroupFactory,
     HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
     HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HpcProjectFactory,
 )
 
 
@@ -305,5 +307,61 @@ class TestUserSelectForm(TestCase):
                     ),
                     str(self.hpc_owner),
                 )
+            ],
+        )
+
+
+class TestProjectSelectForm(TestCase):
+    """Tests for ProjectSelect form."""
+
+    def setUp(self):
+        super().setUp()
+        user_owner1 = self.make_user("owner1")
+        user_owner2 = self.make_user("owner2")
+        user_owner3 = self.make_user("owner3")
+
+        self.hpc_group1 = HpcGroupFactory()
+        self.hpc_group2 = HpcGroupFactory()
+        self.hpc_group3 = HpcGroupFactory()
+
+        self.hpc_owner1 = HpcUserFactory(user=user_owner1, primary_group=self.hpc_group1)
+        self.hpc_owner2 = HpcUserFactory(user=user_owner2, primary_group=self.hpc_group2)
+        self.hpc_owner3 = HpcUserFactory(user=user_owner3, primary_group=self.hpc_group3)
+
+        self.hpc_group1.owner = self.hpc_owner1
+        self.hpc_group1.save()
+        self.hpc_group2.owner = self.hpc_owner2
+        self.hpc_group2.save()
+        self.hpc_group3.owner = self.hpc_owner3
+        self.hpc_group3.save()
+
+        self.hpc_project1 = HpcProjectFactory(group=self.hpc_group1)
+        self.hpc_project2 = HpcProjectFactory(group=self.hpc_group2, delegate=self.hpc_owner1)
+        self.hpc_project3 = HpcProjectFactory(group=self.hpc_group3)
+
+        self.hpc_project1.members.add(self.hpc_owner1)
+        self.hpc_project2.members.add(self.hpc_owner2, self.hpc_owner1)
+        self.hpc_project2.members.add(self.hpc_owner3)
+
+    def test_form(self):
+        form = ProjectSelectForm(user=self.hpc_owner1)
+
+        self.assertEqual(
+            form.fields["projects"].choices,
+            [
+                (
+                    reverse(
+                        "usersec:hpcprojectchangerequest-create",
+                        kwargs={"hpcproject": self.hpc_project2.uuid},
+                    ),
+                    str(self.hpc_project2),
+                ),
+                (
+                    reverse(
+                        "usersec:hpcprojectchangerequest-create",
+                        kwargs={"hpcproject": self.hpc_project1.uuid},
+                    ),
+                    str(self.hpc_project1),
+                ),
             ],
         )

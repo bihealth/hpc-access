@@ -19,6 +19,7 @@ from usersec.models import (
     INVITATION_STATUS_PENDING,
     INVITATION_STATUS_REJECTED,
     HpcUserChangeRequest,
+    HpcProjectChangeRequest,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -35,6 +36,8 @@ from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
     HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
     HpcUserChangeRequestFactory,
+    HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID,
+    HpcProjectChangeRequestFactory,
 )
 
 
@@ -76,6 +79,7 @@ class TestViewBase(TestCase):
         # Create project
         self.hpc_project = HpcProjectFactory(group=self.hpc_group)
         self.hpc_project.members.add(self.hpc_owner)
+        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
 
 
 class TestHomeView(TestViewBase):
@@ -1689,6 +1693,353 @@ class TestHpcProjectCreateRequestRectivateView(TestViewBase):
                 reverse(
                     "usersec:hpcprojectcreaterequest-detail",
                     kwargs={"hpcprojectcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Request successfully re-activated.")
+
+            self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcProjectChangeRequestCreateView(TestViewBase):
+    """Tests for HpcProjectChangeRequestCreateView."""
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-create",
+                    kwargs={"hpcproject": self.hpc_project.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post_form_valid(self):
+        with self.login(self.user_owner):
+            data = dict(HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID)
+            data["members"] = [self.hpc_owner.id, self.hpc_member.id]
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-create",
+                    kwargs={"hpcproject": self.hpc_project.uuid},
+                ),
+                data=data,
+            )
+            self.assertEqual(HpcProjectChangeRequest.objects.count(), 1)
+            request = HpcProjectChangeRequest.objects.first()
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": request.uuid},
+                ),
+            )
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Project change request submitted.")
+
+    def test_post_form_invalid(self):
+        with self.login(self.user_owner):
+            data = dict(HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID)
+            data["members"] = []
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-create",
+                    kwargs={"hpcproject": self.hpc_project.uuid},
+                ),
+                data=data,
+            )
+            self.assertEqual(
+                response.context["form"].errors["members"][0],
+                "This field is required.",
+            )
+
+
+class TestHpcProjectChangeRequestDetailView(TestViewBase):
+    """Tests for HpcProjectChangeRequestDetailView."""
+
+    def test_get(self):
+        request = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_ACTIVE, project=self.hpc_project
+        )
+        request.members.add(self.hpc_owner, self.hpc_member)
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
+
+    def test_get_retracted(self):
+        request = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_RETRACTED, project=self.hpc_project
+        )
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertTrue(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
+
+    def test_get_denied(self):
+        request = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_DENIED, project=self.hpc_project
+        )
+        request.members.add(self.hpc_owner, self.hpc_member)
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertTrue(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
+
+    def test_get_approved(self):
+        request = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_APPROVED, project=self.hpc_project
+        )
+        request.members.add(self.hpc_owner, self.hpc_member)
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertTrue(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertFalse(response.context["is_revised"])
+
+
+class TestHpcProjectChangeRequestUpdateView(TestViewBase):
+    """Tests for HpcProjectCreateRequestUpdateView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project
+        )
+        self.obj.members.add(self.hpc_owner)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-update",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.context["form"]["resources_requested"].value(),
+                json.dumps(self.obj.resources_requested),
+            )
+            self.assertEqual(
+                response.context["form"]["description"].value(),
+                self.obj.description,
+            )
+            self.assertEqual(
+                response.context["form"]["delegate"].value(),
+                self.obj.delegate,
+            )
+            self.assertEqual(
+                response.context["form"]["members"].value(),
+                [m.id for m in self.obj.members.all()],
+            )
+            # TODO get this damn time zone issue solved
+            # self.assertEqual(response.context["form"]["expiration"].value(), self.obj.expiration)
+            self.assertEqual(response.context["form"]["comment"].value(), "")
+            self.assertTrue(response.context["update"])
+
+    def test_post(self):
+        update = {
+            "comment": "I made a comment!",
+            "resources_requested": '{"updated": 444}',
+            "tier1": 111,
+            "tier2": 222,
+            "expiration": self.obj.expiration,
+            "description": self.obj.description,
+            "members": [m.id for m in self.obj.members.all()],
+        }
+
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-update",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                ),
+                update,
+            )
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                ),
+            )
+
+            self.obj.refresh_from_db()
+
+            self.assertEqual(self.obj.comment, update["comment"])
+            self.assertEqual(
+                self.obj.resources_requested,
+                json.loads(update["resources_requested"]),
+            )
+            self.assertEqual(
+                update["description"],
+                self.obj.description,
+            )
+            self.assertEqual(
+                update["members"],
+                [m.id for m in self.obj.members.all()],
+            )
+            self.assertEqual(self.obj.editor, self.user_owner)
+            self.assertEqual(self.obj.requester, self.user_owner)
+            # TODO Sort out timezone issue
+            # self.assertEqual(self.obj.expiration, update["expiration"])
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Project change request updated.")
+
+    def test_post_fail(self):
+        update = {
+            "comment": "I made a comment!",
+            "resources_requested": "",
+            "expiration": "2050-01-01",
+            "description": self.obj.description,
+            "members": [m.id for m in self.obj.members.all()],
+        }
+
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-update",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                ),
+                update,
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.context["form"].errors["resources_requested"],
+                ["This field is required."],
+            )
+
+
+class TestHpcProjectChangeRequestRetractView(TestViewBase):
+    """Tests for HpcProjectChangeRequestRetractView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-retract",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-retract",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Request successfully retracted.")
+
+            self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
+
+
+class TestHpcProjectChangeRequestRectivateView(TestViewBase):
+    """Tests for HpcProjectChangeRequestReactivateView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project, status=REQUEST_STATUS_RETRACTED
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-reactivate",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
                 ),
             )
 

@@ -54,7 +54,8 @@ UserSec
 - User can accept or reject a group invitation before potentially creating the user (#91)
 - User can accept or reject a project invitation before potentially joining the group (#91)
 - Created HPC group change request models, views and rules (#54)
-- Create HPC user change request models, views and rules (#55)
+- Created HPC user change request models, views and rules (#55)
+- Created HPC project change request models, views and rules (#85)
 
 AdminSec
 --------
@@ -78,4 +79,5 @@ AdminSec
 - ``HpcUser`` is not created upon accepting a user request, but an ``HpcGroupInvitation`` object (#91)
 - Accepting a project create request creates an ``HpcProjectInvitation`` object for each requested member (#91)
 - Created HPC group change request views and rules (#54)
-- Create HPC user change request views and rules (#55)
+- Created HPC user change request views and rules (#55)
+- Created HPC project change request views and rules (#85)

@@ -28,6 +28,7 @@ from usersec.forms import (
     DEFAULT_USER_RESOURCES,
     HpcGroupChangeRequestForm,
     HpcUserChangeRequestForm,
+    HpcProjectChangeRequestForm,
 )
 from usersec.models import (
     HpcGroupCreateRequest,
@@ -955,17 +956,155 @@ class HpcProjectDeleteRequestDenyView(View):
     pass
 
 
-class HpcProjectChangeRequestDetailView(View):
-    pass
+class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC project change request detail view."""
+
+    template_name = "usersec/hpcprojectchangerequest_detail.html"
+    model = HpcProjectChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["is_decided"] = obj.is_decided()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_revised"] = obj.is_revised()
+        context["admin"] = True
+        return context
 
 
-class HpcProjectChangeRequestRevisionView(View):
-    pass
+class HpcProjectChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
+    """HPC project change request revision view."""
+
+    template_name = "usersec/hpcprojectchangerequest_form.html"
+    model = HpcProjectChangeRequest
+    form_class = HpcProjectChangeRequestForm
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update"] = True
+        context["admin"] = True
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user, "project": self.get_object().project})
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        obj = obj.revision_with_version()
+
+        if not obj:
+            messages.error(self.request, "Couldn't update project change request.")
+            return HttpResponseRedirect(reverse("adminsec:overview"))
+
+        messages.success(self.request, "Revision requested.")
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcProjectChangeRequestApproveView(View):
-    pass
+class HpcProjectChangeRequestApproveView(HpcPermissionMixin, DeleteView):
+    """HpcProjectChangeRequest approve view."""
+
+    template_name_suffix = "_approve_confirm"
+    model = HpcProjectChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        try:
+            with transaction.atomic():
+                obj.project.update_with_version(
+                    delegate=obj.delegate,
+                    expiration=obj.expiration,
+                    resources_requested=obj.resources_requested,
+                    description=obj.description,
+                )
+
+                for member in obj.members.all():
+                    if obj.project.members.filter(id=member.id).exists():
+                        continue
+
+                    HpcProjectInvitation.objects.create_with_version(
+                        project=obj.project,
+                        hpcprojectchangerequest=obj,
+                        user=member,
+                    )
+                    # TODO send invitataion
+
+                for member in obj.project.members.all():
+                    if obj.members.filter(id=member.id).exists():
+                        obj.project.get_latest_version().members.add(member)
+                        continue
+
+                    obj.project.members.remove(member)
+
+        except Exception as e:
+            messages.error(self.request, "Could not update project: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcprojectchangerequest-detail",
+                    kwargs={"hpcprojectchangerequest": obj.uuid},
+                )
+            )
+
+        if settings.SEND_EMAIL:
+            pass
+
+        with transaction.atomic():
+            obj.comment = "Request approved"
+            obj.editor = self.request.user
+            obj.approve_with_version()
+
+        messages.success(self.request, "Request approved and project updated.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class HpcProjectChangeRequestDenyView(View):
-    pass
+class HpcProjectChangeRequestDenyView(HpcPermissionMixin, DeleteView):
+    """HpcProjectChangeRequest deny view."""
+
+    template_name_suffix = "_deny_confirm"
+    model = HpcProjectChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcProjectChangeRequestForm(
+            user=self.request.user,
+            project=context["object"].project,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = self.request.POST.get("comment")
+        obj.editor = self.request.user
+        obj.deny_with_version()
+        messages.success(self.request, "Request successfully denied.")
+        return HttpResponseRedirect(reverse("adminsec:overview"))

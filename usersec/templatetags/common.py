@@ -77,3 +77,15 @@ def get_detail_url(obj, user):
 def lookup(dikt, key):
     """Return a value from a dictionary or 'unknown'."""
     return dikt.get(key, "unknown")
+
+
+@register.filter
+def is_project_owner(user, project):
+    """Return if a user is owner of the project."""
+    return project.group.owner == user
+
+
+@register.filter
+def is_project_delegate(user, project):
+    """Return if a user is owner of the project."""
+    return project.delegate == user

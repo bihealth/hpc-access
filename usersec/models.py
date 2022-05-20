@@ -555,7 +555,7 @@ class HpcProjectAbstract(HpcObjectAbstract):
     #: Group that requested the project. Group PI is owner of project.
     group = models.ForeignKey(
         HpcGroup,
-        related_name="%(class)s",
+        related_name="%(class)ss",
         help_text="Group that requested project. Group PI is owner of project",
         on_delete=models.CASCADE,
     )
