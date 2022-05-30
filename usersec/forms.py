@@ -1,3 +1,4 @@
+import rules
 from django import forms
 from django.conf import settings
 from django.urls import reverse
@@ -10,6 +11,7 @@ from usersec.models import (
     HpcProjectCreateRequest,
     HpcGroupChangeRequest,
     HpcUserChangeRequest,
+    HpcProjectChangeRequest,
 )
 
 
@@ -311,6 +313,91 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         self.fields["comment"].widget.attrs["rows"] = 3
 
 
+class HpcProjectChangeRequestForm(forms.ModelForm):
+    """Form for HpcProjectChangeRequest."""
+
+    class Meta:
+        model = HpcProjectChangeRequest
+        fields = [
+            "members",
+            "description",
+            "delegate",
+            "comment",
+            "resources_requested",
+            "expiration",
+            "description",
+        ]
+
+    def __init__(self, *args, user=None, project=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["resources_requested"].widget = forms.HiddenInput()
+        self.fields["resources_requested"].initial = project.resources_requested
+        self.fields["description"].initial = project.description
+        self.fields["delegate"].initial = project.delegate
+        self.fields["members"].initial = project.members.all()
+
+        # Exclude users from delegate selection that have no User associated
+        self.fields["delegate"].queryset = (
+            self.fields["delegate"]
+            .queryset.exclude(user__isnull=True)
+            .exclude(id=project.group.owner.id)
+        )
+
+        if not user.is_hpcadmin:
+            self.fields["expiration"].initial = datetime(
+                year=timezone.now().year + 1, month=1, day=31
+            )
+            self.fields[
+                "expiration"
+            ].help_text = "Default expiration date is fixed to end of the current year with one month grace period."
+
+            # Exclude users from member selection that have no User associated
+            self.fields["members_dropdown"] = forms.ModelChoiceField(
+                queryset=self.fields["members"].queryset.exclude(user__isnull=True),
+                label="Select Members",
+                help_text="Select members one by one and click add",
+                required=False,
+            )
+            self.fields["members_dropdown"].widget.attrs["class"] = "form-control"
+
+            # Add fields for storage. Will be merged into resources_requested field.
+            self.fields["tier1"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
+                    "for computation."
+                ),
+                label="Fast Active Storage [TB]",
+            )
+            self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
+            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage [TB]",
+            )
+            self.fields["tier2"].initial = DEFAULT_PROJECT_RESOURCES["tier2"]
+            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+
+        else:
+            self.fields["delegate"].widget = forms.HiddenInput()
+            self.fields["description"].widget = forms.HiddenInput()
+            self.fields["expiration"].widget = forms.HiddenInput()
+            self.fields["comment"].required = True
+
+        # Some cosmetics
+        self.fields["description"].widget.attrs["class"] = "form-control"
+        self.fields["expiration"].widget.attrs["class"] = "form-control"
+        self.fields["delegate"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
+
+
 class UserSelectForm(forms.Form):
     """Form providing a selector for users from a group."""
 
@@ -327,3 +414,29 @@ class UserSelectForm(forms.Form):
 
         self.fields["members"] = forms.ChoiceField(choices=choices)
         self.fields["members"].widget.attrs["class"] = "form-control"
+
+
+class ProjectSelectForm(forms.Form):
+    """Form providing a selector for projects from a group."""
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        projects = list(user.hpcproject_delegate.all())
+        group = user.primary_group
+
+        if rules.test_rule("usersec.is_group_manager", user.user, group):
+            projects += list(group.hpcprojects.all())
+
+        choices = [
+            (
+                reverse(
+                    "usersec:hpcprojectchangerequest-create", kwargs={"hpcproject": project.uuid}
+                ),
+                str(project),
+            )
+            for project in projects
+        ]
+
+        self.fields["projects"] = forms.ChoiceField(choices=choices)
+        self.fields["projects"].widget.attrs["class"] = "form-control"

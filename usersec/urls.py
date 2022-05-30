@@ -231,7 +231,7 @@ urlpatterns = [
     # HpcProjectChangeRequest related
     # ------------------------------------------------------------------------------
     path(
-        "hpcgroup/<uuid:hpcgroup>/hpcprojectchangerequest/",
+        "hpcgroup/<uuid:hpcproject>/hpcprojectchangerequest/",
         view=views.HpcProjectChangeRequestCreateView.as_view(),
         name="hpcprojectchangerequest-create",
     ),

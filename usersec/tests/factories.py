@@ -95,6 +95,18 @@ HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
 }
 
 
+#: Valid data for HpcProjectCreateRequestForm.
+HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID = {
+    "resources_requested": json.dumps({"resource": 111}),
+    "tier1": 111,
+    "tier2": 222,
+    "description": "updated project description",
+    "expiration": "2022-01-01",
+    "comment": "nothing",
+    "members": None,  # fill out before usage
+}
+
+
 # ------------------------------------------------------------------------------
 # Factories
 # ------------------------------------------------------------------------------
@@ -299,6 +311,7 @@ class HpcProjectChangeRequestFactory(HpcProjectRequestFactoryBase):
 
     resources_requested = {"null": "null"}
     delegate = None
+    description = "updated description"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 

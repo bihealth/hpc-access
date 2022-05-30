@@ -2,298 +2,79 @@
 
 <div class="row mb-4">
   <div class="col-4 text-center">
-    <h2>
-      <i class="iconify" data-icon="mdi:user-group"></i>
-      Group
-    </h2>
+    {% if admin or group_manager %}
+      <h3>
+        <i class="iconify" data-icon="mdi:user-group"></i>
+        Group
+      </h3>
+    {% endif %}
   </div>
   <div class="col-4 text-center">
-    <h2>
-      <i class="iconify" data-icon="mdi:user"></i>
-      User
-    </h2>
+    {% if admin or group_manager %}
+      <h3>
+        <i class="iconify" data-icon="mdi:user"></i>
+        User
+      </h3>
+    {% endif %}
   </div>
   <div class="col-4 text-center">
-    <h2>
-      <i class="iconify" data-icon="mdi:package-variant"></i>
-      Project
-    </h2>
+    {% if admin or group_manager or project_manager %}
+      <h3>
+        <i class="iconify" data-icon="mdi:package-variant"></i>
+        Project
+      </h3>
+    {% endif %}
   </div>
 </div>
 <div class="row mb-4">
   <div class="col-4">
     {% if admin %}
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">
-            <i class="iconify" data-icon="mdi:create"></i>
-            Create Requests
-          </h5>
-        </div>
-        <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-          {% for obj in hpcgroupcreaterequests %}
-            <li class="list-group-item">
-              <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-              <span class="badge bg-{{ obj.status|colorize_request_status }}">
-                {{ obj.display_status }}
-              </span>
-              <small class="text-muted">
-                {{ obj.date_created|date:"Y-d-m H:i" }}
-              </small>
-            </li>
-          {% empty %}
-            <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-          {% endfor %}
-        </ul>
-      </div>
+      {% include 'usersec/modules/request_grid_group_create.html' %}
     {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:create"></i>
-            Create Requests
-          {% else %}
-            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}">
-              <i class="iconify" data-icon="mdi:create"></i>
-              Add User To Group
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcusercreaterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.email }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-            <small class="text-muted">
-              <strong>{{ obj.requester.username }}</strong>@{{ obj.date_created|date:"Y-d-m H:i" }}
-            </small>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_user_create.html' %}
+    {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:create"></i>
-            Create Requests
-          {% else %}
-            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcprojectcreaterequest-create' hpcgroup=object.primary_group.uuid %}">
-              <i class="iconify" data-icon="mdi:create"></i>
-              Request New Project
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcprojectcreaterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.name }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-            <div class="small text-muted">
-              <strong>{{ obj.requester.username }}</strong>
-              {{ obj.date_created|date:"Y-d-m H:i" }}
-            </div>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_project_create.html' %}
+    {% endif %}
   </div>
 </div>
 <div class="row mb-4">
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:refresh"></i>
-            Change Requests
-          {% else %}
-            <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcgroupchangerequest-create' hpcgroup=object.primary_group.uuid %}">
-              <i class="iconify" data-icon="mdi:refresh"></i>
-              Update Group
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcgroupchangerequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_group_change.html' %}
+    {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:refresh"></i>
-            Change Requests
-          {% else %}
-            <div class="input-group">
-              <button type="button" class="btn btn-sm btn-primary" id="submitMemberSelection">
-                <i class="iconify" data-icon="mdi:refresh"></i>
-                Update User
-              </button>
-              {{ form_user_select.members }}
-            </div>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcuserchangerequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_user_change.html' %}
+    {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:refresh"></i>
-            Change Requests
-          {% else %}
-            <a class="btn btn-sm btn-primary disabled">
-              <i class="iconify" data-icon="mdi:refresh"></i>
-              Update Project
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcprojectchangerequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager or project_manager %}
+      {% include 'usersec/modules/request_grid_project_change.html' %}
+    {% endif %}
   </div>
 </div>
-
 <div class="row mb-4">
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete Requests
-          {% else %}
-            <a class="btn btn-sm btn-danger disabled">
-              <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete Group
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcgroupdeleterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_group_delete.html' %}
+    {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete Requests
-          {% else %}
-            <a class="btn btn-sm btn-danger disabled">
-              <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete User
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcuserdeleterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager %}
+      {% include 'usersec/modules/request_grid_user_delete.html' %}
+    {% endif %}
   </div>
   <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:trash-can"></i>
-            Delete Requests
-          {% else %}
-            <a class="btn btn-sm btn-danger disabled">
-              <i class="iconify" data-icon="mdi:trash-can"></i>
-              Delete Project
-            </a>
-          {% endif %}
-        </h5>
-      </div>
-      <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
-        {% for obj in hpcprojectdeleterequests %}
-          <li class="list-group-item">
-            <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
-            <span class="badge bg-{{ obj.status|colorize_request_status }}">
-              {{ obj.display_status }}
-            </span>
-          </li>
-        {% empty %}
-          <li class="list-group-item"><em class="text-muted">No requests.</em></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% if admin or group_manager or project_manager %}
+      {% include 'usersec/modules/request_grid_project_delete.html' %}
+    {% endif %}
   </div>
 </div>
 
@@ -301,9 +82,16 @@
 
   <script>
     $("#submitMemberSelection").click(function() {
-      let member_id = $("#id_members").val();
-      if (member_id) {
-        window.location.href = member_id;
+      let member_url = $("#id_members").val();
+      if (member_url) {
+        window.location.href = member_url;
+      }
+    });
+
+    $("#submitProjectSelection").click(function() {
+      let project_url = $("#id_projects").val();
+      if (project_url) {
+        window.location.href = project_url;
       }
     });
   </script>

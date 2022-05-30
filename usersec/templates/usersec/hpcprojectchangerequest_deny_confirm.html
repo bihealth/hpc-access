@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  {% include "usersec/modules/confirm.html" with action="Deny" object_type="HPC project change request" %}
+
+{% endblock content %}

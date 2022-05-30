@@ -10,6 +10,7 @@ from usersec.models import (
     HpcUser,
     HpcProjectCreateRequest,
     HpcUserChangeRequest,
+    HpcProjectChangeRequest,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -27,6 +28,8 @@ from usersec.tests.factories import (
     HpcUserChangeRequestFactory,
     HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
     HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HpcProjectChangeRequestFactory,
+    HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID,
 )
 
 
@@ -123,6 +126,14 @@ class TestRulesBase(TestCase):
             requester=self.user_owner, group=self.hpc_group
         )
         self.hpc_project_create_request.members.add(
+            self.hpc_owner, self.hpc_member, self.hpc_member_other_group
+        )
+
+        # Create HPC project change request
+        self.hpc_project_change_request = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project
+        )
+        self.hpc_project_change_request.members.add(
             self.hpc_owner, self.hpc_member, self.hpc_member_other_group
         )
 
@@ -458,64 +469,61 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_denied(perm, self.hpc_project_create_request, bad_users)
 
     def test_view_hpcprojectchangerequest(self):
-        # good_users = [
-        #     self.superuser,
-        #     self.user_owner,
-        #     self.user_delegate,
-        # ]
-        # bad_users = [
-        #     self.user_pending,
-        #     self.user_hpcadmin,
-        #     self.user_member,
-        #     self.user_member2,
-        #     self.user_member_other_group,
-        #     self.user,
-        #     self.user_invited,
-        # ]
-        # perm = "usersec.view_hpcprojectchangerequest"
-        # self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
-        # self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
-        pass
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.view_hpcprojectchangerequest"
+        self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
 
     def test_create_hpcprojectchangerequest(self):
-        # good_users = [
-        #     self.superuser,
-        #     self.user_owner,
-        #     self.user_delegate,
-        # ]
-        # bad_users = [
-        #     self.user_pending,
-        #     self.user_hpcadmin,
-        #     self.user_member,
-        #     self.user_member2,
-        #     self.user_member_other_group,
-        #     self.user,
-        #     self.user_invited,
-        # ]
-        # perm = "usersec.create_hpcprojectchangerequest"
-        # self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
-        # self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
-        pass
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.create_hpcprojectchangerequest"
+        self.assert_permissions_granted(perm, self.hpc_project, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project, bad_users)
 
     def test_manage_hpcprojectchangerequest(self):
-        # good_users = [
-        #     self.superuser,
-        #     self.user_owner,
-        #     self.user_delegate,
-        # ]
-        # bad_users = [
-        #     self.user_pending,
-        #     self.user_hpcadmin,
-        #     self.user_member,
-        #     self.user_member2,
-        #     self.user_member_other_group,
-        #     self.user,
-        #     self.user_invited,
-        # ]
-        # perm = "usersec.manage_hpcprojectchangerequest"
-        # self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
-        # self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
-        pass
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.manage_hpcprojectchangerequest"
+        self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
 
     def test_view_hpcgroup(self):
         good_users = [
@@ -1886,6 +1894,238 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse(
                 "usersec:hpcprojectcreaterequest-detail",
                 kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_change_request_create_view_get(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-create",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_change_request_create_view_post(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-create",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+        data = dict(HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID)
+        data["members"] = [self.hpc_owner.id]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            lazy_url_callback=lambda: reverse(
+                "usersec:hpcprojectchangerequest-detail",
+                kwargs={"hpcprojectchangerequest": HpcProjectChangeRequest.objects.last().uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+        )
+
+    def test_hpc_project_change_request_detail_view(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-detail",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_change_request_update_view_get(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-update",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_changee_request_update_view_post(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-update",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+        data = dict(HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID)
+        data["members"] = [self.hpc_owner.id]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse(
+                "usersec:hpcprojectchangerequest-detail",
+                kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+        )
+
+    def test_hpc_project_change_request_retract_view_get(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-retract",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_change_request_retract_view_post(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-retract",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcprojectchangerequest-detail",
+                kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+
+    def test_hpc_project_change_request_reactivate_view(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-reactivate",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_member_other_group,
+        ]
+        bad_users = [
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcprojectchangerequest-detail",
+                kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
             ),
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))

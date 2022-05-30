@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 
 {% load common %}
+{% load rules %}
 
 {% block content %}
 
-  <h3 class="mt-4">Welcome, {{ object.user.name }}!</h3>
+  <h2 class="mt-4">Welcome, {{ object.user.name }}!</h2>
   <p class="text-muted">
     This is the user landing page that holds information about your user,
     the group you belong to and projects you are member of.
@@ -177,6 +178,11 @@
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter0 }}">
                   <i class="iconify me-2" data-icon="mdi:package-variant"></i>
                   {{ project.name }}
+                  {% if object|is_project_owner:project %}
+                    <i class="iconify text-warning ms-1" data-icon="mdi:medal"></i>
+                  {% elif object|is_project_delegate:project %}
+                    <i class="iconify text-secondary ms-1" data-icon="mdi:medal-outline"></i>
+                  {% endif %}
                 </button>
               </h2>
               <div id="collapse{{ forloop.counter0 }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter0 }}" data-bs-parent="#projectAccordion">
@@ -231,10 +237,12 @@
     </div>
   </div>
 
-  {% if manager %}
-    <div class="pt-4">
-      {% include "usersec/modules/request_grid.html" %}
-    </div>
+  {% if group_manager or project_manager %}
+    <h2 class="mt-4">
+      Administration
+    </h2>
+    <p class="text-muted">Request group and project changes, add new users or request new projects.</p>
+    {% include "usersec/modules/request_grid.html" %}
   {% endif %}
 
 {% endblock content %}

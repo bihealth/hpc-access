@@ -25,8 +25,10 @@ from usersec.templatetags.common import (
     colorize_request_status,
     get_detail_url,
     lookup,
+    is_project_owner,
+    is_project_delegate,
 )
-from usersec.tests.factories import HpcUserFactory
+from usersec.tests.factories import HpcUserFactory, HpcGroupFactory, HpcProjectFactory
 
 site = import_module(settings.SITE_PACKAGE)
 
@@ -79,3 +81,21 @@ class TestCommon(TestCase):
         data = {"key": "value"}
         self.assertEqual(lookup(data, "key"), "value")
         self.assertEqual(lookup(data, "nonsense"), "unknown")
+
+    def test_is_project_owner(self):
+        user = self.make_user("user")
+        hpcuser = HpcUserFactory(user=user)
+        hpcgroup = HpcGroupFactory(owner=hpcuser)
+        hpcproject = HpcProjectFactory(group=hpcgroup)
+        self.assertTrue(is_project_owner(hpcuser, hpcproject))
+        self.assertFalse(is_project_delegate(hpcuser, hpcproject))
+
+    def test_is_project_delegate(self):
+        user = self.make_user("user")
+        user2 = self.make_user("user2")
+        hpcuser = HpcUserFactory(user=user)
+        delegate = HpcUserFactory(user=user2)
+        hpcgroup = HpcGroupFactory(owner=hpcuser)
+        hpcproject = HpcProjectFactory(group=hpcgroup, delegate=delegate)
+        self.assertFalse(is_project_owner(delegate, hpcproject))
+        self.assertTrue(is_project_delegate(delegate, hpcproject))
