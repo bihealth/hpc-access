@@ -55,7 +55,7 @@ UserSec
 - User can accept or reject a project invitation before potentially joining the group (#91)
 - Created HPC group change request models, views and rules (#54)
 - Created HPC user change request models, views and rules (#55)
-- Created HPC project change request models, views and rules (#85)
+- Created HPC project change request models, views and rules (#85, #103)
 
 AdminSec
 --------

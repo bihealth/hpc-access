@@ -88,6 +88,9 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
 
         # Add fields for storage. Will be merged into resources_requested field.
         if not user.is_hpcadmin:
+            if group.delegate == user.hpcuser_user.first():
+                self.fields["delegate"].widget = forms.HiddenInput()
+
             self.fields["expiration"].initial = datetime(
                 year=timezone.now().year + 1, month=1, day=31
             )
@@ -345,6 +348,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
         )
 
         if not user.is_hpcadmin:
+            if project.delegate == user.hpcuser_user.first():
+                self.fields["delegate"].widget = forms.HiddenInput()
+
             self.fields["expiration"].initial = datetime(
                 year=timezone.now().year + 1, month=1, day=31
             )
