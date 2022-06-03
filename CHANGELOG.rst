@@ -56,6 +56,7 @@ UserSec
 - Created HPC group change request models, views and rules (#54)
 - Created HPC user change request models, views and rules (#55)
 - Created HPC project change request models, views and rules (#85, #103)
+- Added check for existing users and project to HpcUser and HpcProject create requests (#89)
 
 AdminSec
 --------
