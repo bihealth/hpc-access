@@ -12,6 +12,8 @@ from usersec.models import (
     HpcGroupChangeRequest,
     HpcUserChangeRequest,
     HpcProjectChangeRequest,
+    HpcUser,
+    HpcProject,
 )
 
 
@@ -191,6 +193,10 @@ class HpcUserCreateRequestForm(forms.ModelForm):
         if settings.ENABLE_LDAP_SECONDARY:
             valid_domains += settings.INSTITUTE2_EMAIL_DOMAINS.split(",")
 
+        if HpcUser.objects.filter(user__email__iexact=email.lower()).exists():
+            self.add_error("email", "This user is already registered.")
+            return
+
         if email_split[1].lower() not in valid_domains:
             self.add_error("email", "No institute email address.")
             return
@@ -314,6 +320,19 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         self.fields["delegate"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get("name")
+
+        if not name:
+            return
+
+        if HpcProject.objects.filter(name=name).exists():
+            self.add_error("name", "A project with this identifiert already exists.")
+            return
+
+        return cleaned_data
 
 
 class HpcProjectChangeRequestForm(forms.ModelForm):
