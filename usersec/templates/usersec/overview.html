@@ -64,13 +64,13 @@
             <ul class="list-unstyled">
               <li>
                 <i class="iconify" data-icon="mdi:medal"></i>
-                <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.owner.uuid %}">{{ object.primary_group.owner.user.name }}</a>
+                {{ object.primary_group.owner.user.name }} |
                 <span class="small text-muted fw-bold">{{ object.primary_group.owner.username }}</span>
               </li>
               {% if object.primary_group.delegate %}
                 <li>
                   <i class="iconify" data-icon="mdi:medal-outline"></i>
-                  <a href="{% url 'usersec:hpcuser-overview' hpcuser=object.primary_group.delegate.uuid %}">{{ object.primary_group.delegate.user.name }}</a>
+                  {{ object.primary_group.delegate.user.name }} |
                   <span class="small text-muted fw-bold">{{ object.primary_group.delegate.username }}</span>
                 </li>
               {% endif %}
@@ -84,20 +84,25 @@
           <hr />
 
           <h6>Resource Quotas</h6>
-          <dl class="row">
-            <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
+          <dl class="row text-muted">
+            <dt class="col-sm-9">Fast Active Storage (Tier 1)</dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier1" }} TB</dd>
 
-            <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
+            <dt class="col-sm-9">Long-Term Storage (Tier 2)</dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier2" }} TB</dd>
           </dl>
 
           <h6>Members <span class="badge rounded-pill bg-secondary">{{ object.primary_group.hpcuser.count }}</span></h6>
-          <ul class="list-unstyled">
+          <ul class="list-unstyled text-muted">
             {% for member in object.primary_group.hpcuser.all %}
               <li>
-                <a href="{% url 'usersec:hpcuser-detail' hpcuser=member.uuid %}">{{ member.user.name|default:"<em>Unknown</em>" }}</a>
-                <span class="small text-muted fw-bold">{{ member.username }}</span>
+                <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+                {{ member.user.name|default:"<em>Unknown</em>" }} |
+                <span class="small fw-bold">{{ member.username }}</span>
+                <span class="small">
+                  <i class="iconify" data-icon="mdi:clock"></i>
+                  {{ member.expiration }}
+                </span>
               </li>
             {% empty %}
               <li><em class="text-muted">No members (?)</em></li>
@@ -190,13 +195,13 @@
                   <ul class="list-unstyled text-muted">
                     <li>
                       <i class="iconify" data-icon="mdi:medal"></i>
-                      <a href="{% url 'usersec:hpcuser-overview' hpcuser=project.group.owner.uuid %}">{{ project.group.owner.user.name }}</a>
+                      {{ project.group.owner.user.name }} |
                       <span class="small text-muted fw-bold">{{ project.group.owner.username }}</span>
                     </li>
                     {% if project.delegate %}
                       <li>
                         <i class="iconify" data-icon="mdi:medal-outline"></i>
-                        <a href="{% url 'usersec:hpcuser-overview' hpcuser=project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
+                        {{ project.delegate.user.name }} |
                         <span class="small text-muted fw-bold">{{ project.delegate.username }}</span>
                       </li>
                     {% endif %}
@@ -209,7 +214,7 @@
                   <hr />
 
                   <h6>Resource Quotas</h6>
-                  <dl class="row">
+                  <dl class="row text-muted">
                     <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
                     <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier1" }} TB</dd>
 
@@ -218,11 +223,12 @@
                   </dl>
 
                   <h6>Members <span class="badge rounded-pill bg-secondary">{{ project.members.count }}</span></h6>
-                  <ul class="list-unstyled">
+                  <ul class="list-unstyled text-muted">
                     {% for member in project.members.all %}
                       <li>
-                        <a href="{% url 'usersec:hpcuser-detail' hpcuser=project.uuid %}">{{ member.user.name }}</a>
-                        <strong class="small text-muted">{{ member.username }}</strong>
+                        <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+                        {{ member.user.name }} |
+                        <strong class="small">{{ member.username }}</strong>
                       </li>
                     {% endfor %}
                   </ul>

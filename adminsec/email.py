@@ -6,6 +6,7 @@ import re
 from django.conf import settings
 from django.contrib import auth, messages
 from django.core.mail import EmailMessage
+from django.urls import reverse
 
 from usersec.models import (
     HpcGroupChangeRequest,
@@ -61,7 +62,7 @@ to become member of group
 on the BIH cluster. The following link will require you to login with your
 {institute} credentials and accept or decline the invitation.
 
-{invitation_link}
+  {invitation_link}
 
 Cheers,
   Gatekeeper
@@ -244,51 +245,6 @@ The user can accept or decline your invitation.
 """.lstrip()
 
 
-# TODO keep?
-USER_NOTIFICATION_USER_ACCOUNT_UPDATED = r"""
-{greeting}
-
-your user account has been updated.
-
-username: {username}
-expiration: {expiration}
-ag: {ag}
-
-{disclaimer}
-""".lstrip()
-
-
-# def send_user_invite(recipient_list, inviter, request=None):
-#     institute = "<undefined>"
-#     invitation_link = "<undefined>"
-#
-#     if len(recipient_list) > 1:
-#         institute = "institutes"
-#
-#     elif len(recipient_list) == 1:
-#         user_domain = recipient_list[0].split("@")
-#
-#         if len(user_domain) == 2:
-#             institute = EMAIL_DOMAIN_TO_INSTITUTE_MAPPING.get(user_domain[1], "???")
-#
-#     else:
-#         return 0
-#
-#     if request:
-#         invitation_link = request.build_absolute_uri(reverse("home"))
-#
-#     subject = "Invitation for a BIH Cluster account"
-#     message = MESSAGE_USER_INVITE.format(
-#         site_title=settings.SITE_TITLE,
-#         inviter=inviter.user.name,
-#         ag=inviter.primary_group.name,
-#         institute=institute,
-#         invitation_link=invitation_link,
-#     )
-#     return send_mail(subject, message, recipient_list, request)
-#
-
-
 def send_mail(subject, message, recipient_list, request=None):
     """
     Wrapper for send_mail() with logging and error messaging.
@@ -369,22 +325,24 @@ def send_notification_user_decided_invitation(invitation, request=None):
     identifier = UNDEFINED_VARIABLE
     username = UNDEFINED_VARIABLE
     project_or_group = UNDEFINED_VARIABLE
-    greeting = NEUTRAL_GREETING
+    emails = []
 
     if isinstance(invitation, HpcGroupInvitation):
         identifier = invitation.hpcusercreaterequest.group.name
         username = invitation.username
         project_or_group = HPC_OBJECT_GROUP
         emails = invitation.hpcusercreaterequest.group.get_manager_emails()
+        subject = f"User {invitation.status} group invitation"
 
     elif isinstance(invitation, HpcProjectInvitation):
         identifier = invitation.project.name
         username = invitation.user.user.name
         project_or_group = HPC_OBJECT_PROJECT
         emails = invitation.project.get_manager_emails()
+        subject = f"User {invitation.status} project invitation"
 
     message = NOTIFICATION_USER_DECIDED_INVITATION.format(
-        greeting=greeting,
+        greeting=NEUTRAL_GREETING,
         username=username,
         decision=invitation.status,
         project_or_group=project_or_group,
@@ -396,31 +354,45 @@ def send_notification_user_decided_invitation(invitation, request=None):
 
 def send_notification_user_has_invitation(invitation, request=None):
     subject = UNDEFINED_VARIABLE
-    identifier = UNDEFINED_VARIABLE
-    username = UNDEFINED_VARIABLE
-    project_or_group = UNDEFINED_VARIABLE
     email = None
+    message = UNDEFINED_VARIABLE
 
     if isinstance(invitation, HpcGroupInvitation):
-        identifier = invitation.hpcusercreaterequest.group.name
-        username = invitation.username
-        project_or_group = HPC_OBJECT_GROUP
         email = invitation.hpcusercreaterequest.email
+        subject = "User accepted group invitation"
+        link = ""
+
+        if request:
+            link = request.build_absolute_uri(reverse("home"))
+
+        message = NOTIFICATION_GROUP_INVITATION.format(
+            greeting=NEUTRAL_GREETING,
+            inviter=invitation.hpcusercreaterequest.requester.name,
+            identifier=invitation.hpcusercreaterequest.group.name,
+            invitation_link=link,
+            institute=EMAIL_DOMAIN_TO_INSTITUTE_MAPPING.get(
+                email.split("@")[1], UNDEFINED_VARIABLE
+            ),
+            disclaimer=DISCLAIMER,
+        )
 
     elif isinstance(invitation, HpcProjectInvitation):
-        identifier = invitation.project.name
-        username = invitation.user.user.name
-        project_or_group = HPC_OBJECT_GROUP
         email = invitation.user.user.email
+        subject = "User accepted project invitation"
+        inviter = UNDEFINED_VARIABLE
 
-    message = NOTIFICATION_USER_DECIDED_INVITATION.format(
-        greeting=NEUTRAL_GREETING,
-        username=username,
-        decision=invitation.status,
-        project_or_group=project_or_group,
-        identifier=identifier,
-        disclaimer=DISCLAIMER,
-    )
+        if invitation.hpcprojectcreaterequest:
+            inviter = invitation.hpcprojectcreaterequest.requester.name
+
+        elif invitation.hpcprojectchangerequest:
+            inviter = invitation.hpcprojectchangerequest.requester.name
+
+        message = NOTIFICATION_PROJECT_INVITATION.format(
+            greeting=NEUTRAL_GREETING,
+            inviter=inviter,
+            identifier=invitation.project.name,
+            disclaimer=DISCLAIMER,
+        )
 
     if email:
         return send_mail(subject, message, [email], request)
@@ -495,52 +467,3 @@ def send_notification_object_updated(recipient_list, obj, request=None):
         disclaimer=DISCLAIMER,
     )
     return send_mail(subject, message, recipient_list, request)
-
-
-# def send_notification_user_accepted_invitation(recipient_list, invitation, receiver, request=None):
-#     subject = UNDEFINED_VARIABLE
-#     message = UNDEFINED_VARIABLE
-#
-#     if isinstance(invitation, HpcGroupInvitation):
-#         if receiver == RECEIVER_GROUP_MANAGER:
-#             subject = "User accepted group invitation"
-#             message = MANAGER_NOTIFICATION_USER_ACCEPTED_INVITATION.format(
-#                 greeting=GROUP_MANAGER_GREETING,
-#                 project_or_group=HPC_OBJECT_GROUP,
-#                 identifier=invitation.hpcusercreaterequest.group.name,
-#                 user=invitation.username,
-#                 disclaimer=DISCLAIMER,
-#             )
-#
-#         elif receiver == RECEIVER_USER:
-#             subject = "You accepted a project invitation"
-#             message = USER_NOTIFICATION_USER_ACCEPTED_INVITATION.format(
-#                 greeting=USER_GREETING.format(invitation.username),
-#                 project_or_group=HPC_OBJECT_GROUP,
-#                 identifier=invitation.hpcusercreaterequest.group.name,
-#                 user=invitation.username,
-#                 disclaimer=DISCLAIMER,
-#             )
-#
-#     elif isinstance(invitation, HpcProjectInvitation):
-#         if receiver == RECEIVER_PROJECT_MANAGER:
-#             subject = "User accepted group invitation"
-#             message = MANAGER_NOTIFICATION_USER_ACCEPTED_INVITATION.format(
-#                 greeting=GROUP_MANAGER_GREETING,
-#                 project_or_group=HPC_OBJECT_PROJECT,
-#                 identifier=invitation.project.name,
-#                 user=invitation.user.username,
-#                 disclaimer=DISCLAIMER,
-#             )
-#
-#         elif receiver == RECEIVER_GROUP_MANAGER:
-#             subject = "You accepted a project invitation"
-#             message = USER_NOTIFICATION_USER_ACCEPTED_INVITATION.format(
-#                 greeting=USER_GREETING.format(invitation.user.user.name),
-#                 project_or_group=HPC_OBJECT_PROJECT,
-#                 identifier=invitation.project.name,
-#                 user=invitation.user.username,
-#                 disclaimer=DISCLAIMER,
-#             )
-#
-#     return send_mail(subject, message, recipient_list, request)

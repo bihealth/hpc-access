@@ -58,6 +58,7 @@ UserSec
 - Created HPC project change request models, views and rules (#85, #103)
 - Added check for existing users and project to HpcUser and HpcProject create requests (#89)
 - Extended email notifications (#76)
+- UI adjustments and email notification bugs (#110)
 
 AdminSec
 --------

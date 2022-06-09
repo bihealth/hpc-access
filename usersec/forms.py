@@ -460,8 +460,12 @@ class ProjectSelectForm(forms.Form):
                 ),
                 str(project),
             )
-            for project in projects
+            for project in set(projects)
         ]
 
         self.fields["projects"] = forms.ChoiceField(choices=choices)
+
+        if not choices:
+            self.fields["projects"].disabled = True
+
         self.fields["projects"].widget.attrs["class"] = "form-control"

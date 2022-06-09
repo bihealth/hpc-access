@@ -8,7 +8,14 @@
         Change Requests
       {% else %}
         <div class="input-group">
-          <button type="button" class="btn btn-sm btn-primary" id="submitProjectSelection">
+          <button
+            type="button"
+            class="btn btn-sm btn-primary"
+            id="submitProjectSelection"
+            {% if not projects_available %}
+              disabled
+            {% endif %}
+          >
             <i class="iconify" data-icon="mdi:refresh"></i>
             Update Project
           </button>
@@ -20,10 +27,14 @@
   <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
     {% for obj in hpcprojectchangerequests %}
       <li class="list-group-item">
-        <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+        <a href="{{ obj|get_detail_url:user }}">{{ obj.project.name }}</a>
         <span class="badge bg-{{ obj.status|colorize_request_status }}">
           {{ obj.display_status }}
         </span>
+        <div class="small text-muted">
+          <strong>{{ obj.requester.username }}</strong>
+          {{ obj.date_created|date:"Y-d-m H:i" }}
+        </div>
       </li>
     {% empty %}
       <li class="list-group-item"><em class="text-muted">No requests.</em></li>

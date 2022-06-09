@@ -343,6 +343,8 @@ class TestProjectSelectForm(TestCase):
         self.hpc_project2.members.add(self.hpc_owner2, self.hpc_owner1)
         self.hpc_project2.members.add(self.hpc_owner3)
 
+        self.maxDiff = None
+
     def test_form(self):
         form = ProjectSelectForm(user=self.hpc_owner1)
 
@@ -352,16 +354,16 @@ class TestProjectSelectForm(TestCase):
                 (
                     reverse(
                         "usersec:hpcprojectchangerequest-create",
-                        kwargs={"hpcproject": self.hpc_project2.uuid},
+                        kwargs={"hpcproject": self.hpc_project1.uuid},
                     ),
-                    str(self.hpc_project2),
+                    str(self.hpc_project1),
                 ),
                 (
                     reverse(
                         "usersec:hpcprojectchangerequest-create",
-                        kwargs={"hpcproject": self.hpc_project1.uuid},
+                        kwargs={"hpcproject": self.hpc_project2.uuid},
                     ),
-                    str(self.hpc_project1),
+                    str(self.hpc_project2),
                 ),
             ],
         )
