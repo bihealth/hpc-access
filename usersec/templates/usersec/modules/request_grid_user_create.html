@@ -21,9 +21,10 @@
         <span class="badge bg-{{ obj.status|colorize_request_status }}">
           {{ obj.display_status }}
         </span>
-        <small class="text-muted">
-          <strong>{{ obj.requester.username }}</strong>@{{ obj.date_created|date:"Y-d-m H:i" }}
-        </small>
+        <div class="small text-muted">
+          <strong>{{ obj.requester.username }}</strong>
+          {{ obj.date_created|date:"Y-d-m H:i" }}
+        </div>
       </li>
     {% empty %}
       <li class="list-group-item"><em class="text-muted">No requests.</em></li>

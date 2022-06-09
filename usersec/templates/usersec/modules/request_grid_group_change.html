@@ -17,11 +17,14 @@
   <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
     {% for obj in hpcgroupchangerequests %}
       <li class="list-group-item">
-        <a href="{{ obj|get_detail_url:user }}">{{ obj.requester.username }}</a>
+        <a href="{{ obj|get_detail_url:user }}">{{ obj.group.name }}</a>
         <span class="badge bg-{{ obj.status|colorize_request_status }}">
           {{ obj.display_status }}
         </span>
-      </li>
+        <div class="small text-muted">
+          <strong>{{ obj.requester.username }}</strong>
+          {{ obj.date_created|date:"Y-d-m H:i" }}
+        </div>      </li>
     {% empty %}
       <li class="list-group-item"><em class="text-muted">No requests.</em></li>
     {% endfor %}

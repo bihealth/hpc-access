@@ -323,6 +323,7 @@ class HpcUserView(HpcPermissionMixin, DetailView):
 
         context["group_manager"] = is_group_manager
         context["project_manager"] = is_project_manager
+        projects_available = False
 
         if is_group_manager:
             context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.filter(group=group)
@@ -339,16 +340,19 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             context["hpcgroupdeleterequests"] = None
             context["hpcuserdeleterequests"] = None
             context["hpcprojectdeleterequests"] = None
-
             context["form_user_select"] = UserSelectForm(group=group)
-            context["form_project_select"] = ProjectSelectForm(user=context["object"])
+            projects_available |= group.hpcprojects.exists()
 
-        elif is_project_manager:
+        if is_project_manager:
             context["hpcprojectchangerequests"] = HpcProjectChangeRequest.objects.prefetch_related(
                 "project__delegate"
             ).filter(project__delegate=context["object"])
             context["hpcprojectdeleterequests"] = None
+            projects_available |= context["object"].hpcproject_delegate.exists()
+
+        if is_project_manager or is_group_manager:
             context["form_project_select"] = ProjectSelectForm(user=context["object"])
+            context["projects_available"] = projects_available
 
         return context
 
