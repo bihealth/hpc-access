@@ -507,6 +507,14 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
             self.delegate.username if self.delegate else None,
         )
 
+    def get_manager_emails(self):
+        emails = [self.owner.user.email]
+
+        if self.delegate:
+            emails.append(self.delegate.user.email)
+
+        return emails
+
 
 class HpcGroupVersion(HpcGroupAbstract):
     """HpcGroupVersion model"""
@@ -658,6 +666,14 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
             self.group.owner.username,
             self.delegate.username if self.delegate else None,
         )
+
+    def get_manager_emails(self):
+        emails = [self.group.owner.user.email]
+
+        if self.delegate:
+            emails += self.delegate.user.email
+
+        return emails
 
 
 class HpcProjectVersion(HpcProjectAbstract):

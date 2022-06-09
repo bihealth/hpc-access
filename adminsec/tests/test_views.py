@@ -236,8 +236,11 @@ class TestHpcGroupCreateRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.requester, self.user)
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcGroupCreateRequestApproveView(TestViewBase):
@@ -277,8 +280,12 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request approved and group and user created.")
+            self.assertEqual(len(messages), 5)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(str(messages[2]), "Notification email sent")
+            self.assertEqual(str(messages[3]), "Notification email sent")
+            self.assertEqual(str(messages[4]), "Request approved and group and user created.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -302,7 +309,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
             self.assertEqual(hpcgroup_version.owner, hpcuser)
 
-            self.assertEqual(len(mail.outbox), 0)
+            self.assertEqual(len(mail.outbox), 4)
 
 
 class TestHpcGroupCreateRequestDenyView(TestViewBase):
@@ -339,13 +346,16 @@ class TestHpcGroupCreateRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcGroupChangeRequestDetailView(TestViewBase):
@@ -499,8 +509,11 @@ class TestHpcGroupChangeRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.requester, self.user_owner)
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcGroupChangeRequestApproveView(TestViewBase):
@@ -545,8 +558,10 @@ class TestHpcGroupChangeRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request approved and group updated.")
+            self.assertEqual(len(messages), 3)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(str(messages[2]), "Request approved and group updated.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -561,7 +576,8 @@ class TestHpcGroupChangeRequestApproveView(TestViewBase):
             self.assertEqual(hpcgroup.delegate, self.hpc_member)
             self.assertEqual(hpcgroup.description, self.obj.description)
             self.assertEqual(hpcgroup.resources_requested, self.obj.resources_requested)
-            self.assertEqual(len(mail.outbox), 0)
+
+            self.assertEqual(len(mail.outbox), 2)
 
 
 class TestHpcGroupChangeRequestDenyView(TestViewBase):
@@ -600,13 +616,16 @@ class TestHpcGroupChangeRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcUserCreateRequestDetailView(TestViewBase):
@@ -760,8 +779,11 @@ class TestHpcUserCreateRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.requester, self.user_owner)
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcUserCreateRequestApproveView(TestViewBase):
@@ -806,9 +828,10 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Email sent to {}".format(self.obj.email))
-            self.assertEqual(str(messages[1]), "Request approved and invitation created.")
+            self.assertEqual(len(messages), 3)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(str(messages[2]), "Request approved and invitation created.")
 
             self.assertEqual(HpcGroupInvitation.objects.count(), 1)
             invitation = HpcGroupInvitation.objects.first()
@@ -821,7 +844,7 @@ class TestHpcUserCreateRequestApproveView(TestViewBase):
             mock_get_ldap_username_domain_by_mail.assert_called_with(self.obj.email)
             mock_connect.assert_called_once()
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 2)
 
 
 class TestHpcUserCreateRequestDenyView(TestViewBase):
@@ -860,13 +883,16 @@ class TestHpcUserCreateRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcUserChangeRequestDetailView(TestViewBase):
@@ -1009,8 +1035,11 @@ class TestHpcUserChangeRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.comment, update["comment"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcUserChangeRequestApproveView(TestViewBase):
@@ -1054,8 +1083,9 @@ class TestHpcUserChangeRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request approved and user updated.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request approved and user updated.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -1068,7 +1098,7 @@ class TestHpcUserChangeRequestApproveView(TestViewBase):
             # hpcuser = hpcusers.last()
             # TODO test expiration date
 
-            self.assertEqual(len(mail.outbox), 0)
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcUserChangeRequestDenyView(TestViewBase):
@@ -1107,13 +1137,16 @@ class TestHpcUserChangeRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcProjectCreateRequestDetailView(TestViewBase):
@@ -1270,8 +1303,11 @@ class TestHpcProjectCreateRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.requester, self.user_owner)
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcProjectCreateRequestApproveView(TestViewBase):
@@ -1317,10 +1353,12 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 3)
-            self.assertEqual(str(messages[0]), "Email sent to owner@example.com")
-            self.assertEqual(str(messages[1]), "Email sent to owner@example.com")
-            self.assertEqual(str(messages[2]), "Request approved and project created.")
+            self.assertEqual(len(messages), 5)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(str(messages[2]), "Notification email sent")
+            self.assertEqual(str(messages[3]), "Notification email sent")
+            self.assertEqual(str(messages[4]), "Request approved and project created.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -1343,7 +1381,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertEqual(list(hpcproject.members.all()), [self.hpc_owner])
             self.assertEqual(list(hpcproject_version.members.all()), [self.hpc_owner])
 
-            self.assertEqual(len(mail.outbox), 2)
+            self.assertEqual(len(mail.outbox), 4)
 
 
 class TestHpcProjectCreateRequestDenyView(TestViewBase):
@@ -1382,13 +1420,16 @@ class TestHpcProjectCreateRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcProjectChangeRequestDetailView(TestViewBase):
@@ -1544,8 +1585,11 @@ class TestHpcProjectChangeRequestRevisionView(TestViewBase):
             self.assertEqual(self.obj.requester, self.user_owner)
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Revision requested.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Revision requested.")
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestHpcProjectChangeRequestApproveView(TestViewBase):
@@ -1595,10 +1639,11 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            # self.assertEqual(str(messages[0]), "Email sent to owner@example.com")
-            # self.assertEqual(str(messages[1]), "Email sent to owner@example.com")
-            self.assertEqual(str(messages[0]), "Request approved and project updated.")
+            self.assertEqual(len(messages), 4)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(str(messages[2]), "Notification email sent")
+            self.assertEqual(str(messages[3]), "Request approved and project updated.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
@@ -1619,8 +1664,7 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
             self.assertEqual(list(self.hpc_project.members.all()), [self.hpc_owner])
             self.assertEqual(list(hpcproject_version.members.all()), [self.hpc_owner])
 
-            # TODO when sending mails
-            # self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 3)
 
 
 class TestHpcProjectChangeRequestDenyView(TestViewBase):
@@ -1659,13 +1703,16 @@ class TestHpcProjectChangeRequestDenyView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Request successfully denied.")
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(str(messages[0]), "Notification email sent")
+            self.assertEqual(str(messages[1]), "Request successfully denied.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.comment, "Denied!")
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
 
 
 class TestFunctions(TestViewBase):
