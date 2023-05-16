@@ -1,0 +1,6 @@
+.. _adminsec:
+
+Admin
+=====
+
+TBD
