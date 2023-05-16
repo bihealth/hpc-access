@@ -23,3 +23,6 @@ rules==3.3
 
 # LDAP (not for authentication)
 ldap3==2.9.1
+
+# Documentation
+sphinx
