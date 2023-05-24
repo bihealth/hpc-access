@@ -1,34 +1,33 @@
 from importlib import import_module
 
+from django.conf import settings
 from django.urls import reverse
 from test_plus.test import TestCase
 
-from django.conf import settings
-
 from usersec.models import (
-    REQUEST_STATUS_INITIAL,
-    REQUEST_STATUS_ACTIVE,
-    REQUEST_STATUS_REVISION,
-    REQUEST_STATUS_REVISED,
-    REQUEST_STATUS_APPROVED,
-    REQUEST_STATUS_DENIED,
-    REQUEST_STATUS_RETRACTED,
-    OBJECT_STATUS_INITIAL,
     OBJECT_STATUS_ACTIVE,
     OBJECT_STATUS_DELETED,
     OBJECT_STATUS_EXPIRED,
+    OBJECT_STATUS_INITIAL,
+    REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_APPROVED,
+    REQUEST_STATUS_DENIED,
+    REQUEST_STATUS_INITIAL,
+    REQUEST_STATUS_RETRACTED,
+    REQUEST_STATUS_REVISED,
+    REQUEST_STATUS_REVISION,
 )
 from usersec.templatetags.common import (
-    get_django_setting,
-    site_version,
     colorize_object_status,
     colorize_request_status,
     get_detail_url,
-    lookup,
-    is_project_owner,
+    get_django_setting,
     is_project_delegate,
+    is_project_owner,
+    lookup,
+    site_version,
 )
-from usersec.tests.factories import HpcUserFactory, HpcGroupFactory, HpcProjectFactory
+from usersec.tests.factories import HpcGroupFactory, HpcProjectFactory, HpcUserFactory
 
 site = import_module(settings.SITE_PACKAGE)
 

@@ -1,21 +1,20 @@
-import rules
 from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
+import rules
 
 from usersec.models import (
-    HpcGroupCreateRequest,
-    HpcUserCreateRequest,
-    HpcProjectCreateRequest,
     HpcGroupChangeRequest,
-    HpcUserChangeRequest,
-    HpcProjectChangeRequest,
-    HpcUser,
+    HpcGroupCreateRequest,
     HpcProject,
+    HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
-
 
 DEFAULT_USER_RESOURCES = {"tier1": "1", "tier2": "0"}
 DEFAULT_GROUP_RESOURCES = {"tier1": "1", "tier2": "0"}
@@ -460,7 +459,7 @@ class ProjectSelectForm(forms.Form):
                 ),
                 str(project),
             )
-            for project in set(projects)
+            for project in sorted(projects, key=lambda x: x.name)
         ]
 
         self.fields["projects"] = forms.ChoiceField(choices=choices)

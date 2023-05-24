@@ -7,38 +7,38 @@ from django.urls import reverse
 from test_plus.test import TestCase
 
 from usersec.models import (
-    HpcGroupCreateRequest,
-    REQUEST_STATUS_DENIED,
-    REQUEST_STATUS_RETRACTED,
-    REQUEST_STATUS_ACTIVE,
-    REQUEST_STATUS_INITIAL,
-    REQUEST_STATUS_APPROVED,
-    HpcUserCreateRequest,
-    HpcProjectCreateRequest,
-    HpcUser,
     INVITATION_STATUS_ACCEPTED,
     INVITATION_STATUS_PENDING,
     INVITATION_STATUS_REJECTED,
-    HpcUserChangeRequest,
+    REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_APPROVED,
+    REQUEST_STATUS_DENIED,
+    REQUEST_STATUS_INITIAL,
+    REQUEST_STATUS_RETRACTED,
+    HpcGroupCreateRequest,
     HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
-    HpcGroupCreateRequestFactory,
-    HpcUserFactory,
-    HpcGroupFactory,
-    HpcUserCreateRequestFactory,
-    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
-    HpcProjectFactory,
-    HpcProjectCreateRequestFactory,
-    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
-    HpcGroupInvitationFactory,
-    HpcProjectInvitationFactory,
-    HpcGroupChangeRequestFactory,
-    HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
-    HpcUserChangeRequestFactory,
     HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
+    HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
+    HpcGroupChangeRequestFactory,
+    HpcGroupCreateRequestFactory,
+    HpcGroupFactory,
+    HpcGroupInvitationFactory,
     HpcProjectChangeRequestFactory,
+    HpcProjectCreateRequestFactory,
+    HpcProjectFactory,
+    HpcProjectInvitationFactory,
+    HpcUserChangeRequestFactory,
+    HpcUserCreateRequestFactory,
+    HpcUserFactory,
 )
 
 
@@ -130,11 +130,10 @@ class TestOrphanUserView(TestViewBase):
                 ),
             )
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Group request submitted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully submitted request for group creation.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 2)
 
     def test_post_form_invalid(self):
         with self.login(self.user):
@@ -145,6 +144,7 @@ class TestOrphanUserView(TestViewBase):
                 response.context["form"].errors["resources_requested"][0],
                 "This field is required.",
             )
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcGroupCreateRequestDetailView(TestViewBase):
@@ -301,11 +301,10 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Group request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for group creation.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
         update = {
@@ -369,15 +368,14 @@ class TestHpcGroupCreateRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Request successfully retracted.")
-            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully retracted request for group creation.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcGroupCreateRequestReactivateView(TestViewBase):
@@ -407,9 +405,10 @@ class TestHpcGroupCreateRequestReactivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully re-activated request for group creation."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -579,11 +578,10 @@ class TestHpcGroupChangeRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Group change request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for group update.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
         update = {
@@ -647,15 +645,14 @@ class TestHpcGroupChangeRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully retracted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully retracted request for group update.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcGroupChangeRequestReactivateView(TestViewBase):
@@ -685,9 +682,10 @@ class TestHpcGroupChangeRequestReactivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully re-activated request for group update."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -782,9 +780,8 @@ class TestHpcUserCreateRequestCreateView(TestViewBase):
                 ),
             )
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "User request submitted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Couldn't submitted request for user creation.")
 
             self.assertEqual(len(mail.outbox), 1)
 
@@ -966,9 +963,8 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "User request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for user creation.")
 
             self.assertEqual(len(mail.outbox), 1)
 
@@ -1034,15 +1030,14 @@ class TestHpcUserCreateRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully retracted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully retracted request for user creation.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcUserCreateRequestRectivateView(TestViewBase):
@@ -1072,9 +1067,10 @@ class TestHpcUserCreateRequestRectivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully re-activated request for user creation."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -1111,9 +1107,8 @@ class TestHpcUserChangeRequestCreateView(TestViewBase):
                 ),
             )
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "User change request submitted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully submitted request for user update.")
 
             self.assertEqual(len(mail.outbox), 1)
 
@@ -1281,11 +1276,10 @@ class TestHpcUserChangeRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "User change request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for user update.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
         update = {
@@ -1307,6 +1301,7 @@ class TestHpcUserChangeRequestUpdateView(TestViewBase):
                 response.context["form"].errors["expiration"],
                 ["This field is required."],
             )
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcUserChangeRequestRetractView(TestViewBase):
@@ -1345,15 +1340,14 @@ class TestHpcUserChangeRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully retracted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully retracted request for user update.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcUserChangeRequestRectivateView(TestViewBase):
@@ -1383,9 +1377,8 @@ class TestHpcUserChangeRequestRectivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully re-activated request for user update.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -1426,11 +1419,12 @@ class TestHpcProjectCreateRequestCreateView(TestViewBase):
                 ),
             )
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Project request submitted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully submitted request for project creation."
+            )
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 2)
 
     def test_post_form_invalid(self):
         with self.login(self.user_owner):
@@ -1447,6 +1441,8 @@ class TestHpcProjectCreateRequestCreateView(TestViewBase):
                 response.context["form"].errors["members"][0],
                 "This field is required.",
             )
+
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcProjectCreateRequestDetailView(TestViewBase):
@@ -1640,11 +1636,10 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Project request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for project creation.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
         update = {
@@ -1670,6 +1665,7 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
                 response.context["form"].errors["resources_requested"],
                 ["This field is required."],
             )
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcProjectCreateRequestRetractView(TestViewBase):
@@ -1708,15 +1704,16 @@ class TestHpcProjectCreateRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Request successfully retracted.")
-            self.assertEqual(str(messages[1]), "Notification email sent")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully retracted request for project creation."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcProjectCreateRequestRectivateView(TestViewBase):
@@ -1746,9 +1743,10 @@ class TestHpcProjectCreateRequestRectivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully re-activated request for project creation."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -1789,9 +1787,8 @@ class TestHpcProjectChangeRequestCreateView(TestViewBase):
                 ),
             )
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Project change request submitted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully submitted request for project update.")
 
             self.assertEqual(len(mail.outbox), 1)
 
@@ -1996,11 +1993,10 @@ class TestHpcProjectChangeRequestUpdateView(TestViewBase):
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Project change request updated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully updated request for project update.")
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
         update = {
@@ -2065,15 +2061,14 @@ class TestHpcProjectChangeRequestRetractView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully retracted.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully retracted request for project update.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
 
-            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 0)
 
 
 class TestHpcProjectChangeRequestRectivateView(TestViewBase):
@@ -2103,9 +2098,10 @@ class TestHpcProjectChangeRequestRectivateView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Request successfully re-activated.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]), "Successfully re-activated request for project update."
+            )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
@@ -2150,6 +2146,7 @@ class TestHpcGroupInvitationAcceptView(TestViewBase):
         # Create HPC group invitation
         self.obj = HpcGroupInvitationFactory(username=self.user_invited.username)
         self.obj.hpcusercreaterequest.group = self.hpc_group
+        self.obj.hpcusercreaterequest.requester = self.user_owner
         self.obj.hpcusercreaterequest.save()
 
     def test_get(self):
@@ -2173,10 +2170,8 @@ class TestHpcGroupInvitationAcceptView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 3)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Notification email sent")
-            self.assertEqual(str(messages[2]), "Invitation successfully accepted and user created.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully accepted and user created.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
@@ -2195,6 +2190,7 @@ class TestHpcGroupInvitationRejectView(TestViewBase):
         # Create HPC group invitation
         self.obj = HpcGroupInvitationFactory(username=self.user_invited.username)
         self.obj.hpcusercreaterequest.group = self.hpc_group
+        self.obj.hpcusercreaterequest.requester = self.user_owner
         self.obj.hpcusercreaterequest.save()
 
     def test_get(self):
@@ -2229,9 +2225,8 @@ class TestHpcGroupInvitationRejectView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Invitation successfully rejected.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
@@ -2246,7 +2241,7 @@ class TestHpcProjectInvitationAcceptView(TestViewBase):
     def setUp(self):
         super().setUp()
 
-        request = HpcProjectCreateRequestFactory()
+        request = HpcProjectCreateRequestFactory(requester=self.user_owner)
 
         # Create HPC project invitation
         self.obj = HpcProjectInvitationFactory(
@@ -2275,9 +2270,8 @@ class TestHpcProjectInvitationAcceptView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Successfully joined the project.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully joined the project.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
@@ -2290,7 +2284,7 @@ class TestHpcProjectInvitationRejectView(TestViewBase):
     def setUp(self):
         super().setUp()
 
-        request = HpcProjectCreateRequestFactory()
+        request = HpcProjectCreateRequestFactory(requester=self.user_owner)
 
         # Create HPC project invitation
         self.obj = HpcProjectInvitationFactory(
@@ -2329,9 +2323,8 @@ class TestHpcProjectInvitationRejectView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 2)
-            self.assertEqual(str(messages[0]), "Notification email sent")
-            self.assertEqual(str(messages[1]), "Invitation successfully rejected.")
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()

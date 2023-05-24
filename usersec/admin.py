@@ -1,24 +1,23 @@
 from django.contrib import admin  # noqa
 
 from usersec.models import (
-    HpcUser,
     HpcGroup,
-    HpcUserVersion,
-    HpcGroupVersion,
-    HpcGroupCreateRequestVersion,
-    HpcGroupCreateRequest,
     HpcGroupChangeRequest,
     HpcGroupChangeRequestVersion,
+    HpcGroupCreateRequest,
+    HpcGroupCreateRequestVersion,
     HpcGroupDeleteRequest,
     HpcGroupDeleteRequestVersion,
-    HpcUserCreateRequest,
-    HpcUserCreateRequestVersion,
+    HpcGroupVersion,
+    HpcUser,
     HpcUserChangeRequest,
     HpcUserChangeRequestVersion,
+    HpcUserCreateRequest,
+    HpcUserCreateRequestVersion,
     HpcUserDeleteRequest,
     HpcUserDeleteRequestVersion,
+    HpcUserVersion,
 )
-
 
 # HpcUser related
 # ------------------------------------------------------------------------------

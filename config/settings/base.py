@@ -301,8 +301,9 @@ LDAP_ALT_DOMAINS = env.list("LDAP_ALT_DOMAINS", None, [])
 
 if ENABLE_LDAP:
     import itertools
-    import ldap
+
     from django_auth_ldap.config import LDAPSearch
+    import ldap
 
     # Default values
     LDAP_DEFAULT_CONN_OPTIONS = {ldap.OPT_REFERRALS: 0}

@@ -1,35 +1,34 @@
-import rules
 from django.conf import settings
-
 from django.urls import reverse
+import rules
 from test_plus.test import TestCase
 
 from usersec.models import (
     HpcGroupCreateRequest,
-    HpcUserCreateRequest,
-    HpcUser,
-    HpcProjectCreateRequest,
-    HpcUserChangeRequest,
     HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
 from usersec.tests.factories import (
+    HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
+    HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
+    HpcGroupChangeRequestFactory,
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
-    HpcUserFactory,
-    HpcUserCreateRequestFactory,
-    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
+    HpcGroupInvitationFactory,
+    HpcProjectChangeRequestFactory,
     HpcProjectCreateRequestFactory,
     HpcProjectFactory,
     HpcProjectInvitationFactory,
-    HpcGroupInvitationFactory,
-    HpcGroupChangeRequestFactory,
-    HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
     HpcUserChangeRequestFactory,
-    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
-    HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
-    HpcProjectChangeRequestFactory,
-    HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID,
+    HpcUserCreateRequestFactory,
+    HpcUserFactory,
 )
 
 
@@ -139,11 +138,15 @@ class TestRulesBase(TestCase):
 
         # Create HPC project invitation
         self.hpc_project_invitation = HpcProjectInvitationFactory(
-            user=self.hpc_member2, project=self.hpc_project
+            user=self.hpc_member2,
+            project=self.hpc_project,
+            hpcprojectcreaterequest=self.hpc_project_create_request,
         )
 
         # Create HPC group invitation
-        self.hpc_group_invitation = HpcGroupInvitationFactory(username=self.user_invited.username)
+        self.hpc_group_invitation = HpcGroupInvitationFactory(
+            hpcusercreaterequest=self.hpc_user_create_request, username=self.user_invited.username
+        )
         self.hpc_group_invitation.hpcusercreaterequest.group = self.hpc_group
         self.hpc_group_invitation.hpcusercreaterequest.save()
 

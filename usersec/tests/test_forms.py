@@ -4,23 +4,23 @@ from django.utils.datetime_safe import datetime
 from test_plus.test import TestCase
 
 from usersec.forms import (
-    HpcGroupCreateRequestForm,
-    HpcUserCreateRequestForm,
-    HpcProjectCreateRequestForm,
     HpcGroupChangeRequestForm,
+    HpcGroupCreateRequestForm,
+    HpcProjectCreateRequestForm,
     HpcUserChangeRequestForm,
-    UserSelectForm,
+    HpcUserCreateRequestForm,
     ProjectSelectForm,
+    UserSelectForm,
 )
 from usersec.tests.factories import (
-    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
-    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
-    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
-    HpcUserFactory,
-    HpcGroupFactory,
     HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
+    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
     HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
+    HpcGroupFactory,
     HpcProjectFactory,
+    HpcUserFactory,
 )
 
 

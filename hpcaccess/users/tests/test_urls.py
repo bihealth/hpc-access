@@ -1,5 +1,5 @@
-import pytest
 from django.urls import resolve, reverse
+import pytest
 
 from hpcaccess.users.models import User
 

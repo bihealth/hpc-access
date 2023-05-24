@@ -1,6 +1,6 @@
-import ldap3
-from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+import ldap3
 
 
 class LdapConnector:
