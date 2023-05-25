@@ -64,7 +64,7 @@ SUBJECT_PREFIX = "[BIH HPC Cluster] "
 USER_GREETING = "Dear {user},"
 
 #: Greeting for admin emails
-ADMIN_GREETING = "Dear admins"
+ADMIN_GREETING = "Dear admins,"
 
 #: Greeting for emails with unknown recipient
 NEUTRAL_GREETING = "Hello"
@@ -78,7 +78,7 @@ HPC_ACCESS_LINK = "https://hpc-access.cubi.bihealth.org"
 #: Email footer
 FOOTER = r"""
 Best regards,
-    The BIH HPC Team
+The BIH HPC Team
 
 (This email has been automatically generated.)
 """.lstrip()
@@ -91,8 +91,8 @@ SUBJECT_ADMIN_REQUEST = SUBJECT_PREFIX + "Request submitted - {request_type}"
 NOTIFICATION_ADMIN_REQUEST = r"""
 {greeting}
 
-a {request_type} request has been submitted by {username}.
-Please visit the following link to review the request:
+a {request_type} request has been submitted by {username}. Please visit the
+following link to review the request:
 
 {hpc_access_link}
 
@@ -108,9 +108,9 @@ SUBJECT_MANAGER_PROJECT_REQUEST = SUBJECT_PREFIX + "Your project request for {na
 NOTIFICATION_MANAGER_REQUEST = r"""
 {greeting}
 
-you have successfully requested a {project_or_group} on the BIH HPC cluster. It is now pending
-approval by the HPC administrators. You can check the status of your request by visiting
-the following link:
+you have successfully requested a {project_or_group} on the BIH HPC cluster. It
+is now pending approval by the HPC administrators. You can check the status of
+your request by visiting the following link:
 
 {hpc_access_link}
 
@@ -124,14 +124,14 @@ NOTIFICATION_MANAGER_GROUP_CREATED = r"""
 
 your group request has been approved and the group has been created.
 
-You can now add members to your group, name a delegate or create projects.
-Find more details in the manual:
+You can now add members to your group, name a delegate or create projects. Find
+more details in the manual:
 
 {manual_link}
 
 Your group folder is located at
 
-    {group_folder}
+{group_folder}
 
 {footer}
 """.lstrip()
@@ -143,14 +143,14 @@ NOTIFICATION_MANAGER_PROJECT_CREATED = r"""
 
 your project request has been approved and the project has been created.
 
-You can now add members to your project from different other work group and also name a delegate.
-Find more details in the manual:
+You can now add members to your project from different other work group and
+also name a delegate. Find more details in the manual:
 
 {manual_link}
 
 Your project folder is located at
 
-    {project_folder}
+{project_folder}
 
 {footer}
 """.lstrip()
@@ -180,8 +180,8 @@ NOTIFICATION_MANAGER_REVISE_REQUEST = r"""
 
 there is an update on your {request_type} request.
 
-It hasn't been decided yet because more information is required.
-Please visit the link below to revise your request:
+It hasn't been decided yet because more information is required. Please visit
+the link below to revise your request:
 
 {hpc_access_link}
 
@@ -193,8 +193,8 @@ SUBJECT_MANAGER_REQUEST_DENIED = SUBJECT_PREFIX + "Your {request_type} request h
 NOTIFICATION_MANAGER_REQUEST_DENIED = r"""
 {greeting}
 
-there is an update on your {request_type} request. Unfortunately, it has been declined.
-Please find more information by following the link below:
+there is an update on your {request_type} request. Unfortunately, it has been
+declined. Please find more information by following the link below:
 
 {hpc_access_link}
 
@@ -208,8 +208,8 @@ SUBJECT_MANAGER_CHANGE_REQUEST_APPROVED = (
 NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED = r"""
 {greeting}
 
-your {request_type} request has been approved.
-Please see the active changes by following the link below:
+your {request_type} request has been approved. Please see the active changes
+by following the link below:
 
 {hpc_access_link}
 
@@ -224,21 +224,10 @@ SUBJECT_USER_GROUP_INVITATION = SUBJECT_PREFIX + "You've been invited to join gr
 NOTIFICATION_USER_GROUP_INVITATION = r"""
 {greeting}
 
-You've been invited by
+You've been invited by {inviter} to become member of group {identifier} with
+your username {username} on the BIH HPC cluster. Head over to
 
-  {inviter}
-
-to become member of group
-
-  {identifier}
-
-with your username
-
-  {username}
-
-on the BIH HPC cluster. Head over to
-
-  {invitation_link}
+{invitation_link}
 
 and log in with your {institute} credentials. A page with a disclaimer will be shown.
 Please read the text carefully. You can then accept or decline the invitation.
@@ -253,15 +242,8 @@ SUBJECT_USER_PROJECT_INVITATION = (
 NOTIFICATION_USER_PROJECT_INVITATION = r"""
 {greeting}
 
-You've been invited by
-
-  {inviter}
-
-to become member of project
-
-  {identifier}
-
-on the BIH HPC cluster. Head over to
+You've been invited by {inviter} to become member of project {identifier} on
+the BIH HPC cluster. Head over to
 
   {invitation_link}
 
@@ -386,9 +368,9 @@ def send_notification_admin_request(request):
 
     subject = SUBJECT_ADMIN_REQUEST.format(request_type=request.get_request_type())
     message = NOTIFICATION_ADMIN_REQUEST.format(
-        greeting=NEUTRAL_GREETING,
+        greeting=ADMIN_GREETING,
         username=request.requester.name,
-        hpc_access_link=request.get_detail_path(admin=True),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(admin=True),
         request_type=request.get_request_type(),
         footer=FOOTER,
     )
@@ -405,7 +387,7 @@ def send_notification_manager_group_request(request):
     message = NOTIFICATION_MANAGER_REQUEST.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         project_or_group=HPC_OBJECT_GROUP,
-        hpc_access_link=request.get_detail_path(),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -429,7 +411,7 @@ def send_notification_manager_project_request(request):
     message = NOTIFICATION_MANAGER_REQUEST.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         project_or_group=HPC_OBJECT_PROJECT,
-        hpc_access_link=request.get_detail_path(),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -453,7 +435,7 @@ def send_notification_manager_change_request_approved(request):
     message = NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         request_type=request.get_request_type(),
-        hpc_access_link=request.get_detail_path(),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -464,13 +446,15 @@ def send_notification_manager_user_decided_invitation(invitation):
     username = UNDEFINED_VARIABLE
     project_or_group = UNDEFINED_VARIABLE
     account_created = ""
-    emails = []
+    email = ""
+    requester_name = UNDEFINED_VARIABLE
 
     if isinstance(invitation, HpcGroupInvitation):
         identifier = invitation.hpcusercreaterequest.group.name
         username = invitation.username
         project_or_group = HPC_OBJECT_GROUP
-        emails = invitation.hpcusercreaterequest.requester.email
+        email = invitation.hpcusercreaterequest.requester.email
+        requester_name = invitation.hpcusercreaterequest.requester.name
 
         if invitation.status == INVITATION_STATUS_ACCEPTED:
             account_created = NOTIFICATION_PART_USER_ACCOUNT_CREATED
@@ -481,16 +465,18 @@ def send_notification_manager_user_decided_invitation(invitation):
         project_or_group = HPC_OBJECT_PROJECT
 
         if invitation.hpcprojectcreaterequest:
-            emails = invitation.hpcprojectcreaterequest.requester.email
+            email = invitation.hpcprojectcreaterequest.requester.email
+            requester_name = invitation.hpcprojectcreaterequest.requester.name
 
         elif invitation.hpcprojectcreaterequest:
-            emails = invitation.hpcprojectcreaterequest.requester.email
+            email = invitation.hpcprojectcreaterequest.requester.email
+            requester_name = invitation.hpcprojectcreaterequest.requester.name
 
     subject = SUBJECT_MANAGER_USER_DECIDED_INVITATION.format(
         decision=invitation.status, project_or_group=project_or_group
     )
     message = NOTIFICATION_MANAGER_USER_DECIDED_INVITATION.format(
-        greeting=NEUTRAL_GREETING,
+        greeting=USER_GREETING.format(user=requester_name),
         username=username,
         decision=invitation.status,
         project_or_group=project_or_group,
@@ -498,7 +484,7 @@ def send_notification_manager_user_decided_invitation(invitation):
         account_created=account_created,
         footer=FOOTER,
     )
-    return send_mail(subject, message, [emails])
+    return send_mail(subject, message, [email])
 
 
 def send_notification_manager_revision_required(request):
@@ -506,7 +492,7 @@ def send_notification_manager_revision_required(request):
     message = NOTIFICATION_MANAGER_REVISE_REQUEST.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         request_type=request.get_request_type(),
-        hpc_access_link=request.get_detail_path(),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -517,7 +503,7 @@ def send_notification_manager_request_denied(request):
     message = NOTIFICATION_MANAGER_REQUEST_DENIED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         request_type=request.get_request_type(),
-        hpc_access_link=request.get_detail_path(),
+        hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
