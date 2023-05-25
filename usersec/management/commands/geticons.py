@@ -1,10 +1,9 @@
+import logging as logger
 import os
 import urllib.request
-import logging as logger
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-
 
 # Local constants
 JSON_URL = "https://raw.githubusercontent.com/iconify/collections-json/" "master/collections.json"

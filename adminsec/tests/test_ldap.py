@@ -2,7 +2,6 @@ from django.test import TestCase, override_settings
 
 from adminsec.ldap import LdapConnector
 
-
 ENABLE_LDAP = True
 ENABLE_LDAP_SECONDARY = True
 

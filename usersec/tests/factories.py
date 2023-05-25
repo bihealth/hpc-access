@@ -1,27 +1,26 @@
-import json
-import factory
-
 from datetime import datetime
+import json
 
 from django.conf import settings
 from django.forms import model_to_dict
 from django.utils.timezone import utc
+import factory
 
 from usersec.models import (
     HpcGroup,
     HpcGroupChangeRequest,
     HpcGroupCreateRequest,
     HpcGroupDeleteRequest,
+    HpcGroupInvitation,
+    HpcProject,
+    HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcProjectDeleteRequest,
+    HpcProjectInvitation,
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
-    HpcProjectCreateRequest,
-    HpcProjectChangeRequest,
-    HpcProjectDeleteRequest,
-    HpcProject,
-    HpcProjectInvitation,
-    HpcGroupInvitation,
 )
 
 # ------------------------------------------------------------------------------

@@ -4,22 +4,22 @@ from django.conf import settings
 from django.urls import reverse
 
 from usersec.models import (
-    HpcUserCreateRequest,
-    HpcGroupCreateRequest,
     REQUEST_STATUS_ACTIVE,
-    HpcUser,
     HpcGroup,
-    HpcProjectCreateRequest,
-    HpcProject,
     HpcGroupChangeRequest,
+    HpcGroupCreateRequest,
+    HpcProject,
+    HpcProjectCreateRequest,
+    HpcUser,
     HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
 from usersec.tests.factories import (
-    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
-    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
-    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
     HPCGROUPCHANGEREQUEST_FORM_DATA_VALID,
+    HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
+    HPCPROJECTCREATEREQUEST_FORM_DATA_VALID,
     HPCUSERCHANGEREQUEST_FORM_DATA_VALID,
+    HPCUSERCREATEREQUEST_FORM_DATA_VALID,
 )
 from usersec.tests.test_rules import TestRulesBase
 
@@ -185,7 +185,7 @@ class TestPermissionsInViews(TestRulesBase):
             "adminsec:hpcgroupcreaterequest-deny",
             kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
         )
-        data = {"comment": "Request denied!"}
+        data = {"comment": "Request denied"}
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [
             self.user_owner,
@@ -351,7 +351,7 @@ class TestPermissionsInViews(TestRulesBase):
             "adminsec:hpcgroupchangerequest-deny",
             kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
         )
-        data = {"comment": "Request denied!"}
+        data = {"comment": "Request denied"}
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [
             self.user_owner,
@@ -528,7 +528,7 @@ class TestPermissionsInViews(TestRulesBase):
             "adminsec:hpcusercreaterequest-deny",
             kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
         )
-        data = {"comment": "Request denied!"}
+        data = {"comment": "Request denied"}
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [
             self.user_owner,
@@ -694,7 +694,7 @@ class TestPermissionsInViews(TestRulesBase):
             "adminsec:hpcuserchangerequest-deny",
             kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
         )
-        data = {"comment": "Request denied!"}
+        data = {"comment": "Request denied"}
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [
             self.user_owner,
@@ -861,7 +861,7 @@ class TestPermissionsInViews(TestRulesBase):
             "adminsec:hpcprojectcreaterequest-deny",
             kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
         )
-        data = {"comment": "Request denied!"}
+        data = {"comment": "Request denied"}
         good_users = [self.superuser, self.user_hpcadmin]
         bad_users = [
             self.user_owner,

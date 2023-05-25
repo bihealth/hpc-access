@@ -112,6 +112,21 @@ Request details
 ^^^^^^^^^^^^^^^
 
 After posting a request, it will be listed in the associated tile and have a link to the details as well as a small status information.
+A request can have different statuses:
+
+1. **pending:** The request is active. The admins are in charge of deciding the request.
+2. **revision required:** The admins decided that the request needs to be revised by the requester.
+3. **pending (revised):** The request is active after being revised by the requester.
+4. **approved:** The request has been approved by the admins.
+5. **denied:** The request has been denied by the admins.
+6. **retracted:** The request has been retracted by the requester before admins decided the request.
+
+Invitations have a slightly different set of statuses:
+
+1. **pending:** The invitation is active and the user needs to accept or decline it.
+2. **accepted:** The invited user has accepted the invitation.
+3. **rejected:** The invited user has rejected the invitation.
+4. **expired:** The invitiation has expired. Expiration time needs to be defined (TODO)
 
 Retract any request
 ^^^^^^^^^^^^^^^^^^^

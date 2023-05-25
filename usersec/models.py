@@ -859,6 +859,15 @@ class HpcGroupCreateRequest(
         help_text="Currently active version of the group create request object"
     )
 
+    def get_request_type(self):
+        return "group create"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcgroupcreaterequest-detail", kwargs={"hpcgroupcreaterequest": self.uuid}
+        )
+
 
 class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
     """HpcGroupCreateRequestVersion model"""
@@ -927,6 +936,15 @@ class HpcGroupChangeRequest(
         help_text="Currently active version of the group change request object"
     )
 
+    def get_request_type(self):
+        return "group change"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcgroupchangerequest-detail", kwargs={"hpcgroupchangerequest": self.uuid}
+        )
+
 
 class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
     """HpcGroupChangeRequestVersion model"""
@@ -961,6 +979,15 @@ class HpcGroupDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcGroupRe
     current_version = models.IntegerField(
         help_text="Currently active version of the group delete request object"
     )
+
+    def get_request_type(self):
+        return "group delete"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcgroupdeleterequest-detail", kwargs={"hpcgroupdeleterequest": self.uuid}
+        )
 
 
 class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
@@ -1045,6 +1072,15 @@ class HpcUserCreateRequest(RequestManagerMixin, VersionManagerMixin, HpcUserCrea
         help_text="Currently active version of the user create request object"
     )
 
+    def get_request_type(self):
+        return "user create"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcusercreaterequest-detail", kwargs={"hpcusercreaterequest": self.uuid}
+        )
+
 
 class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
     """HpcUserCreateRequestVersion model"""
@@ -1087,6 +1123,15 @@ class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChan
         help_text="Currently active version of the user change request object"
     )
 
+    def get_request_type(self):
+        return "user change"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcuserchangerequest-detail", kwargs={"hpcuserchangerequest": self.uuid}
+        )
+
 
 class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
     """HpcUserChangeRequestVersion model"""
@@ -1121,6 +1166,15 @@ class HpcUserDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcUserRequ
     current_version = models.IntegerField(
         help_text="Currently active version of the user delete request object"
     )
+
+    def get_request_type(self):
+        return "user delete"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcuserdeleterequest-detail", kwargs={"hpcuserdeleterequest": self.uuid}
+        )
 
 
 class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
@@ -1232,6 +1286,16 @@ class HpcProjectCreateRequest(
         help_text="Currently active version of the project create request object"
     )
 
+    def get_request_type(self):
+        return "project create"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcprojectcreaterequest-detail",
+            kwargs={"hpcprojectcreaterequest": self.uuid},
+        )
+
 
 class HpcProjectCreateRequestVersion(HpcProjectCreateRequestAbstract):
     """HpcProjectCreateRequestVersion model"""
@@ -1304,6 +1368,16 @@ class HpcProjectChangeRequest(
         help_text="Currently active version of the project change request object"
     )
 
+    def get_request_type(self):
+        return "project change"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcprojectchangerequest-detail",
+            kwargs={"hpcprojectchangerequest": self.uuid},
+        )
+
 
 class HpcProjectChangeRequestVersion(HpcProjectChangeRequestAbstract):
     """HpcProjectChangeRequestVersion model"""
@@ -1338,6 +1412,16 @@ class HpcProjectDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcProje
     current_version = models.IntegerField(
         help_text="Currently active version of the project delete request object"
     )
+
+    def get_request_type(self):
+        return "project delete"
+
+    def get_detail_path(self, admin=False):
+        section = "adminsec" if admin else "usersec"
+        return reverse(
+            f"{section}:hpcprojectdeleterequest-detail",
+            kwargs={"hpcprojectdeleterequest": self.uuid},
+        )
 
 
 class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
@@ -1420,6 +1504,9 @@ class HpcProjectInvitation(VersionManagerMixin, HpcProjectInvitationAbstract):
         help_text="Currently active version of the project delete request object"
     )
 
+    def get_invitation_type(self):
+        return "project"
+
 
 class HpcProjectInvitationVersion(HpcProjectInvitationAbstract):
     """HpcProjectInvitationVersion model."""
@@ -1464,6 +1551,9 @@ class HpcGroupInvitation(VersionManagerMixin, HpcGroupInvitationAbstract):
     current_version = models.IntegerField(
         help_text="Currently active version of the group invitation object"
     )
+
+    def get_invitation_type(self):
+        return "group"
 
 
 class HpcGroupInvitationVersion(HpcGroupInvitationAbstract):

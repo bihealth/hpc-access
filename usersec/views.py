@@ -1,6 +1,4 @@
-import rules
 from django.conf import settings
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
@@ -9,51 +7,90 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import (
-    CreateView,
-    DeleteView,
-    DetailView,
-    UpdateView,
-)
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
+import rules
 from rules.contrib.views import PermissionRequiredMixin
 
 from adminsec.email import (
-    send_notification_request_status_changed,
-    send_notification_user_decided_invitation,
-    send_notification_object_created,
+    send_notification_admin_request,
+    send_notification_manager_group_request,
+    send_notification_manager_project_request,
+    send_notification_manager_user_decided_invitation,
+    send_notification_user_welcome_mail,
 )
 from usersec.forms import (
-    HpcGroupCreateRequestForm,
-    HpcUserCreateRequestForm,
-    HpcProjectCreateRequestForm,
     HpcGroupChangeRequestForm,
-    HpcUserChangeRequestForm,
-    UserSelectForm,
+    HpcGroupCreateRequestForm,
     HpcProjectChangeRequestForm,
+    HpcProjectCreateRequestForm,
+    HpcUserChangeRequestForm,
+    HpcUserCreateRequestForm,
     ProjectSelectForm,
+    UserSelectForm,
 )
 from usersec.models import (
-    HpcGroupCreateRequest,
-    REQUEST_STATUS_ACTIVE,
-    HpcUser,
-    HpcGroup,
-    HpcUserCreateRequest,
-    REQUEST_STATUS_REVISION,
-    HpcProject,
-    HpcProjectCreateRequest,
-    HpcGroupInvitation,
     INVITATION_STATUS_ACCEPTED,
-    OBJECT_STATUS_ACTIVE,
     INVITATION_STATUS_REJECTED,
-    HpcProjectInvitation,
+    OBJECT_STATUS_ACTIVE,
+    REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_REVISION,
+    HpcGroup,
     HpcGroupChangeRequest,
-    HpcUserChangeRequest,
+    HpcGroupCreateRequest,
+    HpcGroupInvitation,
+    HpcProject,
     HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcProjectInvitation,
+    HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
+
+# -----------------------------------------------------------------------------
+# UI messages
+# -----------------------------------------------------------------------------
 
 MSG_NO_AUTH = "User not authorized for requested action"
 MSG_NO_AUTH_LOGIN = MSG_NO_AUTH + ", please log in"
+
+MSG_PART_SUBMIT = "submit"
+MSG_PART_SUBMITTED = "submitted"
+MSG_PART_UPDATE = "update"
+MSG_PART_UPDATED = "updated"
+MSG_PART_RETRACT = "retract"
+MSG_PART_RETRACTED = "retracted"
+MSG_PART_REACTIVATE = "re-activate"
+MSG_PART_REACTIVATED = "re-activated"
+MSG_PART_GROUP_CREATION = "group creation"
+MSG_PART_GROUP_UPDATE = "group update"
+MSG_PART_GROUP_DELETION = "group deletion"
+MSG_PART_USER_CREATION = "user creation"
+MSG_PART_USER_UPDATE = "user update"
+MSG_PART_USER_DELETION = "user deletion"
+MSG_PART_PROJECT_CREATION = "project creation"
+MSG_PART_PROJECT_UPDATE = "project update"
+MSG_PART_PROJECT_DELETION = "project deletion"
+
+MSG_REQUEST_FAILURE = "Couldn't {} request for {}."
+MSG_REQUEST_SUCCESS = "Successfully {} request for {}."
+
+MSG_INVITATION_SUPERUSER = (
+    "Superuser is not allowed to accept invitations. This would lead to inconsistencies."
+)
+MSG_INVITATION_REJECTED_SUCCESS = "Invitation successfully rejected."
+MSG_INVITATION_GROUP_USER_CREATE_FAILURE = "Could not create user: {}"
+MSG_INVITATION_GROUP_USER_CREATE_SUCCESS = "Invitation successfully accepted and user created."
+MSG_INVITATION_PROJECT_USER_ADD_FAILURE = "Could not add user to project: {}"
+MSG_INVITATION_PROJECT_USER_ADD_SUCCESS = "Successfully joined the project."
+
+# -----------------------------------------------------------------------------
+# Object comments
+# -----------------------------------------------------------------------------
+
+COMMENT_REACTIVATED = "Request re-activated"
+COMMENT_RETRACTED = "Request retracted"
 
 
 class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
@@ -133,19 +170,18 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
         obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't create group request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_GROUP_CREATION)
+            )
             return HttpResponseRedirect(reverse("usersec:orphan-user"))
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_manager_group_request(obj)
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=[obj.requester.email] + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Group request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_GROUP_CREATION)
+        )
         return HttpResponseRedirect(self.get_success_url(obj.uuid))
 
 
@@ -171,6 +207,7 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         return context
 
 
+# TODO never used?
 class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     """HPC group create request update view."""
 
@@ -214,24 +251,15 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update group request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_GROUP_CREATION)
+            )
             return HttpResponseRedirect(reverse("usersec:orphan-user"))
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            emails = [obj.requester.email]
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Group request updated.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_GROUP_CREATION)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -246,19 +274,14 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
-        messages.success(self.request, "Request successfully retracted.")
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=[obj.requester.email] + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_GROUP_CREATION)
+        )
 
         return HttpResponseRedirect(
             reverse(
@@ -279,20 +302,16 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=[obj.requester.email] + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_GROUP_CREATION)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupcreaterequest-detail",
@@ -415,21 +434,19 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
         obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't create user request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_USER_CREATION)
+            )
             return HttpResponseRedirect(
                 reverse("usersec:hpcgroup-details", kwargs={"hpcgroup": obj.group.uuid})
             )
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "User request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMITTED, MSG_PART_USER_CREATION)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcusercreaterequest-detail",
@@ -503,24 +520,17 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update user request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_USER_CREATION)
+            )
             return HttpResponseRedirect(reverse("home"))
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            emails = obj.group.get_manager_emails()
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "User request updated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_USER_CREATION)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -535,20 +545,14 @@ class HpcUserCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully retracted.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_USER_CREATION)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcusercreaterequest-detail",
@@ -568,20 +572,16 @@ class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_USER_CREATION)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcusercreaterequest-detail",
@@ -653,21 +653,19 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't create group change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_GROUP_UPDATE)
+            )
             return HttpResponseRedirect(
                 reverse("usersec:hpcgroup-detail", kwargs={"hpcgroup": obj.group.uuid})
             )
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Project request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_GROUP_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupchangerequest-detail",
@@ -741,24 +739,15 @@ class HpcGroupChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update group change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_GROUP_UPDATE)
+            )
             return HttpResponseRedirect(reverse("home"))
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            emails = obj.group.get_manager_emails()
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Group change request updated.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_GROUP_UPDATE)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -773,20 +762,14 @@ class HpcGroupChangeRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully retracted.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_GROUP_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupchangerequest-detail",
@@ -806,20 +789,16 @@ class HpcGroupChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_GROUP_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupchangerequest-detail",
@@ -891,19 +870,17 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't create user change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_USER_UPDATE)
+            )
             return HttpResponseRedirect(reverse("home"))
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.user.primary_group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "User change request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_USER_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuserchangerequest-detail",
@@ -977,24 +954,15 @@ class HpcUserChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update user change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_USER_UPDATE)
+            )
             return HttpResponseRedirect(reverse("home"))
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            emails = obj.user.primary_group.get_manager_emails()
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "User change request updated.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_USER_UPDATE)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1009,20 +977,14 @@ class HpcUserChangeRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=obj.user.primary_group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully retracted.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_USER_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuserchangerequest-detail",
@@ -1042,20 +1004,16 @@ class HpcUserChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.user.primary_group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_USER_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuserchangerequest-detail",
@@ -1129,15 +1087,12 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
             )
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
+            send_notification_manager_project_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Project request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_PROJECT_CREATION)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectcreaterequest-detail",
@@ -1211,27 +1166,18 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update project request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_PROJECT_CREATION)
+            )
             return HttpResponseRedirect(reverse("home"))
 
         obj.members.set(form.cleaned_data["members"])
         obj.version_history.last().members.set(form.cleaned_data["members"])
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            emails = obj.group.get_manager_emails()
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Project request updated.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_PROJECT_CREATION)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1246,19 +1192,14 @@ class HpcProjectCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
-        messages.success(self.request, "Request successfully retracted.")
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_PROJECT_CREATION)
+        )
 
         return HttpResponseRedirect(
             reverse(
@@ -1279,20 +1220,17 @@ class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.group.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request,
+            MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_PROJECT_CREATION),
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectcreaterequest-detail",
@@ -1368,21 +1306,19 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj.version_history.last().members.set(form.cleaned_data["members"])
 
         if not obj:
-            messages.error(self.request, "Couldn't create project change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_PROJECT_UPDATE)
+            )
             return HttpResponseRedirect(
                 reverse("usersec:hpcprojectchangerequest-create", kwargs={"hpcproject": obj.uuid})
             )
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.project.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Project change request submitted.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_PROJECT_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectchangerequest-detail",
@@ -1448,7 +1384,6 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
 
         if obj.status == REQUEST_STATUS_REVISION:
             obj = obj.revised_with_version()
@@ -1457,24 +1392,15 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             obj = obj.save_with_version()
 
         if not obj:
-            messages.error(self.request, "Couldn't update project change request.")
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_PROJECT_UPDATE)
+            )
             return HttpResponseRedirect(reverse("home"))
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            emails = obj.project.get_manager_emails()
-
-            if status == REQUEST_STATUS_REVISION:
-                emails += get_admin_emails()
-
-            send_notification_request_status_changed(
-                recipient_list=emails,
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Project change request updated.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_PROJECT_UPDATE)
+        )
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1489,20 +1415,14 @@ class HpcProjectChangeRequestRetractView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = "Request retracted"
+        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
         obj.retract_with_version()
 
-        if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
-
-            send_notification_request_status_changed(
-                recipient_list=obj.project.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully retracted.")
+        # No email notification required
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_PROJECT_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectchangerequest-detail",
@@ -1522,20 +1442,16 @@ class HpcProjectChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = "Request reactivated"
+        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_admin_request(obj)
 
-            send_notification_request_status_changed(
-                recipient_list=obj.project.get_manager_emails() + get_admin_emails(),
-                obj=obj,
-                request=self.request,
-            )
-
-        messages.success(self.request, "Request successfully re-activated.")
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_PROJECT_UPDATE)
+        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectchangerequest-detail",
@@ -1566,10 +1482,7 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
         obj = self.get_object()
 
         if self.request.user.is_superuser:
-            messages.error(
-                request,
-                "Superuser is not allowed to accept invitations. This would lead to inconsistencies.",
-            )
+            messages.error(request, MSG_INVITATION_SUPERUSER)
             return HttpResponseRedirect(
                 reverse(
                     "usersec:hpcgroupinvitation-detail",
@@ -1594,7 +1507,7 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
             )
 
         except Exception as e:
-            messages.error(request, "Could not create user: {}".format(e))
+            messages.error(request, MSG_INVITATION_GROUP_USER_CREATE_FAILURE.format(e))
             return HttpResponseRedirect(
                 reverse(
                     "usersec:hpcgroupinvitation-detail",
@@ -1603,19 +1516,10 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
             )
 
         if settings.SEND_EMAIL:
-            from adminsec.views import get_admin_emails
+            send_notification_manager_user_decided_invitation(obj)
+            send_notification_user_welcome_mail(hpcuser)
 
-            send_notification_user_decided_invitation(
-                invitation=obj,
-                request=self.request,
-            )
-            send_notification_object_created(
-                recipient_list=hpcuser.primary_group.get_manager_emails() + get_admin_emails(),
-                obj=hpcuser,
-                request=self.request,
-            )
-
-        messages.success(request, "Invitation successfully accepted and user created.")
+        messages.success(request, MSG_INVITATION_GROUP_USER_CREATE_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
@@ -1639,12 +1543,9 @@ class HpcGroupInvitationRejectView(HpcPermissionMixin, DeleteView):
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            send_notification_user_decided_invitation(
-                invitation=obj,
-                request=self.request,
-            )
+            send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(request, "Invitation successfully rejected.")
+        messages.success(request, MSG_INVITATION_REJECTED_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupinvitation-detail",
@@ -1667,7 +1568,7 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
         if request.user.is_superuser:
             messages.error(
                 request,
-                "Superuser is not allowed to accept invitations. This would lead to inconsistencies.",
+                MSG_INVITATION_SUPERUSER,
             )
             return HttpResponseRedirect(reverse("home"))
 
@@ -1687,7 +1588,7 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
             project.version_history.last().members.add(obj.user)
 
         except Exception as e:
-            messages.error(request, "Could not add user to project: {}".format(e))
+            messages.error(request, MSG_INVITATION_PROJECT_USER_ADD_FAILURE.format(e))
             return HttpResponseRedirect(
                 reverse(
                     "usersec:hpcuser-overview",
@@ -1696,12 +1597,9 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
             )
 
         if settings.SEND_EMAIL:
-            send_notification_user_decided_invitation(
-                invitation=obj,
-                request=self.request,
-            )
+            send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(request, "Successfully joined the project.")
+        messages.success(request, MSG_INVITATION_PROJECT_USER_ADD_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
@@ -1725,12 +1623,9 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
-            send_notification_user_decided_invitation(
-                invitation=obj,
-                request=self.request,
-            )
+            send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(self.request, "Invitation successfully rejected.")
+        messages.success(self.request, MSG_INVITATION_REJECTED_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",

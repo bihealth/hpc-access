@@ -1,4 +1,3 @@
-import pytest
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
@@ -7,15 +6,12 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory
 from django.urls import reverse
+import pytest
 
 from hpcaccess.users.forms import UserAdminChangeForm
 from hpcaccess.users.models import User
 from hpcaccess.users.tests.factories import UserFactory
-from hpcaccess.users.views import (
-    UserRedirectView,
-    UserUpdateView,
-    user_detail_view,
-)
+from hpcaccess.users.views import UserRedirectView, UserUpdateView, user_detail_view
 
 pytestmark = pytest.mark.django_db
 

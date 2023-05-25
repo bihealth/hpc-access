@@ -3,7 +3,6 @@ import rules
 from adminsec.rules import is_hpcadmin
 from usersec.models import HpcGroupInvitation
 
-
 # ------------------------------------------------------------------------------
 # Predicates
 # ------------------------------------------------------------------------------
