@@ -106,7 +106,7 @@ COMMENT_APPROVED = "Request approved"
 
 
 def get_admin_emails():
-    return [u.email for u in User.objects.filter(is_hpcadmin=True, email__isnull=False)]
+    return [u.email for u in User.objects.filter(is_hpcadmin=True) if u.email]
 
 
 def ldap_to_hpc_username(username, domain):
