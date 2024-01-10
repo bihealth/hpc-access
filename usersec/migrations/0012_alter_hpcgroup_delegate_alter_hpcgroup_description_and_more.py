@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0011_alter_hpcgroupchangerequest_comment_and_more"),
     ]

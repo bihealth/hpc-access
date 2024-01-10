@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0003_link_version_objects_to_nonversion_objects"),
     ]

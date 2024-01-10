@@ -62,6 +62,22 @@ if [[ "$1" == wsgi ]]; then
     --timeout "$GUNICORN_TIMEOUT" \
     --workers "$GUNICORN_WORKERS" \
     config.wsgi
+elif [[ "$1" == celeryd ]]; then
+  cd $APP_DIR
+
+  exec celery \
+    --app config.celery_app \
+    worker \
+    --loglevel info
+elif [[ "$1" == celerybeat ]]; then
+  cd $APP_DIR
+  rm -f celerybeat.pid
+
+  exec celery \
+    --app config.celery_app \
+    beat \
+    --max-interval 30 \
+    --loglevel info
 else
   cd $APP_DIR
   exec "$@"

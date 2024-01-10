@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0009_hpcproject_hpcprojectchangerequest_and_more"),
     ]

@@ -10,7 +10,6 @@ import usersec.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("usersec", "0008_alter_hpcusercreaterequest_email_and_more"),

@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0006_remove_hpcuser_email_remove_hpcuser_first_names_and_more"),
     ]

@@ -3,7 +3,10 @@ Base settings to build other settings files upon.
 """
 from pathlib import Path
 
+from dotenv import load_dotenv
 import environ
+
+load_dotenv()
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # hpcaccess/
@@ -13,7 +16,7 @@ env = environ.Env()
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
-    env.read_env(str(ROOT_DIR / ".env"))
+    env.read_env(ROOT_DIR / ".env")
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -383,3 +386,24 @@ SEND_EMAIL = env.bool("SEND_EMAIL", False)
 EMAIL_HOST = env.str("EMAIL_HOST", "localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", 25)
 EMAIL_SENDER = env.str("EMAIL_SENDER", "root@admin")
+
+
+# Celery
+# ------------------------------------------------------------------------------
+if USE_TZ:
+    # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-timezone
+    CELERY_TIMEZONE = TIME_ZONE
+# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", "redis://localhost:6379/0")
+# http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_backend
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+# # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-accept_content
+# CELERY_ACCEPT_CONTENT = ["json"]
+# # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-task_serializer
+# CELERY_TASK_SERIALIZER = "json"
+# # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_serializer
+# CELERY_RESULT_SERIALIZER = "json"
+# # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-time-limit
+# CELERYD_TASK_TIME_LIMIT = 5 * 60
+# # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
+# CELERYD_TASK_SOFT_TIME_LIMIT = 60

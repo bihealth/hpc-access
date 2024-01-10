@@ -9,7 +9,6 @@ import usersec.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0012_alter_hpcgroup_delegate_alter_hpcgroup_description_and_more"),
     ]
