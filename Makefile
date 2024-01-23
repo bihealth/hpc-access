@@ -8,6 +8,9 @@ arg =
 serve:
 	$(manage) runserver
 
+celery:
+	celery -A config.celery_app worker -l info --beat
+
 
 .PHONY: lack
 black:

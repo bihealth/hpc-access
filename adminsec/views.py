@@ -141,7 +141,13 @@ def convert_to_posix(name):
 
 # TODO this should be just a suggestion and the field should be editable
 def generate_hpc_groupname(name):
-    return f"{AG_PREFIX}{convert_to_posix(name).lower()}"
+    name_split = name.rsplit(" ", 1)
+    surname = ""
+    if len(name_split) == 2:
+        surname = name_split[1]
+    elif len(name_split) == 1:
+        surname = name_split[0]
+    return f"{AG_PREFIX}{convert_to_posix(surname).lower()}"
 
 
 class AdminView(HpcPermissionMixin, TemplateView):
@@ -221,6 +227,7 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
         context["admin"] = True
+        context["suggested_groupname"] = generate_hpc_groupname(obj.requester.name)
         return context
 
 
@@ -281,14 +288,13 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        surname = obj.requester.name.rsplit(" ", 1)[1]
 
         # Create HpcGroup object
         hpcgroup = HpcGroup.objects.create_with_version(
             resources_requested=obj.resources_requested,
             description=obj.description,
             creator=self.request.user,
-            name=generate_hpc_groupname(surname),
+            name=generate_hpc_groupname(obj.requester.name),
             expiration=obj.expiration,
         )
 

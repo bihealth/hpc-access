@@ -1,5 +1,5 @@
 from .base import *  # noqa
-from .base import env
+from .base import MIDDLEWARE, env
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -51,6 +51,11 @@ SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)
 # https://docs.djangoproject.com/en/dev/ref/middleware/#x-content-type-options-nosniff
 SECURE_CONTENT_TYPE_NOSNIFF = env.bool("DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", default=True)
 
+# Use Whitenoise to serve static files
+# See: https://whitenoise.readthedocs.io/
+WHITENOISE_MIDDLEWARE = ["whitenoise.middleware.WhiteNoiseMiddleware"]
+MIDDLEWARE = WHITENOISE_MIDDLEWARE + MIDDLEWARE
+
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-from-email
@@ -69,7 +74,7 @@ EMAIL_SUBJECT_PREFIX = env(
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
-ADMIN_URL = env("DJANGO_ADMIN_URL")
+# ADMIN_URL = env("DJANGO_ADMIN_URL")
 
 
 # LOGGING
@@ -123,11 +128,12 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")  # noqa F405
 
+# Static Assets
+# ------------------------
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 # Add optional custom directory for static includes at deployment stage
 STATICFILES_DIRS += env.list("CUSTOM_STATIC_DIR", default=[])  # noqa F405
-
-# Add Samplesheets vue.js app assets
-# STATICFILES_DIRS.append(str(ROOT_DIR('samplesheets/vueapp/dist')))
 
 DISABLE_CDN_INCLUDES = env.bool("DISABLE_CDN_INCLUDES", default=False)
 CUSTOM_JS_INCLUDES = env.list(

@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  Python-Test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: hpcaccess
+          POSTGRES_USER: hpcaccess
+          POSTGRES_PASSWORD: hpcaccess
+          DATABASE_URL: postgres://hpcaccess:hpcaccess@postgres/hpcaccess
+          CELERY_BROKER_URL: redis://redis:6379/0
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+
+    env:
+      CELERY_BROKER_URL: redis://0.0.0.0:6379/0
+      DATABASE_URL: 'postgres://hpcaccess:hpcaccess@0.0.0.0/hpcaccess'
+      POSTGRES_HOST: 0.0.0.0
+      POSTGRES_PORT: 5432
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential zlib1g-dev libtiff5-dev libjpeg8-dev \
+              libfreetype6-dev liblcms2-dev libwebp-dev libpq-dev graphviz-dev \
+              libldap2-dev libsasl2-dev
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          # We need to fix the patch version here otherwise, snapshot tests
+          # with randomness will / may fail.
+          python-version: "3.10.13"
+
+      - name: Install pip and Pipenv
+        run: |
+          pip install -U pip pipenv
+
+      - name: Install project dependencies with pipenv
+        run: |
+          pipenv install --verbose --categories=packages,dev-packages,ldap-packages
+
+      - name: Download icons
+        run: pipenv run python manage.py geticons
+
+      - name: Run collectstatic
+        run: pipenv run python manage.py collectstatic --noinput
+
+      - name: Run tests
+        run: |
+          pipenv run coverage run --rcfile=.coveragerc manage.py test -v 2 --settings=config.settings.test
+          pipenv run coverage xml
+          pipenv run coverage report
+        # Important: use shell that was initialized by micromamba.
+        # shell: bash -el {0}
+
+  Python-Lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install pip and Pipenv
+        run: |
+            pip install pip pipenv
+
+      - name: Install project dependencies with pipenv
+        run: |
+          pipenv install --categories=packages,dev-packages
+
+      - name: Check import order with isort
+        run: |
+          rm -rf src
+          pipenv run isort --force-sort-within-sections --profile=black --check .
+
+      - name: Check style with black
+        run: |
+          pipenv run black --check --line-length 100 .
+
+      - name: Run linting
+        run: |
+          pipenv run flake8
+
