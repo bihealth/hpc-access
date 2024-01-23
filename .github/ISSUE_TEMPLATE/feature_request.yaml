@@ -26,4 +26,4 @@ body:
       placeholder: Tell us what you've seen!
       value: "They did a similar thing!"
     validations:
-      required: true
+      required: false
