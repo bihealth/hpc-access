@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "ldap-server-mock": "^6.0.1"
+  }
+}

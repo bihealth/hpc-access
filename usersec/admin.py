@@ -9,6 +9,14 @@ from usersec.models import (
     HpcGroupDeleteRequest,
     HpcGroupDeleteRequestVersion,
     HpcGroupVersion,
+    HpcProject,
+    HpcProjectChangeRequest,
+    HpcProjectChangeRequestVersion,
+    HpcProjectCreateRequest,
+    HpcProjectCreateRequestVersion,
+    HpcProjectDeleteRequest,
+    HpcProjectDeleteRequestVersion,
+    HpcProjectVersion,
     HpcUser,
     HpcUserChangeRequest,
     HpcUserChangeRequestVersion,
@@ -48,3 +56,18 @@ admin.site.register(HpcGroupChangeRequestVersion)
 
 admin.site.register(HpcGroupDeleteRequest)
 admin.site.register(HpcGroupDeleteRequestVersion)
+
+# HpcProject related
+# ------------------------------------------------------------------------------
+
+admin.site.register(HpcProject)
+admin.site.register(HpcProjectVersion)
+
+admin.site.register(HpcProjectCreateRequest)
+admin.site.register(HpcProjectCreateRequestVersion)
+
+admin.site.register(HpcProjectChangeRequest)
+admin.site.register(HpcProjectChangeRequestVersion)
+
+admin.site.register(HpcProjectDeleteRequest)
+admin.site.register(HpcProjectDeleteRequestVersion)

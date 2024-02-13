@@ -1,0 +1,12 @@
+- date_created: '2023-12-21 15:44:23.596510+00:00'
+  description: null
+  expiration: '2024-01-31 00:00:00+00:00'
+  group:
+    name: ag_
+    owner: ''
+  members:
+  - ''
+  name: MyProject
+  status: ACTIVE
+  type: HpcProject
+  uuid: e3740790-1a91-4ade-a37b-afeff0237dfa
