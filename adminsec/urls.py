@@ -253,7 +253,7 @@ urlpatterns_api = [
     ),
     path(
         "api/hpcuser/<uuid:hpcuser>/",
-        view=views_api.HpcGroupRetrieveUpdateApiView.as_view(),
+        view=views_api.HpcUserRetrieveUpdateApiView.as_view(),
         name="api-hpcuser-retrieveupdate",
     ),
     # API endpoints for HpcGroup

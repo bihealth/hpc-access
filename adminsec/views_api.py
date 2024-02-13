@@ -32,7 +32,7 @@ class HpcUserRetrieveUpdateApiView(RetrieveUpdateAPIView):
 
     def get_object(self):
         """Return the object to be used in the view."""
-        return get_object_or_404(HpcUser, uuid=self.kwargs["uuid"])
+        return get_object_or_404(HpcUser, uuid=self.kwargs["hpcuser"])
 
 
 class HpcGroupListApiView(ListAPIView):
@@ -52,7 +52,7 @@ class HpcGroupRetrieveUpdateApiView(RetrieveUpdateAPIView):
 
     def get_object(self):
         """Return the object to be used in the view."""
-        return get_object_or_404(HpcGroup, uuid=self.kwargs["uuid"])
+        return get_object_or_404(HpcGroup, uuid=self.kwargs["hpcgroup"])
 
 
 class HpcProjectListApiView(ListAPIView):
@@ -72,4 +72,4 @@ class HpcProjectRetrieveUpdateApiView(RetrieveUpdateAPIView):
 
     def get_object(self):
         """Return the object to be used in the view."""
-        return get_object_or_404(HpcProject, uuid=self.kwargs["uuid"])
+        return get_object_or_404(HpcProject, uuid=self.kwargs["hpcproject"])
