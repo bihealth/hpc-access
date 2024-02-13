@@ -77,6 +77,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "rules.apps.AutodiscoverRulesConfig",
     "rest_framework",
+    "knox",
 ]
 
 LOCAL_APPS = [
@@ -415,6 +416,11 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 # Use cursor navigation for stability during changes.
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+        "knox.auth.TokenAuthentication",
+    ),
     "DEFAULT_PAGINATION_CLASS": "hpcaccess.utils.rest_framework.CursorPagination",
     "PAGE_SIZE": 100,
 }
