@@ -76,6 +76,8 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "rules.apps.AutodiscoverRulesConfig",
+    "rest_framework",
+    "knox",
 ]
 
 LOCAL_APPS = [
@@ -408,3 +410,17 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 # CELERYD_TASK_TIME_LIMIT = 5 * 60
 # # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
 # CELERYD_TASK_SOFT_TIME_LIMIT = 60
+
+# Django REST Framework
+# ------------------------------------------------------------------------------
+
+# Use cursor navigation for stability during changes.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+        "knox.auth.TokenAuthentication",
+    ),
+    "DEFAULT_PAGINATION_CLASS": "hpcaccess.utils.rest_framework.CursorPagination",
+    "PAGE_SIZE": 100,
+}

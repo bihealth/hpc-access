@@ -1,11 +1,11 @@
 from django.urls import path
 
-from adminsec import views
+from adminsec import views, views_api
 
 app_name = "adminsec"
 
 
-urlpatterns = [
+urlpatterns_ui = [
     path(
         "overview/",
         view=views.AdminView.as_view(),
@@ -243,3 +243,41 @@ urlpatterns = [
         name="hpcprojectdeleterequest-deny",
     ),
 ]
+
+urlpatterns_api = [
+    # API endpoints for HpcUser
+    path(
+        "api/hpcuser/",
+        view=views_api.HpcUserListApiView.as_view(),
+        name="api-hpcuser-list",
+    ),
+    path(
+        "api/hpcuser/<uuid:hpcuser>/",
+        view=views_api.HpcUserRetrieveUpdateApiView.as_view(),
+        name="api-hpcuser-retrieveupdate",
+    ),
+    # API endpoints for HpcGroup
+    path(
+        "api/hpcgroup/",
+        view=views_api.HpcGroupListApiView.as_view(),
+        name="api-hpcgroup-list",
+    ),
+    path(
+        "api/hpcgroup/<uuid:hpcgroup>/",
+        view=views_api.HpcGroupRetrieveUpdateApiView.as_view(),
+        name="api-hpcgroup-retrieveupdate",
+    ),
+    # API endpoints for HpcProject
+    path(
+        "api/hpcproject/",
+        view=views_api.HpcProjectListApiView.as_view(),
+        name="api-hpcproject-list",
+    ),
+    path(
+        "api/hpcproject/<uuid:hpcproject>/",
+        view=views_api.HpcProjectRetrieveUpdateApiView.as_view(),
+        name="api-hpcproject-retrieveupdate",
+    ),
+]
+
+urlpatterns = urlpatterns_ui + urlpatterns_api

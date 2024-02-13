@@ -43,3 +43,8 @@ INSTITUTE2_EMAIL_DOMAINS = "mdc-berlin.de"
 
 INSTITUTE_USERNAME_SUFFIX = "c"
 INSTITUTE2_USERNAME_SUFFIX = "m"
+
+# Snapshot Testing
+# ------------------------------------------------------------------------------
+
+TEST_RUNNER = "snapshottest.django.TestRunner"
