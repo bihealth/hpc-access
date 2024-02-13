@@ -76,6 +76,7 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "rules.apps.AutodiscoverRulesConfig",
+    "rest_framework",
 ]
 
 LOCAL_APPS = [
@@ -408,3 +409,12 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 # CELERYD_TASK_TIME_LIMIT = 5 * 60
 # # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
 # CELERYD_TASK_SOFT_TIME_LIMIT = 60
+
+# Django REST Framework
+# ------------------------------------------------------------------------------
+
+# Use cursor navigation for stability during changes.
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
+    "PAGE_SIZE": 100,
+}

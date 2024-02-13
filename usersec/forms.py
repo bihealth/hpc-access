@@ -95,9 +95,9 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             self.fields["expiration"].initial = datetime(
                 year=timezone.now().year + 1, month=1, day=31
             )
-            self.fields[
-                "expiration"
-            ].help_text = "Default expiration date is set to end of the current year with one month grace period."
+            self.fields["expiration"].help_text = (
+                "Default expiration date is set to end of the current year with one month grace period."
+            )
 
             # Add fields for storage. Will be merged into resources_requested field.
             self.fields["tier1"] = forms.IntegerField(
@@ -220,9 +220,9 @@ class HpcUserChangeRequestForm(forms.ModelForm):
             self.fields["expiration"].initial = datetime(
                 year=timezone.now().year + 1, month=1, day=31
             )
-            self.fields[
-                "expiration"
-            ].help_text = "Default expiration date is fixed to end of the current year with one month grace period. "
+            self.fields["expiration"].help_text = (
+                "Default expiration date is fixed to end of the current year with one month grace period. "
+            )
 
         else:
             self.fields["expiration"].widget = forms.HiddenInput()
@@ -372,9 +372,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["expiration"].initial = datetime(
                 year=timezone.now().year + 1, month=1, day=31
             )
-            self.fields[
-                "expiration"
-            ].help_text = "Default expiration date is fixed to end of the current year with one month grace period."
+            self.fields["expiration"].help_text = (
+                "Default expiration date is fixed to end of the current year with one month grace period."
+            )
 
             # Exclude users from member selection that have no User associated
             self.fields["members_dropdown"] = forms.ModelChoiceField(

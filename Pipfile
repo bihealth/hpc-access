@@ -24,6 +24,8 @@ sentry-sdk = "~=1.5.11"
 rules = "~=3.3"
 ldap3 = "~=2.9.1"
 packages = "*"
+django-rest-framework = "*"
+django-rest-knox = "*"
 
 [dev-packages]
 Werkzeug = "*"
@@ -46,6 +48,8 @@ django-debug-toolbar = "*"
 django-extensions = "*"
 django-coverage-plugin = "*"
 pytest-django = "*"
+freezegun = "*"
+snapshottest = "*"
 
 [ldap-packages]
 django-auth-ldap = "~=4.0.0"
