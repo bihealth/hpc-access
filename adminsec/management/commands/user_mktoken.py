@@ -1,7 +1,7 @@
 """Create a new token for a worker user (create worker if necessary)."""
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from knox.models import AuthToken
 
 User = get_user_model()
