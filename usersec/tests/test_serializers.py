@@ -1,10 +1,14 @@
 from freezegun import freeze_time
 from snapshottest.django import TestCase as TestCaseSnap
 from test_plus import TestCase as TestCasePlus
-from hpcaccess.utils.tests import FROZEN_TIME
-from usersec.serializers import HpcUserSerializer, HpcGroupSerializer, HpcProjectSerializer
 
-from usersec.tests.factories import HpcGroupFactory, HpcUserFactory, HpcProjectFactory
+from hpcaccess.utils.tests import FROZEN_TIME
+from usersec.serializers import (
+    HpcGroupSerializer,
+    HpcProjectSerializer,
+    HpcUserSerializer,
+)
+from usersec.tests.factories import HpcGroupFactory, HpcProjectFactory, HpcUserFactory
 
 
 class ResetSequenceMixin:
@@ -25,8 +29,8 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def testSerializeExisting(self):
         serializer = HpcUserSerializer(self.hpc_user)
         result = dict(serializer.data)
-        result['uuid'] = 'uuid_placeholder'
-        result['primary_group'] = 'primary_group_uuid_placeholder'
+        result["uuid"] = "uuid_placeholder"
+        result["primary_group"] = "primary_group_uuid_placeholder"
         self.assertMatchSnapshot(result)
 
 
@@ -39,9 +43,8 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def testSerializeExisting(self):
         serializer = HpcGroupSerializer(self.hpc_group)
         result = dict(serializer.data)
-        result['uuid'] = 'uuid_placeholder'
+        result["uuid"] = "uuid_placeholder"
         self.assertMatchSnapshot(result)
-
 
 
 @freeze_time(FROZEN_TIME)
@@ -53,5 +56,5 @@ class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def testSerializeExisting(self):
         serializer = HpcProjectSerializer(self.hpc_group)
         result = dict(serializer.data)
-        result['uuid'] = 'uuid_placeholder'
+        result["uuid"] = "uuid_placeholder"
         self.assertMatchSnapshot(result)

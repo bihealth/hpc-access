@@ -21,11 +21,9 @@ class HpcObjectAbstractSerializer(serializers.Serializer):
 class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC user serializers."""
 
-    user = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     primary_group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
-    creator = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     uid = serializers.IntegerField()
@@ -34,11 +32,9 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
-            "user",
             "primary_group",
             "resources_requested",
             "resources_used",
-            "creator",
             "status",
             "description",
             "uid",
@@ -79,7 +75,6 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
-    creator = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
@@ -93,7 +88,6 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
             "delegate",
             "resources_requested",
             "resources_used",
-            "creator",
             "status",
             "description",
             "gid",
@@ -113,6 +107,7 @@ class HpcGroupSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer
         fields = HpcGroupAbstractSerializer.Meta.fields + [
             "current_version",
         ]
+
 
 class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer):
     """Serializer for HpcGroupVersion model."""
@@ -134,7 +129,6 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
-    creator = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
@@ -148,7 +142,6 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
             "delegate",
             "resources_requested",
             "resources_used",
-            "creator",
             "status",
             "description",
             "gid",
@@ -168,6 +161,7 @@ class HpcProjectSerializer(HpcProjectAbstractSerializer, serializers.ModelSerial
         fields = HpcProjectAbstractSerializer.Meta.fields + [
             "current_version",
         ]
+
 
 class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.ModelSerializer):
     """Serializer for HpcProjectVersion model."""

@@ -415,6 +415,6 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 # Use cursor navigation for stability during changes.
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
+    "DEFAULT_PAGINATION_CLASS": "hpcaccess.utils.rest_framework.CursorPagination",
     "PAGE_SIZE": 100,
 }
