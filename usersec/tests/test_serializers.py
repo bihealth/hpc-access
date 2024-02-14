@@ -56,4 +56,5 @@ class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcProjectSerializer(self.hpc_group)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        result["group"] = "group_uuid_placeholder"
         self.assertMatchSnapshot(result)
