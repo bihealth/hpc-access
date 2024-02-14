@@ -16,8 +16,8 @@ snapshots["TestHpcGroupSerializer::testSerializeExisting 1"] = {
     "gid": 2000,
     "name": "hpc-group0",
     "owner": None,
-    "resources_requested": {"tier1": 1, "tier2": 0},
-    "resources_used": {"tier1": 0.5, "tier2": 0},
+    "resources_requested": {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0},
+    "resources_used": {"tier1": 0.5, "tier2_mirrored": 0, "tier2_unmirrored": 0},
     "status": "INITIAL",
     "uuid": "uuid_placeholder",
 }

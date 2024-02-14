@@ -16,9 +16,9 @@ from usersec.models import (
     HpcUserCreateRequest,
 )
 
-DEFAULT_USER_RESOURCES = {"tier1": "1", "tier2": "0"}
-DEFAULT_GROUP_RESOURCES = {"tier1": "1", "tier2": "0"}
-DEFAULT_PROJECT_RESOURCES = {"tier1": "1", "tier2": "0"}
+DEFAULT_USER_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
+DEFAULT_GROUP_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
+DEFAULT_PROJECT_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
 
 
 class HpcGroupCreateRequestForm(forms.ModelForm):
@@ -111,16 +111,29 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             self.fields["tier1"].initial = group.resources_requested["tier1"]
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
-            self.fields["tier2"] = forms.IntegerField(
+            self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
                     "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "Alternatively, you can use your group storage at Charite or MDC."
+                    "This storage is not mirrored and should be used for data that can be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage [TB]",
+                label="Long-Term Storage Unmirrored [TB]",
             )
-            self.fields["tier2"].initial = group.resources_requested["tier2"]
-            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier2_unmirrored"].initial = group.resources_requested["tier2_unmirrored"]
+            self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2_mirrored"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage Mirrored [TB]",
+            )
+            self.fields["tier2_mirrored"].initial = group.resources_requested["tier2_mirrored"]
+            self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["delegate"].widget = forms.HiddenInput()
@@ -294,16 +307,29 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
-            self.fields["tier2"] = forms.IntegerField(
+            self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
                     "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "Alternatively, you can use your group storage at Charite or MDC."
+                    "This storage is not mirrored and should be used for data that can be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage [TB]",
+                label="Long-Term Storage Unmirrored [TB]",
             )
-            self.fields["tier2"].initial = DEFAULT_PROJECT_RESOURCES["tier2"]
-            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
+            self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2_mirrored"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage Mirrored [TB]",
+            )
+            self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
+            self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["delegate"].widget = forms.HiddenInput()
@@ -397,16 +423,29 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
             self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
 
-            self.fields["tier2"] = forms.IntegerField(
+            self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
                     "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "Alternatively, you can use your group storage at Charite or MDC."
+                    "This storage is not mirrored and should be used for data that can be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage [TB]",
+                label="Long-Term Storage Unmirrored [TB]",
             )
-            self.fields["tier2"].initial = DEFAULT_PROJECT_RESOURCES["tier2"]
-            self.fields["tier2"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
+            self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier2_mirrored"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
+                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
+                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                ),
+                label="Long-Term Storage Mirrored [TB]",
+            )
+            self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
+            self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
             self.fields["delegate"].widget = forms.HiddenInput()
