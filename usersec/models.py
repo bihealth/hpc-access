@@ -325,9 +325,6 @@ class HpcUserAbstract(HpcObjectAbstract):
         help_text="Additional information about the user",
     )
 
-    #: POSIX id of the user on the cluster.
-    uid = models.IntegerField(null=True, help_text="Id of the user on the cluster")
-
     #: POSIX username on the cluster.
     username = models.CharField(max_length=32, help_text="Username of the user on the cluster")
 
@@ -353,7 +350,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
             self.id,
             self.user.username if self.user else None,
             self.username,
-            self.uid,
+            self.user.uid if self.user else None,
             self.primary_group.name,
             self.status,
             self.creator.username if self.creator else None,
