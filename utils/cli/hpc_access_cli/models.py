@@ -7,7 +7,7 @@ import grp
 import os
 import pwd
 import stat
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 import xattr
@@ -292,3 +292,14 @@ class MailmanSubscription(BaseModel):
 
     #: The member's email address.
     member_address: str
+
+
+class SystemState(BaseModel):
+    """System state retrieved from LDAP and file system."""
+
+    #: Mapping from file system path to ``FsDirectory``.
+    fs_directories: Dict[str, FsDirectory]
+    #: Mapping from LDAP dn to ``LdapUser``.
+    ldap_users: Dict[str, LdapUser]
+    #: Mapping from LDAP dn to ``LdapGroup``.
+    ldap_groups: Dict[str, LdapGroup]
