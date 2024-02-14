@@ -1,5 +1,6 @@
 import typer
 from hpc_access_cli.config import load_settings
+from hpc_access_cli.ldap import LdapConnection
 from rich.console import Console
 from typing_extensions import Annotated
 
@@ -22,14 +23,16 @@ def record_usage(
 
 
 @app.command("sync")
-def report_usage(
+def sync(
     config_path: Annotated[
         str, typer.Option(..., help="path to configuration file")
     ] = "/etc/hpc-access-cli/config.json",
 ):
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
-    _ = settings
+    connection = LdapConnection(settings.ldap_hpc)
+    for user in connection.load_users():
+        console.print_json(data=user.model_dump())
 
 
 if __name__ == "__main__":

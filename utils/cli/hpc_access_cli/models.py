@@ -1,10 +1,14 @@
 """Pydantic models for representing records."""
 
+import datetime
+import enum
 import errno
 import grp
 import os
 import pwd
 import stat
+from typing import List, Optional
+from uuid import UUID
 
 import xattr
 from pydantic import BaseModel
@@ -83,3 +87,196 @@ class FsDirectory(BaseModel):
             quota_bytes=quota_bytes,
             quota_files=quota_files,
         )
+
+
+class Gecos(BaseModel):
+    """GECOS information about a user."""
+
+    #: The full name of the user.
+    full_name: Optional[str] = None
+    #: The office location of the user.
+    office_location: Optional[str] = None
+    #: The office phone number of the user.
+    office_phone: Optional[str] = None
+    #: The home phone number of the user.
+    home_phone: Optional[str] = None
+    #: The other information about the user.
+    other: Optional[str] = None
+
+    def to_string(self):
+        """Convert the GECOS information to a GECOS string."""
+        return ",".join(
+            [
+                self.full_name if self.full_name else "",
+                self.office_location if self.office_location else "",
+                self.office_phone if self.office_phone else "",
+                self.home_phone if self.home_phone else "",
+                self.other if self.other else "",
+            ]
+        )
+
+    @staticmethod
+    def from_string(gecos: str) -> "Gecos":
+        """Create a new instance from a GECOS string."""
+        parts = gecos.split(",", 4)
+        if len(parts) < 5:
+            parts.extend([""] * (5 - len(parts)))
+        return Gecos(
+            full_name=parts[0] if parts[0] != "None" else None,
+            office_location=parts[1] if parts[1] != "None" else None,
+            office_phone=parts[2] if parts[2] != "None" else None,
+            home_phone=parts[3] if parts[3] != "None" else None,
+            other=parts[4] if parts[4] != "None" else None,
+        )
+
+
+class LdapUser(BaseModel):
+    """A user form the LDAP directory."""
+
+    #: The common name of the user.
+    cn: str
+    #: The distinguished name of the user.
+    dn: str
+    #: The username.
+    uid: str
+    #: The user's surname.
+    sn: str
+    #: The user's given name.
+    given_name: Optional[str]
+    #: The numeric user ID.
+    uid_number: int
+    #: The primary group of the user.
+    gid_number: int
+    #: The home directory of the user.
+    home_directory: str
+    #: The login shell of the user.
+    login_shell: str
+    #: The GECOS information of the user.
+    gecos: Optional[Gecos]
+    #: The email address of the user.
+    ssh_public_key: List[str]
+
+
+class LdapGroup(BaseModel):
+    """A group from the LDAP directory.
+
+    Note that we use this both for work groups and for projects.  Work groups
+    will have ``member_uids==[]`` as the members are added via their primary
+    numeric group uid.
+    """
+
+    #: The common name of the group.
+    cn: str
+    #: The distinguished name of the group.
+    dn: str
+    #: The description.
+    description: str
+    #: The numeric group ID.
+    gid_number: int
+    #: The distinguished name of the group's owner.
+    owner_dn: str
+    #: The distinguished name of the group's delegates.
+    delegate_dns: List[str]
+    #: The member uids (== user names) of the group.
+    member_uids: List[str]
+
+
+class ResourceData(BaseModel):
+    """A resource request/usage for a user."""
+
+    #: Storage on tier 1 in TB.
+    tier1: float
+    #: Storage on tier 2 (mirrored) in TB.
+    tier2_mirrored: float
+    #: Storage on tier 2 (unmirrored) in TB.
+    tier2_unmirrored: float
+
+
+@enum.unique
+class Status(enum.Enum):
+    """Status of a hpc user, group, or project."""
+
+    INITIAL = "INITIAL"
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
+    EXPIRED = "EXPIRED"
+
+
+class HpcUser(BaseModel):
+    """A user as read from the hpc-access API."""
+
+    #: The UUID of the record.
+    uuid: UUID
+    #: The UUID of the primary ``HpcGroup``.
+    primary_group: UUID
+    #: The requested resources.
+    resources_request: Optional[ResourceData]
+    #: The used resources.
+    resources_used: Optional[ResourceData]
+    #: The status of the record.
+    status: Status
+    #: The POSIX UID of the user.
+    uid: Optional[int]
+    #: The username of the record.
+    username: str
+    #: Point in time of user expiration.
+    expiration: datetime.datetime
+    #: The version of the user record.
+    current_version: int
+
+
+class HpcGroup(BaseModel):
+    """A group as read from the hpc-access API."""
+
+    #: The UUID of the record.
+    uuid: UUID
+    #: The owning ``HpcUser``.
+    owner: UUID
+    #: The delegate.
+    delegate: Optional[UUID]
+    #: The requested resources.
+    resources_request: Optional[ResourceData]
+    #: The used resources.
+    resources_used: Optional[ResourceData]
+    #: The status of the record.
+    status: Status
+    #: The POSIX GID of the corresponding Unix group.
+    gid: Optional[int]
+    #: The name of the record.
+    name: str
+    #: Point in time of group expiration.
+    expiration: datetime.datetime
+    #: The version of the group record.
+    current_version: int
+
+
+class HpcProject(BaseModel):
+    """A project as read from the hpc-access API."""
+
+    #: The UUID of the record.
+    uuid: UUID
+    #: The owning ``HpcGroup``, owner of group is owner of project.
+    group: UUID
+    #: The delegate for the project.
+    delegate: Optional[UUID]
+    #: The requested resources.
+    resources_request: Optional[ResourceData]
+    #: The used resources.
+    resources_used: Optional[ResourceData]
+    #: The status of the record.
+    status: Status
+    #: The POSIX GID of the corresponding Unix group.
+    gid: Optional[int]
+    #: The name of the record.
+    name: str
+    #: Point in time of group expiration.
+    expiration: datetime.datetime
+    #: The version of the project record.
+    current_version: int
+
+
+class MailmanSubscription(BaseModel):
+    """Information of a subscription to a mailman mailing list."""
+
+    #: The member's email address.
+    member_address: str
