@@ -221,8 +221,16 @@ class HpcUser(BaseModel):
     uuid: UUID
     #: The UUID of the primary ``HpcGroup``.
     primary_group: UUID
+    #: The full name of the user.
+    full_name: str
+    #: The first name fo the user.
+    first_name: Optional[str]
+    #: The last name of the user.
+    last_name: Optional[str]
+    #: The office phone number of the user.
+    phone_number: Optional[str]
     #: The requested resources.
-    resources_request: Optional[ResourceData]
+    resources_requested: Optional[ResourceData]
     #: The used resources.
     resources_used: Optional[ResourceData]
     #: The status of the record.
@@ -247,7 +255,7 @@ class HpcGroup(BaseModel):
     #: The delegate.
     delegate: Optional[UUID]
     #: The requested resources.
-    resources_request: Optional[ResourceData]
+    resources_requested: Optional[ResourceData]
     #: The used resources.
     resources_used: Optional[ResourceData]
     #: The status of the record.
@@ -272,7 +280,7 @@ class HpcProject(BaseModel):
     #: The delegate for the project.
     delegate: Optional[UUID]
     #: The requested resources.
-    resources_request: Optional[ResourceData]
+    resources_requested: Optional[ResourceData]
     #: The used resources.
     resources_used: Optional[ResourceData]
     #: The status of the record.
@@ -299,7 +307,15 @@ class SystemState(BaseModel):
 
     #: Mapping from file system path to ``FsDirectory``.
     fs_directories: Dict[str, FsDirectory]
-    #: Mapping from LDAP dn to ``LdapUser``.
+    #: Mapping from LDAP username to ``LdapUser``.
     ldap_users: Dict[str, LdapUser]
-    #: Mapping from LDAP dn to ``LdapGroup``.
+    #: Mapping from LDAP groupname to ``LdapGroup``.
     ldap_groups: Dict[str, LdapGroup]
+
+
+class HpcaccessState(BaseModel):
+    """State as loaded from hpc-access."""
+
+    hpc_users: Dict[UUID, HpcUser]
+    hpc_groups: Dict[UUID, HpcGroup]
+    hpc_projects: Dict[UUID, HpcProject]

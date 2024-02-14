@@ -44,6 +44,15 @@ class MailmanSettings(BaseModel):
     admin_password: SecretStr
 
 
+class HpcaccessSettings(BaseModel):
+    """Configuration for the hpc-access server."""
+
+    #: The server base url.
+    server_url: HttpUrl
+    #: The token to use.
+    api_token: SecretStr
+
+
 class Settings(BaseSettings):
     """Configuration of hpc-access-cli."""
 
@@ -57,6 +66,8 @@ class Settings(BaseSettings):
     smtp: SmtpSettings
     #: Configuration for managing mailman subscriptions.
     mailman: MailmanSettings
+    #: HPC access server configuration.
+    hpc_access: HpcaccessSettings
 
     #: Obtaining configuration from environment variables.
     model_config = SettingsConfigDict(env_prefix="HPC_ACCESS_")
