@@ -1,6 +1,5 @@
 from typing import List
 
-import typer
 from hpc_access_cli.config import load_settings
 from hpc_access_cli.models import StateOperation
 from hpc_access_cli.states import (
@@ -9,6 +8,7 @@ from hpc_access_cli.states import (
     gather_system_state,
 )
 from rich.console import Console
+import typer
 from typing_extensions import Annotated
 
 #: The typer application object to use.
@@ -45,9 +45,7 @@ def sync(
         List[StateOperation],
         typer.Option(..., help="file system operations to perform (default: all)"),
     ] = [],
-    dry_run: Annotated[
-        bool, typer.Option(..., help="perform a dry run (no changes)")
-    ] = True,
+    dry_run: Annotated[bool, typer.Option(..., help="perform a dry run (no changes)")] = True,
 ):
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path).model_copy(

@@ -2,9 +2,9 @@
 
 from typing import List
 
-import httpx
 from hpc_access_cli.config import HpcaccessSettings
 from hpc_access_cli.models import HpcGroup, HpcProject, HpcUser
+import httpx
 
 
 class HpcaccessClient:
@@ -17,9 +17,7 @@ class HpcaccessClient:
     def load_users(self) -> List[HpcUser]:
         """Load users from the hpc-access server."""
         url = f"{self.settings.server_url}adminsec/api/hpcuser/"
-        headers = {
-            "Authorization": f"Token {self.settings.api_token.get_secret_value()}"
-        }
+        headers = {"Authorization": f"Token {self.settings.api_token.get_secret_value()}"}
         result = []
         while True:
             response = httpx.get(url, headers=headers)
@@ -36,9 +34,7 @@ class HpcaccessClient:
     def load_groups(self) -> List[HpcGroup]:
         """Load groups from the hpc-access server."""
         url = f"{self.settings.server_url}adminsec/api/hpcgroup/"
-        headers = {
-            "Authorization": f"Token {self.settings.api_token.get_secret_value()}"
-        }
+        headers = {"Authorization": f"Token {self.settings.api_token.get_secret_value()}"}
         result = []
         while True:
             response = httpx.get(url, headers=headers)
@@ -55,9 +51,7 @@ class HpcaccessClient:
     def load_projects(self) -> List[HpcProject]:
         """Load projects from the hpc-access server."""
         url = f"{self.settings.server_url}adminsec/api/hpcproject/"
-        headers = {
-            "Authorization": f"Token {self.settings.api_token.get_secret_value()}"
-        }
+        headers = {"Authorization": f"Token {self.settings.api_token.get_secret_value()}"}
         result = []
         while True:
             response = httpx.get(url, headers=headers)

@@ -20,22 +20,22 @@ format: format-isort format-black
 
 .PHONY: format-isort
 format-isort:
-	isort --profile=black .
+	isort --force-sort-within-sections --profile=black .
 
 .PHONY: format-black
 format-black:
-	black .
+	black -l 100 .
 
 .PHONY: lint
 lint: lint-isort lint-black lint-pyright lint-flake8
 
 .PHONY: lint-isort
 lint-isort:
-	isort --check --profile=black .
+	isort --force-sort-within-sections --profile=black --check .
 
 .PHONY: lint-black
 lint-black:
-	black --check .
+	black -l 100 --check .
 
 .PHONY: lint-pyright
 lint-pyright:

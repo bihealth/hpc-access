@@ -98,9 +98,7 @@ class TargetStateBuilder:
             fs_directories=self._build_fs_directories(hpcaccess_state),
         )
 
-    def _build_fs_directories(
-        self, hpcaccess_state: HpcaccessState
-    ) -> Dict[str, FsDirectory]:
+    def _build_fs_directories(self, hpcaccess_state: HpcaccessState) -> Dict[str, FsDirectory]:
         """Build the file system directories from the hpc-access state."""
         result = {}
         for user in hpcaccess_state.hpc_users.values():
@@ -206,45 +204,39 @@ class TargetStateBuilder:
                 ("scratch", QUOTA_SCRATCH_BYTES),
                 ("work", quota_work * 1024 * 1024 * 1024 * 1024),
             ):
-                result[f"/data/cephfs-1/{volume}/projects/{project.name}"] = (
-                    FsDirectory(
-                        path=f"/data/cephfs-1/{volume}/projects/{project.name}",
-                        owner_name=owner.username,
-                        owner_uid=owner.uid,
-                        group_name=f"hpc-prj-{project.name}",
-                        group_gid=project.gid,
-                        perms="drwxrwS---",
-                        rbytes=None,
-                        rfiles=None,
-                        quota_bytes=None if quota is None else int(quota),
-                        quota_files=None,
-                    )
+                result[f"/data/cephfs-1/{volume}/projects/{project.name}"] = FsDirectory(
+                    path=f"/data/cephfs-1/{volume}/projects/{project.name}",
+                    owner_name=owner.username,
+                    owner_uid=owner.uid,
+                    group_name=f"hpc-prj-{project.name}",
+                    group_gid=project.gid,
+                    perms="drwxrwS---",
+                    rbytes=None,
+                    rfiles=None,
+                    quota_bytes=None if quota is None else int(quota),
+                    quota_files=None,
                 )
             # Tier 2
             for variant in ("unmirrored", "mirrored"):
                 if variant == "mirrored":
                     quota = (project.resources_requested or ResourceData).tier2_mirrored
                 elif variant == "unmirrored":
-                    quota = (
-                        project.resources_requested or ResourceData
-                    ).tier2_unmirrored
+                    quota = (project.resources_requested or ResourceData).tier2_unmirrored
                 else:
                     raise ValueError("Invalid variant")
                 if not quota:
                     continue
-                result[f"/data/cephfs-2/{variant}/projects/{project.name}"] = (
-                    FsDirectory(
-                        path=f"/data/cephfs-2/{variant}/projects/{project.name}",
-                        owner_name=owner.username,
-                        owner_uid=owner.uid,
-                        group_name=f"hpc-prj-{project.name}",
-                        group_gid=project.gid,
-                        perms="drwxrwS---",
-                        rbytes=None,
-                        rfiles=None,
-                        quota_bytes=None if quota is None else int(quota),
-                        quota_files=None,
-                    )
+                result[f"/data/cephfs-2/{variant}/projects/{project.name}"] = FsDirectory(
+                    path=f"/data/cephfs-2/{variant}/projects/{project.name}",
+                    owner_name=owner.username,
+                    owner_uid=owner.uid,
+                    group_name=f"hpc-prj-{project.name}",
+                    group_gid=project.gid,
+                    perms="drwxrwS---",
+                    rbytes=None,
+                    rfiles=None,
+                    quota_bytes=None if quota is None else int(quota),
+                    quota_files=None,
                 )
 
         return result
@@ -338,9 +330,7 @@ def gather_system_state(settings: Settings) -> SystemState:
     ldap_users = connection.load_users()
     ldap_groups = connection.load_groups()
     console.log("Loading file system directories...")
-    fs_mgr = FsResourceManager(
-        prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else ""
-    )
+    fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
     fs_directories = fs_mgr.load_directories()
     result = SystemState(
         ldap_users={u.uid: u for u in ldap_users},
@@ -392,25 +382,15 @@ class TargetStateComparison:
     def _compare_ldap_users(self) -> List[LdapUserOp]:
         """Compare ``LdapUser`` records between system states."""
         result = []
-        extra_usernames = set(self.src.ldap_users.keys()) - set(
-            self.dst.ldap_users.keys()
-        )
-        missing_usernames = set(self.dst.ldap_users.keys()) - set(
-            self.src.ldap_users.keys()
-        )
-        common_usernames = set(self.src.ldap_users.keys()) & set(
-            self.dst.ldap_users.keys()
-        )
+        extra_usernames = set(self.src.ldap_users.keys()) - set(self.dst.ldap_users.keys())
+        missing_usernames = set(self.dst.ldap_users.keys()) - set(self.src.ldap_users.keys())
+        common_usernames = set(self.src.ldap_users.keys()) & set(self.dst.ldap_users.keys())
         for username in extra_usernames:
             user = self.src.ldap_users[username]
-            result.append(
-                LdapUserOp(operation=StateOperation.DISABLE, user=user, diff={})
-            )
+            result.append(LdapUserOp(operation=StateOperation.DISABLE, user=user, diff={}))
         for username in missing_usernames:
             user = self.src.ldap_users[username]
-            result.append(
-                LdapUserOp(operation=StateOperation.CREATE, user=user, diff={})
-            )
+            result.append(LdapUserOp(operation=StateOperation.CREATE, user=user, diff={}))
         for username in common_usernames:
             src_user = self.src.ldap_users[username]
             dst_user = self.dst.ldap_users[username]
@@ -422,34 +402,20 @@ class TargetStateComparison:
                 for key in all_keys:
                     if src_user_dict.get(key) != dst_user_dict.get(key):
                         diff[key] = dst_user_dict.get(key)
-                result.append(
-                    LdapUserOp(
-                        operation=StateOperation.UPDATE, user=src_user, diff=diff
-                    )
-                )
+                result.append(LdapUserOp(operation=StateOperation.UPDATE, user=src_user, diff=diff))
         return result
 
     def _compare_ldap_groups(self) -> List[LdapGroupOp]:
         result = []
-        extra_group_names = set(self.src.ldap_groups.keys()) - set(
-            self.dst.ldap_groups.keys()
-        )
-        missing_group_names = set(self.dst.ldap_groups.keys()) - set(
-            self.src.ldap_groups.keys()
-        )
-        common_group_names = set(self.src.ldap_groups.keys()) & set(
-            self.dst.ldap_groups.keys()
-        )
+        extra_group_names = set(self.src.ldap_groups.keys()) - set(self.dst.ldap_groups.keys())
+        missing_group_names = set(self.dst.ldap_groups.keys()) - set(self.src.ldap_groups.keys())
+        common_group_names = set(self.src.ldap_groups.keys()) & set(self.dst.ldap_groups.keys())
         for name in extra_group_names:
             group = self.src.ldap_groups[name]
-            result.append(
-                LdapGroupOp(operation=StateOperation.DISABLE, group=group, diff={})
-            )
+            result.append(LdapGroupOp(operation=StateOperation.DISABLE, group=group, diff={}))
         for name in missing_group_names:
             group = self.dst.ldap_groups[name]
-            result.append(
-                LdapGroupOp(operation=StateOperation.CREATE, group=group, diff={})
-            )
+            result.append(LdapGroupOp(operation=StateOperation.CREATE, group=group, diff={}))
         for name in common_group_names:
             src_group = self.src.ldap_groups[name]
             dst_group = self.dst.ldap_groups[name]
@@ -462,36 +428,24 @@ class TargetStateComparison:
                     if src_group_dict.get(key) != dst_group_dict.get(key):
                         diff[key] = dst_group_dict.get(key)
                 result.append(
-                    LdapGroupOp(
-                        operation=StateOperation.UPDATE, group=src_group, diff=diff
-                    )
+                    LdapGroupOp(operation=StateOperation.UPDATE, group=src_group, diff=diff)
                 )
         return result
 
     def _compare_fs_directories(self) -> List[FsDirectoryOp]:
         result = []
-        extra_paths = set(self.src.fs_directories.keys()) - set(
-            self.dst.fs_directories.keys()
-        )
-        missing_paths = set(self.dst.fs_directories.keys()) - set(
-            self.src.fs_directories.keys()
-        )
-        common_paths = set(self.src.fs_directories.keys()) & set(
-            self.dst.fs_directories.keys()
-        )
+        extra_paths = set(self.src.fs_directories.keys()) - set(self.dst.fs_directories.keys())
+        missing_paths = set(self.dst.fs_directories.keys()) - set(self.src.fs_directories.keys())
+        common_paths = set(self.src.fs_directories.keys()) & set(self.dst.fs_directories.keys())
         for path in extra_paths:
             directory = self.src.fs_directories[path]
             result.append(
-                FsDirectoryOp(
-                    operation=StateOperation.DISABLE, directory=directory, diff={}
-                )
+                FsDirectoryOp(operation=StateOperation.DISABLE, directory=directory, diff={})
             )
         for path in missing_paths:
             directory = self.dst.fs_directories[path]
             result.append(
-                FsDirectoryOp(
-                    operation=StateOperation.CREATE, directory=directory, diff={}
-                )
+                FsDirectoryOp(operation=StateOperation.CREATE, directory=directory, diff={})
             )
         for path in common_paths:
             src_directory = self.src.fs_directories[path]

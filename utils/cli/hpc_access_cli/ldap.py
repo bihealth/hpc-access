@@ -2,9 +2,9 @@
 
 from typing import List, Optional
 
-import ldap3
 from hpc_access_cli.config import LdapSettings
 from hpc_access_cli.models import Gecos, LdapGroup, LdapUser
+import ldap3
 from rich.console import Console
 
 #: The rich console to use for output.
@@ -81,15 +81,11 @@ class LdapConnection:
             uid_str = attribute_as_str(entry.uidNumber)
             uid_number = int(uid_str) if uid_str else None
             if not uid_number:
-                raise ValueError(
-                    f"Missing LDAP attribute uidNumber for {entry.entry_dn}"
-                )
+                raise ValueError(f"Missing LDAP attribute uidNumber for {entry.entry_dn}")
             gid_str = attribute_as_str(entry.gidNumber)
             gid_number = int(gid_str) if gid_str else None
             if not gid_number:
-                raise ValueError(
-                    f"Missing LDAP attribute gidNumber for {entry.entry_dn}"
-                )
+                raise ValueError(f"Missing LDAP attribute gidNumber for {entry.entry_dn}")
             cn = attribute_as_str(entry.cn)
             if not cn:
                 raise ValueError(f"Missing LDAP attribute cn for {entry.entry_dn}")
@@ -100,14 +96,10 @@ class LdapConnection:
             given_name = attribute_as_str(entry.givenName)
             home_directory = attribute_as_str(entry.homeDirectory)
             if not home_directory:
-                raise ValueError(
-                    f"Missing LDAP attribute homeDirectory for {entry.entry_dn}"
-                )
+                raise ValueError(f"Missing LDAP attribute homeDirectory for {entry.entry_dn}")
             login_shell = attribute_as_str(entry.loginShell)
             if not login_shell:
-                raise ValueError(
-                    f"Missing LDAP attribute loginShell for {entry.entry_dn}"
-                )
+                raise ValueError(f"Missing LDAP attribute loginShell for {entry.entry_dn}")
             result.append(
                 LdapUser(
                     dn=entry.entry_dn,
@@ -151,9 +143,7 @@ class LdapConnection:
             gid_str = attribute_as_str(entry.gidNumber)
             gid_number = int(gid_str) if gid_str else None
             if not gid_number:
-                raise ValueError(
-                    f"Missing LDAP attribute gidNumber for {entry.entry_dn}"
-                )
+                raise ValueError(f"Missing LDAP attribute gidNumber for {entry.entry_dn}")
             owner_dn = attribute_as_str(entry["bih-groupOwnerDN"])
             delegate_dns = attribute_list_as_str_list(entry["bih-groupDelegateDNs"])
             member_uids = attribute_list_as_str_list(entry.memberUid)

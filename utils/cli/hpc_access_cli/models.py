@@ -10,8 +10,8 @@ import stat
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-import xattr
 from pydantic import BaseModel
+import xattr
 
 
 def get_extended_attribute(path: str, attr_name: str) -> str:
