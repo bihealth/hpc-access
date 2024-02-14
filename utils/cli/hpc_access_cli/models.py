@@ -52,13 +52,13 @@ class FsDirectory(BaseModel):
     perms: str
 
     #: The size of the directory in bytes.
-    rbytes: int
+    rbytes: Optional[int]
     #: The number of files in the directory.
-    rfiles: int
+    rfiles: Optional[int]
     #: The bytes quota.
-    quota_bytes: int
+    quota_bytes: Optional[int]
     #: The files quota.
-    quota_files: int
+    quota_files: Optional[int]
 
     @staticmethod
     def from_path(path: str) -> "FsDirectory":
@@ -197,11 +197,11 @@ class ResourceData(BaseModel):
     """A resource request/usage for a user."""
 
     #: Storage on tier 1 in TB.
-    tier1: float
+    tier1: float = 0.0
     #: Storage on tier 2 (mirrored) in TB.
-    tier2_mirrored: float
+    tier2_mirrored: float = 0.0
     #: Storage on tier 2 (unmirrored) in TB.
-    tier2_unmirrored: float
+    tier2_unmirrored: float = 0.0
 
 
 @enum.unique
@@ -305,12 +305,12 @@ class MailmanSubscription(BaseModel):
 class SystemState(BaseModel):
     """System state retrieved from LDAP and file system."""
 
-    #: Mapping from file system path to ``FsDirectory``.
-    fs_directories: Dict[str, FsDirectory]
     #: Mapping from LDAP username to ``LdapUser``.
     ldap_users: Dict[str, LdapUser]
     #: Mapping from LDAP groupname to ``LdapGroup``.
     ldap_groups: Dict[str, LdapGroup]
+    #: Mapping from file system path to ``FsDirectory``.
+    fs_directories: Dict[str, FsDirectory]
 
 
 class HpcaccessState(BaseModel):
@@ -370,6 +370,9 @@ class LdapGroupOp(BaseModel):
 class OperationsContainer(BaseModel):
     """Container for all operations to perform."""
 
-    fs_ops: List[FsDirectoryOp]
+    #: Operations to perform on LDAP users.
     ldap_user_ops: List[LdapUserOp]
+    #: Operations to perform on LDAP groups.
     ldap_group_ops: List[LdapGroupOp]
+    #: Operations to perform on file system directories.
+    fs_ops: List[FsDirectoryOp]

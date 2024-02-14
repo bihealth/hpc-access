@@ -1,6 +1,10 @@
 import typer
 from hpc_access_cli.config import load_settings
-from hpc_access_cli.states import TargetStateBuilder, TargetStateComparison, gather_system_state
+from hpc_access_cli.states import (
+    TargetStateBuilder,
+    TargetStateComparison,
+    gather_system_state,
+)
 from rich.console import Console
 from typing_extensions import Annotated
 

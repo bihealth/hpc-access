@@ -7,13 +7,17 @@ from hpc_access_cli.config import HpcaccessSettings, Settings
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
 from hpc_access_cli.models import (
+    FsDirectory,
+    FsDirectoryOp,
     Gecos,
     HpcaccessState,
     HpcUser,
     LdapGroup,
+    LdapGroupOp,
     LdapUser,
     LdapUserOp,
     OperationsContainer,
+    ResourceData,
     StateOperation,
     SystemState,
 )
@@ -31,6 +35,11 @@ BASE_DN_PROJECTS = "ou=Projects,ou=Groups,dc=hpc,dc=bihealth,dc=org"
 BASE_DN_CHARITE = "ou=Charite,ou=Users,dc=hpc,dc=bihealth,dc=org"
 #: Base DN for MDC users
 BASE_DN_MDC = "ou=MDC,ou=Users,dc=hpc,dc=bihealth,dc=org"
+
+# Quota on user home (1G)
+QUOTA_HOME_BYTES = 1024 * 1024 * 1024
+# Quota on scratch (100T)
+QUOTA_SCRATCH_BYTES = 100 * 1024 * 1024 * 1024 * 1024
 
 
 def user_dn(user: HpcUser) -> str:
@@ -86,8 +95,159 @@ class TargetStateBuilder:
         return SystemState(
             ldap_users=self._build_ldap_users(hpcaccess_state),
             ldap_groups=self._build_ldap_groups(hpcaccess_state),
-            fs_directories={},
+            fs_directories=self._build_fs_directories(hpcaccess_state),
         )
+
+    def _build_fs_directories(
+        self, hpcaccess_state: HpcaccessState
+    ) -> Dict[str, FsDirectory]:
+        """Build the file system directories from the hpc-access state."""
+        result = {}
+        for user in hpcaccess_state.hpc_users.values():
+            if not user.uid:
+                console.log(
+                    f"User {user.full_name} has no uid, skipping.",
+                )
+                continue
+            primary_group = hpcaccess_state.hpc_groups[user.primary_group]
+            if not primary_group.gid:
+                console.log(
+                    f"Primary group {primary_group.name} has no gid, skipping.",
+                )
+                continue
+            result[f"/data/cephfs-1/home/users/{user.username}"] = FsDirectory(
+                path=f"/data/cephfs-1/home/users/{user.username}",
+                owner_name=user.username,
+                owner_uid=user.uid,
+                group_name=primary_group.name,
+                group_gid=primary_group.gid,
+                perms="drwx--S---",
+                rbytes=None,
+                rfiles=None,
+                # Currently, hard-coded user quotas only.
+                # Note: maybe remove from HpcUser model!
+                quota_bytes=QUOTA_HOME_BYTES,
+                quota_files=None,
+            )
+        for group in hpcaccess_state.hpc_groups.values():
+            if not group.gid:
+                console.log(
+                    f"Group {group.name} has no gid, skipping.",
+                )
+                continue
+            owner = hpcaccess_state.hpc_users[group.owner]
+            if not owner.uid:
+                console.log(
+                    f"Owner {owner.full_name} has no uid, skipping.",
+                )
+                continue
+            # Tier 1
+            quota_work = (group.resources_requested or ResourceData).tier1
+            if not quota_work:
+                continue
+            for volume, quota in (
+                ("home", QUOTA_HOME_BYTES),
+                ("scratch", QUOTA_SCRATCH_BYTES),
+                ("work", quota_work * 1024 * 1024 * 1024 * 1024),
+            ):
+                result[f"/data/cephfs-1/{volume}/groups/{group.name}"] = FsDirectory(
+                    path=f"/data/cephfs-1/{volume}/groups/{group.name}",
+                    owner_name=owner.username,
+                    owner_uid=owner.uid,
+                    group_name=group.name,
+                    group_gid=group.gid,
+                    perms="drwxrwS---",
+                    rbytes=None,
+                    rfiles=None,
+                    quota_bytes=None if quota is None else int(quota),
+                    quota_files=None,
+                )
+            # Tier 2
+            for variant in ("unmirrored", "mirrored"):
+                if variant == "mirrored":
+                    quota = (group.resources_requested or ResourceData).tier2_mirrored
+                elif variant == "unmirrored":
+                    quota = (group.resources_requested or ResourceData).tier2_unmirrored
+                else:
+                    raise ValueError("Invalid variant")
+                if not quota:
+                    continue
+                result[f"/data/cephfs-2/{variant}/groups/{group.name}"] = FsDirectory(
+                    path=f"/data/cephfs-2/{variant}/groups/{group.name}",
+                    owner_name=owner.username,
+                    owner_uid=owner.uid,
+                    group_name=group.name,
+                    group_gid=group.gid,
+                    perms="drwxrwS---",
+                    rbytes=None,
+                    rfiles=None,
+                    quota_bytes=None if quota is None else int(quota),
+                    quota_files=None,
+                )
+        for project in hpcaccess_state.hpc_projects.values():
+            if not project.gid:
+                console.log(
+                    f"Project {project.name} has no gid, skipping.",
+                )
+                continue
+            owning_group = hpcaccess_state.hpc_groups[project.group]
+            owner = hpcaccess_state.hpc_users[owning_group.owner]
+            if not owner.uid:
+                console.log(
+                    f"Owner {owner.full_name} has no uid, skipping.",
+                )
+                continue
+            # Tier 1
+            quota_work = (project.resources_requested or ResourceData).tier1
+            if not quota_work:
+                continue  # no quota requested
+            for volume, quota in (
+                ("home", QUOTA_HOME_BYTES),
+                ("scratch", QUOTA_SCRATCH_BYTES),
+                ("work", quota_work * 1024 * 1024 * 1024 * 1024),
+            ):
+                result[f"/data/cephfs-1/{volume}/projects/{project.name}"] = (
+                    FsDirectory(
+                        path=f"/data/cephfs-1/{volume}/projects/{project.name}",
+                        owner_name=owner.username,
+                        owner_uid=owner.uid,
+                        group_name=f"hpc-prj-{project.name}",
+                        group_gid=project.gid,
+                        perms="drwxrwS---",
+                        rbytes=None,
+                        rfiles=None,
+                        quota_bytes=None if quota is None else int(quota),
+                        quota_files=None,
+                    )
+                )
+            # Tier 2
+            for variant in ("unmirrored", "mirrored"):
+                if variant == "mirrored":
+                    quota = (project.resources_requested or ResourceData).tier2_mirrored
+                elif variant == "unmirrored":
+                    quota = (
+                        project.resources_requested or ResourceData
+                    ).tier2_unmirrored
+                else:
+                    raise ValueError("Invalid variant")
+                if not quota:
+                    continue
+                result[f"/data/cephfs-2/{variant}/projects/{project.name}"] = (
+                    FsDirectory(
+                        path=f"/data/cephfs-2/{variant}/projects/{project.name}",
+                        owner_name=owner.username,
+                        owner_uid=owner.uid,
+                        group_name=f"hpc-prj-{project.name}",
+                        group_gid=project.gid,
+                        perms="drwxrwS---",
+                        rbytes=None,
+                        rfiles=None,
+                        quota_bytes=None if quota is None else int(quota),
+                        quota_files=None,
+                    )
+                )
+
+        return result
 
     def _build_ldap_users(self, hpcaccess_state: HpcaccessState) -> Dict[str, LdapUser]:
         """Build the LDAP users from the hpc-access state."""
@@ -136,12 +296,13 @@ class TargetStateBuilder:
                     f"Group {group.name} has no gid, skipping.",
                 )
                 continue
-            group_dn = f"cn={group.name},{BASE_DN_GROUPS}"
+            group_dn = f"cn=hpc-ag-{group.name},{BASE_DN_GROUPS}"
             owner = state.hpc_users[group.owner]
             delegate = state.hpc_users[group.delegate] if group.delegate else None
-            result[group.name] = LdapGroup(
+            group_name = f"hpc-ag-{group.name}"
+            result[group_name] = LdapGroup(
                 dn=group_dn,
-                cn=group.name,
+                cn=group_name,
                 gid_number=group.gid,
                 owner_dn=user_dn(owner),
                 delegate_dns=[user_dn(delegate)] if delegate else [],
@@ -154,13 +315,14 @@ class TargetStateBuilder:
                     f"Project {project.name} has no gid, skipping.",
                 )
                 continue
-            group_dn = f"cn={project.name},{BASE_DN_PROJECTS}"
+            group_dn = f"cn=hpc-prj-{project.name},{BASE_DN_PROJECTS}"
             owning_group = state.hpc_groups[project.group]
             owner = state.hpc_users[owning_group.owner]
             delegate = state.hpc_users[project.delegate] if project.delegate else None
-            result[project.name] = LdapGroup(
+            project_name = f"hpc-prj-{project.name}"
+            result[project_name] = LdapGroup(
                 dn=group_dn,
-                cn=project.name,
+                cn=project_name,
                 gid_number=project.gid,
                 owner_dn=user_dn(owner),
                 delegate_dns=[user_dn(delegate)] if delegate else [],
@@ -221,8 +383,8 @@ class TargetStateComparison:
         console.log("Comparing source and target state...")
         result = OperationsContainer(
             ldap_user_ops=self._compare_ldap_users(),
-            ldap_group_ops=[], #self._compare_ldap_groups(),
-            fs_ops=[], #self._compare_fs_directories(),
+            ldap_group_ops=self._compare_ldap_groups(),
+            fs_ops=self._compare_fs_directories(),
         )
         console.log("... have operations now.")
         return result
@@ -230,26 +392,24 @@ class TargetStateComparison:
     def _compare_ldap_users(self) -> List[LdapUserOp]:
         """Compare ``LdapUser`` records between system states."""
         result = []
-        extra_usernames = set(self.src.ldap_users.keys()) - set(self.dst.ldap_users.keys())
-        missing_usernames = set(self.dst.ldap_users.keys()) - set(self.src.ldap_users.keys())
-        common_usernames = set(self.src.ldap_users.keys()) & set(self.dst.ldap_users.keys())
+        extra_usernames = set(self.src.ldap_users.keys()) - set(
+            self.dst.ldap_users.keys()
+        )
+        missing_usernames = set(self.dst.ldap_users.keys()) - set(
+            self.src.ldap_users.keys()
+        )
+        common_usernames = set(self.src.ldap_users.keys()) & set(
+            self.dst.ldap_users.keys()
+        )
         for username in extra_usernames:
             user = self.src.ldap_users[username]
             result.append(
-                LdapUserOp(
-                    operation=StateOperation.DISABLE,
-                    user=user,
-                    diff={}
-                )
+                LdapUserOp(operation=StateOperation.DISABLE, user=user, diff={})
             )
         for username in missing_usernames:
             user = self.src.ldap_users[username]
             result.append(
-                LdapUserOp(
-                    operation=StateOperation.CREATE,
-                    user=user,
-                    diff={}
-                )
+                LdapUserOp(operation=StateOperation.CREATE, user=user, diff={})
             )
         for username in common_usernames:
             src_user = self.src.ldap_users[username]
@@ -263,6 +423,92 @@ class TargetStateComparison:
                     if src_user_dict.get(key) != dst_user_dict.get(key):
                         diff[key] = dst_user_dict.get(key)
                 result.append(
-                    LdapUserOp(operation=StateOperation.UPDATE,user=src_user,diff=diff)
+                    LdapUserOp(
+                        operation=StateOperation.UPDATE, user=src_user, diff=diff
+                    )
+                )
+        return result
+
+    def _compare_ldap_groups(self) -> List[LdapGroupOp]:
+        result = []
+        extra_group_names = set(self.src.ldap_groups.keys()) - set(
+            self.dst.ldap_groups.keys()
+        )
+        missing_group_names = set(self.dst.ldap_groups.keys()) - set(
+            self.src.ldap_groups.keys()
+        )
+        common_group_names = set(self.src.ldap_groups.keys()) & set(
+            self.dst.ldap_groups.keys()
+        )
+        for name in extra_group_names:
+            group = self.src.ldap_groups[name]
+            result.append(
+                LdapGroupOp(operation=StateOperation.DISABLE, group=group, diff={})
+            )
+        for name in missing_group_names:
+            group = self.dst.ldap_groups[name]
+            result.append(
+                LdapGroupOp(operation=StateOperation.CREATE, group=group, diff={})
+            )
+        for name in common_group_names:
+            src_group = self.src.ldap_groups[name]
+            dst_group = self.dst.ldap_groups[name]
+            src_group_dict = src_group.model_dump()
+            dst_group_dict = dst_group.model_dump()
+            all_keys = set(src_group_dict.keys()) | set(dst_group_dict.keys())
+            if src_group_dict != dst_group_dict:
+                diff = {}
+                for key in all_keys:
+                    if src_group_dict.get(key) != dst_group_dict.get(key):
+                        diff[key] = dst_group_dict.get(key)
+                result.append(
+                    LdapGroupOp(
+                        operation=StateOperation.UPDATE, group=src_group, diff=diff
+                    )
+                )
+        return result
+
+    def _compare_fs_directories(self) -> List[FsDirectoryOp]:
+        result = []
+        extra_paths = set(self.src.fs_directories.keys()) - set(
+            self.dst.fs_directories.keys()
+        )
+        missing_paths = set(self.dst.fs_directories.keys()) - set(
+            self.src.fs_directories.keys()
+        )
+        common_paths = set(self.src.fs_directories.keys()) & set(
+            self.dst.fs_directories.keys()
+        )
+        for path in extra_paths:
+            directory = self.src.fs_directories[path]
+            result.append(
+                FsDirectoryOp(
+                    operation=StateOperation.DISABLE, directory=directory, diff={}
+                )
+            )
+        for path in missing_paths:
+            directory = self.dst.fs_directories[path]
+            result.append(
+                FsDirectoryOp(
+                    operation=StateOperation.CREATE, directory=directory, diff={}
+                )
+            )
+        for path in common_paths:
+            src_directory = self.src.fs_directories[path]
+            dst_directory = self.dst.fs_directories[path]
+            src_directory_dict = src_directory.model_dump()
+            dst_directory_dict = dst_directory.model_dump()
+            all_keys = set(src_directory_dict.keys()) | set(dst_directory_dict.keys())
+            if src_directory_dict != dst_directory_dict:
+                diff = {}
+                for key in all_keys:
+                    if src_directory_dict.get(key) != dst_directory_dict.get(key):
+                        diff[key] = dst_directory_dict.get(key)
+                result.append(
+                    FsDirectoryOp(
+                        operation=StateOperation.UPDATE,
+                        directory=src_directory,
+                        diff=diff,
+                    )
                 )
         return result
