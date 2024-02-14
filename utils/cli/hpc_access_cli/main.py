@@ -9,14 +9,25 @@ app = typer.Typer()
 console = Console()
 
 
-@app.command("send-welcome-email")
-def send_welcome_email(
-    email: Annotated[str, typer.Argument(..., help="recipient email address")],
+@app.command("record-usage")
+def record_usage(
     config_path: Annotated[
         str, typer.Option(..., help="path to configuration file")
     ] = "/etc/hpc-access-cli/config.json",
 ):
-    """Send out welcome email to the given user."""
+    """record resource in hpc-access"""
+    settings = load_settings(config_path)
+    _ = settings
+    #
+
+
+@app.command("sync")
+def report_usage(
+    config_path: Annotated[
+        str, typer.Option(..., help="path to configuration file")
+    ] = "/etc/hpc-access-cli/config.json",
+):
+    """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
     _ = settings
 
