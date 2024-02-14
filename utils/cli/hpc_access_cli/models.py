@@ -7,7 +7,7 @@ import grp
 import os
 import pwd
 import stat
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 import xattr
@@ -319,3 +319,57 @@ class HpcaccessState(BaseModel):
     hpc_users: Dict[UUID, HpcUser]
     hpc_groups: Dict[UUID, HpcGroup]
     hpc_projects: Dict[UUID, HpcProject]
+
+
+@enum.unique
+class StateOperation(enum.Enum):
+    """Operation to perform on the state."""
+
+    #: Create a new object.
+    CREATE = "CREATE"
+    #: Update an object's attributes.
+    UPDATE = "UPDATE"
+    #: Disable access to an update; note that we will never delete
+    #: in scripts by design.
+    DISABLE = "DISABLE"
+
+
+class FsDirectoryOp(BaseModel):
+    """Operation to perform on a file system directory."""
+
+    #: The operation to perform.
+    operation: StateOperation
+    #: The directory to operate on.
+    directory: FsDirectory
+    #: The diff to update.
+    diff: Dict[str, int | str]
+
+
+class LdapUserOp(BaseModel):
+    """Operation to perform on a LDAP user."""
+
+    #: The operation to perform.
+    operation: StateOperation
+    #: The user to operate on.
+    user: LdapUser
+    #: The diff to update (``None`` => clear).
+    diff: Dict[str, None | int | str | List[str] | Dict[str, Any]]
+
+
+class LdapGroupOp(BaseModel):
+    """Operation to perform on a LDAP group."""
+
+    #: The operation to perform.
+    operation: StateOperation
+    #: The group to operate on.
+    group: LdapGroup
+    #: The diff to update (``None`` => clear).
+    diff: Dict[str, None | int | str | List[str]]
+
+
+class OperationsContainer(BaseModel):
+    """Container for all operations to perform."""
+
+    fs_ops: List[FsDirectoryOp]
+    ldap_user_ops: List[LdapUserOp]
+    ldap_group_ops: List[LdapGroupOp]

@@ -1,6 +1,6 @@
 import typer
 from hpc_access_cli.config import load_settings
-from hpc_access_cli.states import TargetStateBuilder, gather_system_state
+from hpc_access_cli.states import TargetStateBuilder, TargetStateComparison, gather_system_state
 from rich.console import Console
 from typing_extensions import Annotated
 
@@ -29,11 +29,13 @@ def sync(
 ):
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
-    system_state = gather_system_state(settings)
-    console.print_json(data=system_state.model_dump())
-    builder = TargetStateBuilder(settings.hpc_access, system_state)
-    res = builder.build(builder.gather())
-    console.print_json(data=res.model_dump())
+    src_state = gather_system_state(settings)
+    # console.print_json(data=src_state.model_dump())
+    dst_builder = TargetStateBuilder(settings.hpc_access, src_state)
+    dst_state = dst_builder.run()
+    comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
+    operations = comparison.run()
+    console.print_json(data=operations.model_dump(mode="json"))
 
 
 if __name__ == "__main__":

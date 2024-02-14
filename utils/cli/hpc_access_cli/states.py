@@ -1,7 +1,7 @@
 """State gathering, comparison and update."""
 
 import os
-from typing import Dict
+from typing import Dict, List
 
 from hpc_access_cli.config import HpcaccessSettings, Settings
 from hpc_access_cli.fs import FsResourceManager
@@ -12,6 +12,9 @@ from hpc_access_cli.models import (
     HpcUser,
     LdapGroup,
     LdapUser,
+    LdapUserOp,
+    OperationsContainer,
+    StateOperation,
     SystemState,
 )
 from hpc_access_cli.rest import HpcaccessClient
@@ -49,16 +52,21 @@ class TargetStateBuilder:
         #: The current system state, used for determining next group id.
         self.system_state = system_state
         #: The next gid.
-        self.next_gid = self.get_next_gid(system_state)
+        self.next_gid = self._get_next_gid(system_state)
         console.log(f"Next available GID is {self.next_gid}.")
 
-    def get_next_gid(self, system_state: SystemState) -> int:
+    def _get_next_gid(self, system_state: SystemState) -> int:
         """Get the next available GID."""
         gids = [g.gid_number for g in system_state.ldap_groups.values()]
         gids.extend([u.gid_number for u in system_state.ldap_users.values()])
         return max(gids) + 1 if gids else 1000
 
-    def gather(self) -> HpcaccessState:
+    def run(self) -> SystemState:
+        """Run the builder."""
+        hpcaccess_state = self._gather()
+        return self._build(hpcaccess_state)
+
+    def _gather(self) -> HpcaccessState:
         """Gather the state."""
         console.log("Loading hpc-access users, groups, and projects...")
         rest_client = HpcaccessClient(self.settings)
@@ -73,7 +81,7 @@ class TargetStateBuilder:
         console.log("... have hpc-access data now.")
         return result
 
-    def build(self, hpcaccess_state: HpcaccessState) -> SystemState:
+    def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
         """Build the target state."""
         return SystemState(
             ldap_users=self._build_ldap_users(hpcaccess_state),
@@ -182,3 +190,79 @@ def gather_system_state(settings: Settings) -> SystemState:
     console.log("  # of directories:", len(result.fs_directories))
     console.log("... have system state now")
     return result
+
+
+class TargetStateComparison:
+    """Helper class that compares two system states.
+
+    Differences are handled as follows.
+
+    - LDAP
+        - Missing LDAP objects are created.
+        - Existing but differing LDAP objects are updated.
+        - Extra LDAP users are disabled by setting `loginShell` to `/sbin/nologin`.
+    - file system
+        - Missing directories are created.
+        - Existing but differing directories are updated.
+        - Extra directories have the owner set to ``root:root`` and the access
+          to them is disabled.
+    """
+
+    def __init__(self, settings: HpcaccessSettings, src: SystemState, dst: SystemState):
+        #: Configuration of ``hpc-access`` system to use.
+        self.settings = settings
+        #: Source state
+        self.src = src
+        #: Target state
+        self.dst = dst
+
+    def run(self) -> OperationsContainer:
+        """Run the comparison."""
+        console.log("Comparing source and target state...")
+        result = OperationsContainer(
+            ldap_user_ops=self._compare_ldap_users(),
+            ldap_group_ops=[], #self._compare_ldap_groups(),
+            fs_ops=[], #self._compare_fs_directories(),
+        )
+        console.log("... have operations now.")
+        return result
+
+    def _compare_ldap_users(self) -> List[LdapUserOp]:
+        """Compare ``LdapUser`` records between system states."""
+        result = []
+        extra_usernames = set(self.src.ldap_users.keys()) - set(self.dst.ldap_users.keys())
+        missing_usernames = set(self.dst.ldap_users.keys()) - set(self.src.ldap_users.keys())
+        common_usernames = set(self.src.ldap_users.keys()) & set(self.dst.ldap_users.keys())
+        for username in extra_usernames:
+            user = self.src.ldap_users[username]
+            result.append(
+                LdapUserOp(
+                    operation=StateOperation.DISABLE,
+                    user=user,
+                    diff={}
+                )
+            )
+        for username in missing_usernames:
+            user = self.src.ldap_users[username]
+            result.append(
+                LdapUserOp(
+                    operation=StateOperation.CREATE,
+                    user=user,
+                    diff={}
+                )
+            )
+        for username in common_usernames:
+            src_user = self.src.ldap_users[username]
+            dst_user = self.dst.ldap_users[username]
+            src_user_dict = src_user.model_dump()
+            dst_user_dict = dst_user.model_dump()
+            all_keys = set(src_user_dict.keys()) | set(dst_user_dict.keys())
+            if src_user_dict != dst_user_dict:
+                diff = {}
+                for key in all_keys:
+                    if src_user_dict.get(key) != dst_user_dict.get(key):
+                        diff[key] = dst_user_dict.get(key)
+                result.append(
+                    LdapUserOp(operation=StateOperation.UPDATE,user=src_user,diff=diff)
+                )
+        return result
