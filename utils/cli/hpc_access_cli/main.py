@@ -1,5 +1,6 @@
 import typer
 from hpc_access_cli.config import load_settings
+from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
 from rich.console import Console
 from typing_extensions import Annotated
@@ -31,10 +32,13 @@ def sync(
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
     connection = LdapConnection(settings.ldap_hpc)
-    # for user in connection.load_users():
-    #     console.print_json(data=user.model_dump())
+    for user in connection.load_users():
+        console.print_json(data=user.model_dump())
     for group in connection.load_groups():
         console.print_json(data=group.model_dump())
+    fs_mgr = FsResourceManager(prefix="/data/sshfs")
+    for fs_dir in fs_mgr.load_directories():
+        console.print_json(data=fs_dir.model_dump())
 
 
 if __name__ == "__main__":

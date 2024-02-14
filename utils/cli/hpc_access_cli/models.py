@@ -21,6 +21,8 @@ def get_extended_attribute(path: str, attr_name: str) -> str:
         value = xattr.getxattr(path, attr_name).decode("utf-8")
         return value
     except OSError as e:
+        if os.environ.get("DEBUG", "0") == "1":
+            return "0"
         # Handle the case when the attribute is not found
         if e.errno == errno.ENODATA:
             raise ValueError(f"extended attribute {attr_name} not found") from e
@@ -64,8 +66,20 @@ class FsDirectory(BaseModel):
         # Get owner user name, owner uid, group name, group gid
         uid = os.stat(path).st_uid
         gid = os.stat(path).st_gid
-        owner_name = pwd.getpwuid(uid).pw_name
-        group_name = grp.getgrgid(gid).gr_name
+        try:
+            owner_name = pwd.getpwuid(uid).pw_name
+        except KeyError:
+            if os.environ.get("DEBUG", "0") == "1":
+                owner_name = "unknown"
+            else:
+                raise
+        try:
+            group_name = grp.getgrgid(gid).gr_name
+        except KeyError:
+            if os.environ.get("DEBUG", "0") == "1":
+                group_name = "unknown"
+            else:
+                raise
         # Get permissions mask
         mode = os.stat(path).st_mode
         permissions = stat.filemode(mode)
