@@ -6,6 +6,7 @@ from django.forms import model_to_dict
 from django.utils.timezone import utc
 import factory
 
+from hpcaccess.users.tests.factories import UserFactory
 from usersec.models import (
     HpcGroup,
     HpcGroupChangeRequest,
@@ -158,7 +159,7 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     resources_requested = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
     resources_used = {"tier1": 0.5, "tier2_mirrored": 0, "tier2_unmirrored": 0}
     description = "this is a group"
-    creator = None  # User
+    creator = factory.SubFactory(UserFactory)  # User
     gid = 2000
     name = factory.Sequence(lambda n: f"hpc-group{n}")
     folder = "/data/group"
@@ -213,11 +214,11 @@ class HpcUserFactory(HpcObjectFactoryBase):
     class Meta:
         model = HpcUser
 
-    user = None  # User
+    user = factory.SubFactory(UserFactory)  # User
     primary_group = factory.SubFactory(HpcGroupFactory)
     resources_requested = {"null": "null"}
     resources_used = {"null": "null"}
-    creator = None  # User
+    creator = factory.SubFactory(UserFactory)  # User
     description = "this is a user"
     uid = 2000
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
@@ -274,7 +275,7 @@ class HpcProjectFactory(HpcObjectFactoryBase):
     group = factory.SubFactory(HpcGroupFactory)
     resources_requested = {"null": "null"}
     resources_used = {"null": "null"}
-    creator = None  # User
+    creator = factory.SubFactory(UserFactory)  # User
     delegate = None  # HpcUser
     description = "this is a project"
     gid = 5000

@@ -361,7 +361,10 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         )
 
     def __str__(self):
-        return "{} ({})".format(self.user.name, self.username)
+        self_user_name = None
+        if self.user:
+            self_user_name = self.user.username
+        return "{} ({})".format(self_user_name, self.username)
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
@@ -501,10 +504,16 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
         )
 
     def __str__(self):
+        self_owner_username = None
+        if self.owner:
+            self_owner_username = self.owner.username
+        self_delegate_username = None
+        if self.delegate:
+            self_delegate_username = self.delegate.username
         return "{} ({}, {})".format(
             self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
+            self_owner_username,
+            self_delegate_username,
         )
 
     def get_manager_emails(self):
@@ -661,10 +670,16 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
         )
 
     def __str__(self):
+        self_group_owner_username = None
+        if self.group and self.group.owner:
+            self_group_owner_username = self.group.owner.username
+        self_delegate_username = None
+        if self.delegate:
+            self_delegate_username = self.delegate.username
         return "{} (owner: {}, delegate: {})".format(
             self.name,
-            self.group.owner.username,
-            self.delegate.username if self.delegate else None,
+            self_group_owner_username,
+            self_delegate_username,
         )
 
     def get_manager_emails(self):

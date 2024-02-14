@@ -30,6 +30,11 @@ class ApiTestCase(TestCase):
         self.user_admin.is_staff = True
         self.user_admin.is_superuser = True
         self.user_admin.save()
+        # Connect user to HpcUser.
+        self.user_user.name = "User Name"
+        self.user_user.save()
+        self.hpcuser_user.user = self.user_user
+        self.hpcuser_user.save()
 
 
 class TestHpcUserListApiView(ApiTestCase):
