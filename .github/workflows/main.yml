@@ -49,7 +49,7 @@ jobs:
           lfs: true
 
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           # We need to fix the patch version here otherwise, snapshot tests
           # with randomness will / may fail.
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -91,7 +91,7 @@ jobs:
           lfs: true
 
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
