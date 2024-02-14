@@ -27,6 +27,11 @@ test-keepdb:
 	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb
 
 
+.PHONY: test-snap
+test-snap:
+	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb usersec.tests.test_serializers adminsec.tests.test_views_api
+
+
 .PHONY: isort
 isort:
 	isort --force-sort-within-sections --profile=black .

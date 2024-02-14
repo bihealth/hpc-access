@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.urls import reverse
+from factory import SubFactory
 from test_plus.test import TestCase
 
 from usersec.models import (
@@ -317,7 +318,8 @@ class VersionTesterMixin:
             data.update(supplementaries)
 
         for k, v in data.items():
-            setattr(obj, k, v)
+            if not isinstance(v, SubFactory):
+                setattr(obj, k, v)
 
         obj.save_with_version()
 
