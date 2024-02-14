@@ -1,8 +1,10 @@
 """Configuration for hpc-access-cli."""
 
 from pathlib import Path
+from typing import List
 
 import typer
+from hpc_access_cli.models import StateOperation
 from pydantic import BaseModel, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
@@ -68,6 +70,27 @@ class Settings(BaseSettings):
     mailman: MailmanSettings
     #: HPC access server configuration.
     hpc_access: HpcaccessSettings
+
+    #: Operations to perform on LDAP users.
+    ldap_user_ops: List[StateOperation] = [
+        StateOperation.CREATE,
+        StateOperation.UPDATE,
+        StateOperation.DISABLE,
+    ]
+    #: Operations to perform on LDAP groups.
+    ldap_group_ops: List[StateOperation] = [
+        StateOperation.CREATE,
+        StateOperation.UPDATE,
+        StateOperation.DISABLE,
+    ]
+    #: Operations to perform on file system directories.
+    fs_ops: List[StateOperation] = [
+        StateOperation.CREATE,
+        StateOperation.UPDATE,
+        StateOperation.DISABLE,
+    ]
+    #: Whether try run is enabled.
+    dry_run: bool = False
 
     #: Obtaining configuration from environment variables.
     model_config = SettingsConfigDict(env_prefix="HPC_ACCESS_")
