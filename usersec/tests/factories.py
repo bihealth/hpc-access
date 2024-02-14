@@ -222,6 +222,7 @@ class HpcUserFactory(HpcObjectFactoryBase):
     description = "this is a user"
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
     expiration = datetime(2050, 1, 1, tzinfo=utc)
+    home_directory = factory.LazyAttribute(lambda o: f"/data/cephfs-1/home/users/{o.username}")
 
 
 class HpcUserRequestFactoryBase(HpcRequestFactoryBase):

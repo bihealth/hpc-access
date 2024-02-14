@@ -35,6 +35,8 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     phone_number = serializers.SerializerMethodField()
+    home_directory = serializers.CharField()
+    login_shell = serializers.CharField()
 
     def get_full_name(self, obj) -> str:
         return obj.user.name
@@ -65,6 +67,8 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
             "uid",
             "username",
             "expiration",
+            "home_directory",
+            "login_shell",
         ]
 
 

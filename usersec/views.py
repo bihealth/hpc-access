@@ -92,6 +92,12 @@ MSG_INVITATION_PROJECT_USER_ADD_SUCCESS = "Successfully joined the project."
 COMMENT_REACTIVATED = "Request re-activated"
 COMMENT_RETRACTED = "Request retracted"
 
+# -----------------------------------------------------------------------------
+# Other
+# -----------------------------------------------------------------------------
+
+DEFAULT_HOME_DIRECTORY = "/data/cephfs-1/home/users/{username}"
+
 
 class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
     """Customized required login and permission mixin."""
@@ -1496,14 +1502,17 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
         try:
             from adminsec.views import django_to_hpc_username
 
+            username = django_to_hpc_username(obj.username)
+
             hpcuser = HpcUser.objects.create_with_version(
                 user=request.user,
                 primary_group=obj.hpcusercreaterequest.group,
                 resources_requested=obj.hpcusercreaterequest.resources_requested,
                 creator=obj.hpcusercreaterequest.editor,
-                username=django_to_hpc_username(obj.username),
+                username=username,
                 status=OBJECT_STATUS_ACTIVE,
                 expiration=obj.hpcusercreaterequest.expiration,
+                home_directory=DEFAULT_HOME_DIRECTORY.format(username=username),
             )
 
         except Exception as e:

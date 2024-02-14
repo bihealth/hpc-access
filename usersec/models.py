@@ -80,6 +80,26 @@ INVITATION_STATUS_CHOICES = (
     (INVITATION_STATUS_EXPIRED, INVITATION_STATUS_EXPIRED),
 )
 
+#: Login shell bash.
+LOGIN_SHELL_BASH = "/usr/bin/bash"
+
+#: Login shell fish.
+LOGIN_SHELL_FISH = "/usr/bin/fish"
+
+#: Login shell zsh.
+LOGIN_SHELL_ZSH = "/usr/bin/zsh"
+
+#: Login shell sh.
+LOGIN_SHELL_SH = "/usr/bin/sh"
+
+#: Login shell choices.
+LOGIN_SHELL_CHOICES = [
+    (LOGIN_SHELL_BASH, LOGIN_SHELL_BASH),
+    (LOGIN_SHELL_FISH, LOGIN_SHELL_FISH),
+    (LOGIN_SHELL_ZSH, LOGIN_SHELL_ZSH),
+    (LOGIN_SHELL_SH, LOGIN_SHELL_SH),
+]
+
 
 # ------------------------------------------------------------------------------
 # Mixins
@@ -330,6 +350,20 @@ class HpcUserAbstract(HpcObjectAbstract):
 
     #: Expiration date of the user account
     expiration = models.DateTimeField(help_text="Expiration date of the user account")
+
+    #: Home directory of the user on the cluster.
+    home_directory = models.CharField(
+        max_length=64,
+        help_text="Path to the user home directory on the cluster",
+    )
+
+    #: Login shell of the user on the cluster.
+    login_shell = models.CharField(
+        max_length=32,
+        help_text="Login shell of the user on the cluster",
+        choices=LOGIN_SHELL_CHOICES,
+        default=LOGIN_SHELL_BASH,
+    )
 
 
 class HpcUser(VersionManagerMixin, HpcUserAbstract):
