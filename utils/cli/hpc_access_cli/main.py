@@ -29,13 +29,11 @@ def sync(
 ):
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
-    if False:
-        system_state = gather_system_state(settings)
-        console.print_json(data=system_state.model_dump())
-    if True:
-        builder = TargetStateBuilder(settings.hpc_access)
-        res = builder.build(builder.gather())
-        console.print_json(data=res.model_dump())
+    system_state = gather_system_state(settings)
+    console.print_json(data=system_state.model_dump())
+    builder = TargetStateBuilder(settings.hpc_access, system_state)
+    res = builder.build(builder.gather())
+    console.print_json(data=res.model_dump())
 
 
 if __name__ == "__main__":

@@ -33,9 +33,9 @@ BASE_DN_MDC = "ou=MDC,ou=Users,dc=hpc,dc=bihealth,dc=org"
 def user_dn(user: HpcUser) -> str:
     """Get the DN for the user."""
     if user.username.endswith("_m"):
-        return f"uid={user.full_name},{BASE_DN_MDC}"
+        return f"cn={user.full_name},{BASE_DN_MDC}"
     else:
-        return f"uid={user.full_name},{BASE_DN_CHARITE}"
+        return f"cn={user.full_name},{BASE_DN_CHARITE}"
 
 
 class TargetStateBuilder:
@@ -43,9 +43,20 @@ class TargetStateBuilder:
     from hpc-access.
     """
 
-    def __init__(self, settings: HpcaccessSettings):
+    def __init__(self, settings: HpcaccessSettings, system_state: SystemState):
         #: The settings to use.
         self.settings = settings
+        #: The current system state, used for determining next group id.
+        self.system_state = system_state
+        #: The next gid.
+        self.next_gid = self.get_next_gid(system_state)
+        console.log(f"Next available GID is {self.next_gid}.")
+
+    def get_next_gid(self, system_state: SystemState) -> int:
+        """Get the next available GID."""
+        gids = [g.gid_number for g in system_state.ldap_groups.values()]
+        gids.extend([u.gid_number for u in system_state.ldap_users.values()])
+        return max(gids) + 1 if gids else 1000
 
     def gather(self) -> HpcaccessState:
         """Gather the state."""
