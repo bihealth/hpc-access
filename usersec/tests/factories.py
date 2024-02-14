@@ -45,9 +45,10 @@ def hpc_obj_to_dict(obj):
 #: Valid data for HpcGroupCreateRequestForm.
 HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
-    "tier1": 100,
-    "tier2_mirrored": 200,
-    "tier2_unmirrored": 300,
+    "tier1_scratch": 100,
+    "tier1_work": 200,
+    "tier2_mirrored": 300,
+    "tier2_unmirrored": 400,
     "description": "some group description",
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -57,9 +58,10 @@ HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
 #: Valid data for HpcGroupChangeRequestForm.
 HPCGROUPCHANGEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 111}),
-    "tier1": 111,
-    "tier2_mirrored": 222,
-    "tier2_unmirrored": 333,
+    "tier1_scratch": 111,
+    "tier1_work": 222,
+    "tier2_mirrored": 333,
+    "tier2_unmirrored": 444,
     "description": "updated group description",
     "expiration": "2023-01-01",
     "comment": "nothing",
@@ -69,9 +71,10 @@ HPCGROUPCHANGEREQUEST_FORM_DATA_VALID = {
 #: Valid data for HpcUserCreateRequestForm.
 HPCUSERCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
-    "tier1": 100,
-    "tier2_mirrored": 200,
-    "tier2_unmirrored": 300,
+    "tier1_scratch": 100,
+    "tier1_work": 200,
+    "tier2_mirrored": 300,
+    "tier2_unmirrored": 400,
     "email": "user@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -88,9 +91,10 @@ HPCUSERCHANGEREQUEST_FORM_DATA_VALID = {
 #: Valid data for HpcProjectCreateRequestForm.
 HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
-    "tier1": 100,
-    "tier2_mirrored": 200,
-    "tier2_unmirrored": 300,
+    "tier1_scratch": 100,
+    "tier1_work": 200,
+    "tier2_mirrored": 300,
+    "tier2_unmirrored": 400,
     "description": "some project description",
     "name": "some-project",
     "expiration": "2022-01-01",
@@ -102,9 +106,10 @@ HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
 #: Valid data for HpcProjectCreateRequestForm.
 HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 111}),
-    "tier1": 111,
-    "tier2_mirrored": 222,
-    "tier2_unmirrored": 333,
+    "tier1_scratch": 111,
+    "tier1_work": 222,
+    "tier2_mirrored": 333,
+    "tier2_unmirrored": 444,
     "description": "updated project description",
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -156,8 +161,18 @@ class HpcGroupFactory(HpcObjectFactoryBase):
 
     owner = None  # HpcUser
     delegate = None  # HpcUser
-    resources_requested = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
-    resources_used = {"tier1": 0.5, "tier2_mirrored": 0, "tier2_unmirrored": 0}
+    resources_requested = {
+        "tier1_scratch": 1,
+        "tier1_work": 1,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    }
+    resources_used = {
+        "tier1_scratch": 0.5,
+        "tier1_work": 0.5,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    }
     description = "this is a group"
     creator = factory.SubFactory(UserFactory)  # User
     gid = 2000

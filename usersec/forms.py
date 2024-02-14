@@ -16,9 +16,24 @@ from usersec.models import (
     HpcUserCreateRequest,
 )
 
-DEFAULT_USER_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
-DEFAULT_GROUP_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
-DEFAULT_PROJECT_RESOURCES = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
+DEFAULT_USER_RESOURCES = {
+    "tier1_scratch": 1,
+    "tier1_work": 1,
+    "tier2_mirrored": 0,
+    "tier2_unmirrored": 0,
+}
+DEFAULT_GROUP_RESOURCES = {
+    "tier1_scratch": 1,
+    "tier1_work": 1,
+    "tier2_mirrored": 0,
+    "tier2_unmirrored": 0,
+}
+DEFAULT_PROJECT_RESOURCES = {
+    "tier1_scratch": 1,
+    "tier1_work": 1,
+    "tier2_mirrored": 0,
+    "tier2_unmirrored": 0,
+}
 
 
 class HpcGroupCreateRequestForm(forms.ModelForm):
@@ -100,16 +115,27 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             )
 
             # Add fields for storage. Will be merged into resources_requested field.
-            self.fields["tier1"] = forms.IntegerField(
+            self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
-                    "for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
                 ),
                 label="Fast Active Storage [TB]",
             )
-            self.fields["tier1"].initial = group.resources_requested["tier1"]
-            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier1_scratch"].initial = group.resources_requested["tier1_scratch"]
+            self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier1_work"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
+                ),
+                label="Fast Active Storage [TB]",
+            )
+            self.fields["tier1_work"].initial = group.resources_requested["tier1_work"]
+            self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
@@ -296,16 +322,27 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["members_dropdown"].widget.attrs["class"] = "form-control"
 
             # Add fields for storage. Will be merged into resources_requested field.
-            self.fields["tier1"] = forms.IntegerField(
+            self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
-                    "for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
                 ),
                 label="Fast Active Storage [TB]",
             )
-            self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
-            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
+            self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier1_work"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
+                ),
+                label="Fast Active Storage [TB]",
+            )
+            self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
+            self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
@@ -412,16 +449,27 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["members_dropdown"].widget.attrs["class"] = "form-control"
 
             # Add fields for storage. Will be merged into resources_requested field.
-            self.fields["tier1"] = forms.IntegerField(
+            self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the fast primary ('tier 1') storage that can be used with parallel access "
-                    "for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
                 ),
                 label="Fast Active Storage [TB]",
             )
-            self.fields["tier1"].initial = DEFAULT_PROJECT_RESOURCES["tier1"]
-            self.fields["tier1"].widget.attrs["class"] = "form-control mergeToJson"
+            self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
+            self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
+
+            self.fields["tier1_work"] = forms.IntegerField(
+                required=True,
+                help_text=(
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
+                    "with parallel access for computation."
+                ),
+                label="Fast Active Storage [TB]",
+            )
+            self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
+            self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,

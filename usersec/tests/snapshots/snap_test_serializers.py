@@ -18,8 +18,18 @@ snapshots["TestHpcGroupSerializer::testSerializeExisting 1"] = {
     "name": "hpc-group0",
     "owner": None,
     "phone_number": "phone_number_placeholder",
-    "resources_requested": {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0},
-    "resources_used": {"tier1": 0.5, "tier2_mirrored": 0, "tier2_unmirrored": 0},
+    "resources_requested": {
+        "tier1_scratch": 1,
+        "tier1_work": 1,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    },
+    "resources_used": {
+        "tier1_scratch": 0.5,
+        "tier1_work": 0.5,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    },
     "status": "INITIAL",
     "uuid": "uuid_placeholder",
 }
