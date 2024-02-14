@@ -31,8 +31,10 @@ def sync(
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path)
     connection = LdapConnection(settings.ldap_hpc)
-    for user in connection.load_users():
-        console.print_json(data=user.model_dump())
+    # for user in connection.load_users():
+    #     console.print_json(data=user.model_dump())
+    for group in connection.load_groups():
+        console.print_json(data=group.model_dump())
 
 
 if __name__ == "__main__":

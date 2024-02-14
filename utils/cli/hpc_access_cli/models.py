@@ -140,7 +140,7 @@ class LdapUser(BaseModel):
     #: The username.
     uid: str
     #: The user's surname.
-    sn: str
+    sn: Optional[str]
     #: The user's given name.
     given_name: Optional[str]
     #: The numeric user ID.
@@ -170,11 +170,9 @@ class LdapGroup(BaseModel):
     #: The distinguished name of the group.
     dn: str
     #: The description.
-    description: str
-    #: The numeric group ID.
     gid_number: int
     #: The distinguished name of the group's owner.
-    owner_dn: str
+    owner_dn: Optional[str]
     #: The distinguished name of the group's delegates.
     delegate_dns: List[str]
     #: The member uids (== user names) of the group.
