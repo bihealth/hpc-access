@@ -125,7 +125,7 @@ class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSer
 class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC project serializers."""
 
-    owner = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+    group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
@@ -138,7 +138,7 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
-            "owner",
+            "group",
             "delegate",
             "resources_requested",
             "resources_used",

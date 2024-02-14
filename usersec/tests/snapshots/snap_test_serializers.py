@@ -30,6 +30,7 @@ snapshots["TestHpcProjectSerializer::testSerializeExisting 1"] = {
     "expiration": "2050-01-01T00:00:00Z",
     "folder": "/data/project",
     "gid": 5000,
+    "group": "group_uuid_placeholder",
     "name": "hpc-project0",
     "resources_requested": {"null": "null"},
     "resources_used": {"null": "null"},
