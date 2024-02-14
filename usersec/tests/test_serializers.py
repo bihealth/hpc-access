@@ -32,6 +32,7 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         result["primary_group"] = "primary_group_uuid_placeholder"
         result["phone_number"] = "phone_number_placeholder"
         result["full_name"] = "name_placeholder"
+        result["uid"] = 2000
         self.assertMatchSnapshot(result)
 
 

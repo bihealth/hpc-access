@@ -220,7 +220,6 @@ class HpcUserFactory(HpcObjectFactoryBase):
     resources_used = {"null": "null"}
     creator = factory.SubFactory(UserFactory)  # User
     description = "this is a user"
-    uid = 2000
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 

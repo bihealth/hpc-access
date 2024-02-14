@@ -12,7 +12,7 @@ celery:
 	celery -A config.celery_app worker -l info --beat
 
 
-.PHONY: lack
+.PHONY: black
 black:
 	black . -l 100 --exclude '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.?v?env|_build|buck-out|build|dist|src)/' $(arg)
 
@@ -35,4 +35,12 @@ test-snap:
 .PHONY: isort
 isort:
 	isort --force-sort-within-sections --profile=black .
+
+
+.PHONY: flake8
+flake8:
+	flake8
+
+.PHONY: format
+format: isort black flake8
 

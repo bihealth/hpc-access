@@ -68,9 +68,13 @@ def _ldap_auth_handler(user, ldap_user, **kwargs):
     """Signal for LDAP login handling"""
 
     phone = ldap_user.attrs.get("telephoneNumber")
+    uid = ldap_user.attrs.get("uidNumber")
 
     if phone:
         user.phone = phone[0]
+
+    if uid:
+        user.uid = uid[0]
 
     if hasattr(user, "ldap_username"):
         # Make domain in username uppercase
