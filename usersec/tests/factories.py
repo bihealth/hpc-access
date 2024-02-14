@@ -45,7 +45,8 @@ def hpc_obj_to_dict(obj):
 HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
     "tier1": 100,
-    "tier2": 200,
+    "tier2_mirrored": 200,
+    "tier2_unmirrored": 300,
     "description": "some group description",
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -56,7 +57,8 @@ HPCGROUPCREATEREQUEST_FORM_DATA_VALID = {
 HPCGROUPCHANGEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 111}),
     "tier1": 111,
-    "tier2": 222,
+    "tier2_mirrored": 222,
+    "tier2_unmirrored": 333,
     "description": "updated group description",
     "expiration": "2023-01-01",
     "comment": "nothing",
@@ -67,7 +69,8 @@ HPCGROUPCHANGEREQUEST_FORM_DATA_VALID = {
 HPCUSERCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
     "tier1": 100,
-    "tier2": 200,
+    "tier2_mirrored": 200,
+    "tier2_unmirrored": 300,
     "email": "user@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -85,7 +88,8 @@ HPCUSERCHANGEREQUEST_FORM_DATA_VALID = {
 HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 100}),
     "tier1": 100,
-    "tier2": 200,
+    "tier2_mirrored": 200,
+    "tier2_unmirrored": 300,
     "description": "some project description",
     "name": "some-project",
     "expiration": "2022-01-01",
@@ -98,7 +102,8 @@ HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
 HPCPROJECTCHANGEREQUEST_FORM_DATA_VALID = {
     "resources_requested": json.dumps({"resource": 111}),
     "tier1": 111,
-    "tier2": 222,
+    "tier2_mirrored": 222,
+    "tier2_unmirrored": 333,
     "description": "updated project description",
     "expiration": "2022-01-01",
     "comment": "nothing",
@@ -150,8 +155,8 @@ class HpcGroupFactory(HpcObjectFactoryBase):
 
     owner = None  # HpcUser
     delegate = None  # HpcUser
-    resources_requested = {"tier1": 1, "tier2": 0}
-    resources_used = {"tier1": 0.5, "tier2": 0}
+    resources_requested = {"tier1": 1, "tier2_mirrored": 0, "tier2_unmirrored": 0}
+    resources_used = {"tier1": 0.5, "tier2_mirrored": 0, "tier2_unmirrored": 0}
     description = "this is a group"
     creator = None  # User
     gid = 2000

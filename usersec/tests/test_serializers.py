@@ -12,7 +12,6 @@ from usersec.tests.factories import HpcGroupFactory, HpcProjectFactory, HpcUserF
 
 
 class ResetSequenceMixin:
-
     def setUp(self):
         super().setUp()
         HpcUserFactory.reset_sequence()
