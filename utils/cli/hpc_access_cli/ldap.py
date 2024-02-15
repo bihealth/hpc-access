@@ -119,6 +119,7 @@ class LdapConnection:
                     cn=cn,
                     uid=uid,
                     sn=sn,
+                    mail=attribute_as_str(entry.mail),
                     given_name=given_name,
                     uid_number=uid_number,
                     gid_number=gid_number,

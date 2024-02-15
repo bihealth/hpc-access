@@ -57,6 +57,22 @@ def user_dn(user: HpcUser) -> str:
         return f"cn={user.full_name},{BASE_DN_CHARITE}"
 
 
+def gather_hpcaccess_state(settings: HpcaccessSettings) -> HpcaccessState:
+    """Gather the state."""
+    console_err.log("Loading hpc-access users, groups, and projects...")
+    rest_client = HpcaccessClient(settings)
+    result = HpcaccessState(
+        hpc_users={u.uuid: u for u in rest_client.load_users()},
+        hpc_groups={g.uuid: g for g in rest_client.load_groups()},
+        hpc_projects={p.uuid: p for p in rest_client.load_projects()},
+    )
+    console_err.log("  # of users:", len(result.hpc_users))
+    console_err.log("  # of groups:", len(result.hpc_groups))
+    console_err.log("  # of projects:", len(result.hpc_projects))
+    console_err.log("... have hpc-access data now.")
+    return result
+
+
 class TargetStateBuilder:
     """ "Helper class that is capable of building the target state giving data
     from hpc-access.
@@ -79,23 +95,8 @@ class TargetStateBuilder:
 
     def run(self) -> SystemState:
         """Run the builder."""
-        hpcaccess_state = self._gather()
+        hpcaccess_state = gather_hpcaccess_state(self.settings)
         return self._build(hpcaccess_state)
-
-    def _gather(self) -> HpcaccessState:
-        """Gather the state."""
-        console_err.log("Loading hpc-access users, groups, and projects...")
-        rest_client = HpcaccessClient(self.settings)
-        result = HpcaccessState(
-            hpc_users={u.uuid: u for u in rest_client.load_users()},
-            hpc_groups={g.uuid: g for g in rest_client.load_groups()},
-            hpc_projects={p.uuid: p for p in rest_client.load_projects()},
-        )
-        console_err.log("  # of users:", len(result.hpc_users))
-        console_err.log("  # of groups:", len(result.hpc_groups))
-        console_err.log("  # of projects:", len(result.hpc_projects))
-        console_err.log("... have hpc-access data now.")
-        return result
 
     def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
         """Build the target state."""
@@ -265,6 +266,7 @@ class TargetStateBuilder:
                 sn=user.last_name,
                 given_name=user.first_name,
                 uid=user.username,
+                mail=user.email,
                 gecos=gecos,
                 uid_number=user.uid,
                 gid_number=primary_group.gid,
@@ -372,6 +374,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             full_name=u.cn,
             first_name=u.given_name,
             last_name=u.sn,
+            email=u.mail,
             phone_number=u.gecos.office_phone if u.gecos else None,
             resources_requested=ResourceData(
                 tier1_work=0,

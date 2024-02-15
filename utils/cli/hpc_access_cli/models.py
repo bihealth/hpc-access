@@ -147,6 +147,8 @@ class LdapUser(BaseModel):
     dn: str
     #: The username.
     uid: str
+    #: The email address of the user.
+    mail: Optional[str]
     #: The user's surname.
     sn: Optional[str]
     #: The user's given name.
@@ -161,7 +163,7 @@ class LdapUser(BaseModel):
     login_shell: str
     #: The GECOS information of the user.
     gecos: Optional[Gecos]
-    #: The email address of the user.
+    #: Public SSH keys.
     ssh_public_key: List[str]
 
 
@@ -221,6 +223,8 @@ class HpcUser(BaseModel):
     primary_group: UUID
     #: Description of the record.
     description: Optional[str]
+    #: The user's email address.
+    email: Optional[str]
     #: The full name of the user.
     full_name: str
     #: The first name fo the user.
@@ -307,13 +311,6 @@ class HpcProject(BaseModel):
     current_version: int
     #: The project's member user UUIDs.
     members: List[UUID]
-
-
-class MailmanSubscription(BaseModel):
-    """Information of a subscription to a mailman mailing list."""
-
-    #: The member's email address.
-    member_address: str
 
 
 class SystemState(BaseModel):
