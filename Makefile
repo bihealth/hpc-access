@@ -27,9 +27,13 @@ test-keepdb:
 	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb
 
 
+.PHONY: _test-snap
+_test-snap:
+	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb --snapshot-update usersec.tests.test_serializers adminsec.tests.test_views_api
+
+
 .PHONY: test-snap
-test-snap:
-	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb usersec.tests.test_serializers adminsec.tests.test_views_api
+test-snap: _test-snap format
 
 
 .PHONY: isort
@@ -41,6 +45,20 @@ isort:
 flake8:
 	flake8
 
+
 .PHONY: format
 format: isort black flake8
 
+
+.PHONY: migrations
+migrations:
+	$(manage) makemigrations
+
+
+.PHONY: _migrate
+_migrate: migrations
+	$(manage) migrate
+
+
+.PHONY: migrate
+migrate: _migrate format

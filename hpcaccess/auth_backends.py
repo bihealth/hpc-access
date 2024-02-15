@@ -69,12 +69,20 @@ def _ldap_auth_handler(user, ldap_user, **kwargs):
 
     phone = ldap_user.attrs.get("telephoneNumber")
     uid = ldap_user.attrs.get("uidNumber")
+    first_name = ldap_user.attrs.get("givenName")
+    last_name = ldap_user.attrs.get("sn")
 
     if phone:
         user.phone = phone[0]
 
     if uid:
         user.uid = uid[0]
+
+    if first_name:
+        user.first_name = first_name[0]
+
+    if last_name:
+        user.last_name = last_name[0]
 
     if hasattr(user, "ldap_username"):
         # Make domain in username uppercase
@@ -83,11 +91,9 @@ def _ldap_auth_handler(user, ldap_user, **kwargs):
             user.username = u_split[0] + "@" + u_split[1].upper()
             user.save()
 
-        # Save user name from first_name and last_name into name
-        if user.name in ["", None]:
-            if user.first_name != "":
-                user.name = user.first_name + (" " + user.last_name if user.last_name != "" else "")
-                user.save()
+    # Save user name from first_name and last_name into name
+    user.name = " ".join([user.first_name, user.last_name])
+    user.save()
 
 
 @receiver(populate_user, sender=PrimaryLDAPBackend)
