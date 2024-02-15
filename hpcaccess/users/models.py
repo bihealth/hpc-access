@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField, IntegerField
+from django.db.models import BooleanField, CharField, EmailField, IntegerField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -12,15 +12,14 @@ class User(AbstractUser):
     """
 
     #: First and last name do not cover name patterns around the globe
-    name = CharField(_("Name of User"), blank=True, max_length=255)
-    first_name = CharField(_("First Name of User"), blank=True, max_length=30)
-    last_name = CharField(_("Last Name of User"), blank=True, max_length=30)
+    name = CharField(_("Name of User"), blank=True, null=True, max_length=255)
     is_hpcadmin = BooleanField(
         _("HPC admin status"),
         default=False,
         help_text=_("Designates whether the user is an HPC admin."),
     )
-    phone = CharField(_("Phone number of User"), blank=True, max_length=32)
+    phone = CharField(_("Phone number of User"), blank=True, null=True, max_length=32)
+    email = EmailField(_("email address"), blank=True, null=True)
     uid = IntegerField(_("UID of User"), blank=True, null=True)
 
     def get_absolute_url(self):
