@@ -89,8 +89,16 @@ class FsDirectory(BaseModel):
         # Get Ceph extended attributes.
         rbytes = int(get_extended_attribute(path, "ceph.dir.rbytes"))
         rfiles = int(get_extended_attribute(path, "ceph.dir.rfiles"))
-        quota_bytes = int(get_extended_attribute(path, "ceph.quota.max_bytes"))
-        quota_files = int(get_extended_attribute(path, "ceph.quota.max_files"))
+        try:
+            quota_bytes = int(get_extended_attribute(path, "ceph.quota.max_bytes"))
+        except ValueError:
+            # attribute missing => no quota set
+            quota_bytes = None
+        try:
+            quota_files = int(get_extended_attribute(path, "ceph.quota.max_files"))
+        except ValueError:
+            # attribute missing => no quota set
+            quota_files = None
 
         return FsDirectory(
             path=path,
