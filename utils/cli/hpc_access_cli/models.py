@@ -236,7 +236,7 @@ class HpcUser(BaseModel):
     #: The status of the record.
     status: Status
     #: The POSIX UID of the user.
-    uid: Optional[int]
+    uid: int
     #: The username of the record.
     username: str
     #: Point in time of user expiration.

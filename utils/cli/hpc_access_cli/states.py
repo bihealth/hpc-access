@@ -108,11 +108,6 @@ class TargetStateBuilder:
         """Build the file system directories from the hpc-access state."""
         result = {}
         for user in hpcaccess_state.hpc_users.values():
-            if not user.uid:
-                console_err.log(
-                    f"User {user.full_name} has no uid, skipping.",
-                )
-                continue
             primary_group = hpcaccess_state.hpc_groups[user.primary_group]
             if not primary_group.gid:
                 console_err.log(
@@ -140,11 +135,6 @@ class TargetStateBuilder:
                 )
                 continue
             owner = hpcaccess_state.hpc_users[group.owner]
-            if not owner.uid:
-                console_err.log(
-                    f"Owner {owner.full_name} has no uid, skipping.",
-                )
-                continue
             # Tier 1
             quota_work = (group.resources_requested or ResourceData).tier1
             if not quota_work:
@@ -196,11 +186,6 @@ class TargetStateBuilder:
                 continue
             owning_group = hpcaccess_state.hpc_groups[project.group]
             owner = hpcaccess_state.hpc_users[owning_group.owner]
-            if not owner.uid:
-                console_err.log(
-                    f"Owner {owner.full_name} has no uid, skipping.",
-                )
-                continue
             # Tier 1
             quota_work = (project.resources_requested or ResourceData).tier1
             if not quota_work:
@@ -258,11 +243,6 @@ class TargetStateBuilder:
                 other=None,
             )
             primary_group = hpcaccess_state.hpc_groups[user.primary_group]
-            if not user.uid:
-                console_err.log(
-                    f"User {user.full_name} has no uid, skipping.",
-                )
-                continue
             if not primary_group.gid:
                 console_err.log(
                     f"User {user.full_name} has no primary group, skipping.",
@@ -401,8 +381,8 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
 
     def build_hpcgroup(g: LdapGroup) -> Optional[HpcGroup]:
         expiration = datetime.datetime.now() + datetime.timedelta(days=365)
-        if not g.owner_dn or not user_by_dn[g.owner_dn].uid:
-            console_err.log(f"no UID for {g.owner_dn}, skipping")
+        if not g.owner_dn:
+            console_err.log(f"no owner DN for {g.cn}, skipping")
             return
         return HpcGroup(
             uuid=group_uuids[g.cn],
@@ -428,8 +408,8 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
 
     def build_hpcproject(p: LdapGroup) -> Optional[HpcProject]:
         expiration = datetime.datetime.now() + datetime.timedelta(days=365)
-        if not p.owner_dn or not user_by_dn[p.owner_dn].uid:
-            console_err.log(f"no UID for {p.owner_dn}, skipping")
+        if not p.owner_dn:
+            console_err.log(f"no owner DN for {p.cn}, skipping")
             return
         return HpcProject(
             uuid=group_uuids[p.cn],
