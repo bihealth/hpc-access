@@ -570,10 +570,9 @@ class TargetStateComparison:
             dst_directory = self.dst.fs_directories[path]
             src_directory_dict = src_directory.model_dump()
             dst_directory_dict = dst_directory.model_dump()
-            all_keys = set(src_directory_dict.keys()) | set(dst_directory_dict.keys())
             if src_directory_dict != dst_directory_dict:
                 diff = {}
-                for key in all_keys:
+                for key in ("owner_uid", "owner_gid", "perms", "quota_bytes", "quota_files"):
                     if src_directory_dict.get(key) != dst_directory_dict.get(key):
                         diff[key] = dst_directory_dict.get(key)
                 result.append(
