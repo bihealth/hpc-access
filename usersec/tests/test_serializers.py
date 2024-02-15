@@ -29,6 +29,7 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcUserSerializer(self.hpc_user)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        result["email"] = "email_placeholder"
         result["primary_group"] = "primary_group_uuid_placeholder"
         result["phone_number"] = "phone_number_placeholder"
         result["full_name"] = "name_placeholder"
@@ -43,13 +44,12 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def setUp(self):
         super().setUp()
         self.hpc_group = HpcGroupFactory()
+        self.maxDiff = None
 
     def testSerializeExisting(self):
         serializer = HpcGroupSerializer(self.hpc_group)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
-        result["phone_number"] = "phone_number_placeholder"
-        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)
 
 
@@ -57,13 +57,12 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
 class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def setUp(self):
         super().setUp()
-        self.hpc_group = HpcProjectFactory()
+        self.hpc_project = HpcProjectFactory()
+        self.maxDiff = None
 
     def testSerializeExisting(self):
-        serializer = HpcProjectSerializer(self.hpc_group)
+        serializer = HpcProjectSerializer(self.hpc_project)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
         result["group"] = "group_uuid_placeholder"
-        result["phone_number"] = "phone_number_placeholder"
-        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)
