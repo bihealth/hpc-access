@@ -256,6 +256,7 @@ class LdapConnection:
                 "bih-groupOwnerDN",
                 "bih-groupDelegateDNs",
                 "memberUid",
+                "description",
             ],
         ):
             raise Exception("Failed to search for groups.")
@@ -276,6 +277,7 @@ class LdapConnection:
                     dn=entry.entry_dn,
                     cn=cn,
                     gid_number=gid_number,
+                    description=attribute_as_str(entry.description),
                     owner_dn=owner_dn,
                     delegate_dns=delegate_dns,
                     member_uids=member_uids,

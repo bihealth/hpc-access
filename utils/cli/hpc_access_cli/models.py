@@ -177,8 +177,10 @@ class LdapGroup(BaseModel):
     cn: str
     #: The distinguished name of the group.
     dn: str
-    #: The description.
+    #: The GID number.
     gid_number: int
+    #: Description of the group.
+    description: Optional[str]
     #: The distinguished name of the group's owner.
     owner_dn: Optional[str]
     #: The distinguished name of the group's delegates.
@@ -217,6 +219,8 @@ class HpcUser(BaseModel):
     uuid: UUID
     #: The UUID of the primary ``HpcGroup``.
     primary_group: UUID
+    #: Description of the record.
+    description: Optional[str]
     #: The full name of the user.
     full_name: str
     #: The first name fo the user.
@@ -252,6 +256,8 @@ class HpcGroup(BaseModel):
     uuid: UUID
     #: The owning ``HpcUser``.
     owner: UUID
+    #: Description of the record.
+    description: Optional[str]
     #: The delegate.
     delegate: Optional[UUID]
     #: The requested resources.
@@ -279,6 +285,8 @@ class HpcProject(BaseModel):
     uuid: UUID
     #: The owning ``HpcGroup``, owner of group is owner of project.
     group: UUID
+    #: Description of the record.
+    description: Optional[str]
     #: The delegate for the project.
     delegate: Optional[UUID]
     #: The requested resources.
