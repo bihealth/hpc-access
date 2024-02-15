@@ -98,9 +98,13 @@ class TargetStateBuilder:
 
     def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
         """Build the target state."""
+        # IMPORANT: Note that order matters here! First, we must create
+        # LDAP groups so we have the Unix GIDs when users are considered.
+        ldap_groups = self._build_ldap_groups(hpcaccess_state)
+        ldap_users = self._build_ldap_users(hpcaccess_state)
         return SystemState(
-            ldap_users=self._build_ldap_users(hpcaccess_state),
-            ldap_groups=self._build_ldap_groups(hpcaccess_state),
+            ldap_users=ldap_users,
+            ldap_groups=ldap_groups,
             fs_directories=self._build_fs_directories(hpcaccess_state),
         )
 
@@ -270,10 +274,9 @@ class TargetStateBuilder:
         # build for work groups
         for group in state.hpc_groups.values():
             if not group.gid:
-                console_err.log(
-                    f"Group {group.name} has no gid, skipping.",
-                )
-                continue
+                # assign new group Unix GID if necessary
+                group.gid = self.next_gid
+                self.next_gid += 1
             group_dn = f"cn=hpc-ag-{group.name},{BASE_DN_GROUPS}"
             owner = state.hpc_users[group.owner]
             delegate = state.hpc_users[group.delegate] if group.delegate else None
@@ -289,10 +292,9 @@ class TargetStateBuilder:
         # build for projects
         for project in state.hpc_projects.values():
             if not project.gid:
-                console_err.log(
-                    f"Project {project.name} has no gid, skipping.",
-                )
-                continue
+                # assign new project Unix GID if necessary
+                project.gid = self.next_gid
+                self.next_gid += 1
             group_dn = f"cn=hpc-prj-{project.name},{BASE_DN_PROJECTS}"
             owning_group = state.hpc_groups[project.group]
             owner = state.hpc_users[owning_group.owner]
