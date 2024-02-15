@@ -29,6 +29,7 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcUserSerializer(self.hpc_user)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        result["email"] = "email_placeholder"
         result["primary_group"] = "primary_group_uuid_placeholder"
         result["phone_number"] = "phone_number_placeholder"
         result["full_name"] = "name_placeholder"
@@ -48,8 +49,6 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcGroupSerializer(self.hpc_group)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
-        result["phone_number"] = "phone_number_placeholder"
-        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)
 
 
@@ -64,6 +63,4 @@ class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
         result["group"] = "group_uuid_placeholder"
-        result["phone_number"] = "phone_number_placeholder"
-        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)
