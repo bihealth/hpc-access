@@ -190,8 +190,10 @@ class LdapGroup(BaseModel):
 class ResourceData(BaseModel):
     """A resource request/usage for a user."""
 
-    #: Storage on tier 1 in TB.
-    tier1: float = 0.0
+    #: Storage on tier 1 in TB (work).
+    tier1_work: float = 0.0
+    #: Storage on tier 1 in TB (scratch).
+    tier1_scratch: float = 0.0
     #: Storage on tier 2 (mirrored) in TB.
     tier2_mirrored: float = 0.0
     #: Storage on tier 2 (unmirrored) in TB.

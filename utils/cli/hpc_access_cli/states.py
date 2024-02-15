@@ -141,12 +141,15 @@ class TargetStateBuilder:
                 continue
             owner = hpcaccess_state.hpc_users[group.owner]
             # Tier 1
-            quota_work = (group.resources_requested or ResourceData).tier1
+            quota_work = (group.resources_requested or ResourceData).tier1_work
             if not quota_work:
+                continue
+            quota_scratch = (group.resources_requested or ResourceData).tier1_scratch
+            if not quota_scratch:
                 continue
             for volume, quota in (
                 ("home", QUOTA_HOME_BYTES),
-                ("scratch", QUOTA_SCRATCH_BYTES),
+                ("scratch", quota_scratch * 1024 * 1024 * 1024 * 1024),
                 ("work", quota_work * 1024 * 1024 * 1024 * 1024),
             ):
                 result[f"/data/cephfs-1/{volume}/groups/{group.name}"] = FsDirectory(
@@ -192,12 +195,15 @@ class TargetStateBuilder:
             owning_group = hpcaccess_state.hpc_groups[project.group]
             owner = hpcaccess_state.hpc_users[owning_group.owner]
             # Tier 1
-            quota_work = (project.resources_requested or ResourceData).tier1
+            quota_work = (project.resources_requested or ResourceData).tier1_work
             if not quota_work:
-                continue  # no quota requested
+                continue
+            quota_scratch = (project.resources_requested or ResourceData).tier1_scratch
+            if not quota_scratch:
+                continue
             for volume, quota in (
                 ("home", QUOTA_HOME_BYTES),
-                ("scratch", QUOTA_SCRATCH_BYTES),
+                ("scratch", quota_scratch * 1024 * 1024 * 1024 * 1024),
                 ("work", quota_work * 1024 * 1024 * 1024 * 1024),
             ):
                 result[f"/data/cephfs-1/{volume}/projects/{project.name}"] = FsDirectory(
@@ -365,12 +371,14 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             last_name=u.sn,
             phone_number=u.gecos.office_phone if u.gecos else None,
             resources_requested=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
             resources_used=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
@@ -394,12 +402,14 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             owner=user_uuids[user_by_dn[g.owner_dn].uid],
             delegate=user_uuids[user_by_dn[g.delegate_dns[0]].uid] if g.delegate_dns else None,
             resources_requested=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
             resources_used=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
@@ -426,12 +436,14 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             group=group_uuids[group_by_gid[user_by_dn[p.owner_dn].gid_number].cn],
             delegate=user_uuids[user_by_dn[p.delegate_dns[0]].uid] if p.delegate_dns else None,
             resources_requested=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
             resources_used=ResourceData(
-                tier1=0,
+                tier1_work=0,
+                tier1_scratch=0,
                 tier2_mirrored=0,
                 tier2_unmirrored=0,
             ),
