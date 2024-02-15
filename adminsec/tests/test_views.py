@@ -302,7 +302,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
-            self.assertEqual(hpcgroup.name, "ag_doe")
+            self.assertEqual(hpcgroup.name, "ag-doe")
 
             self.assertEqual(hpcgroup_version.owner, hpcuser)
 
@@ -1743,4 +1743,4 @@ class TestFunctions(TestViewBase):
 
     def test_generate_hpc_groupname(self):
         name = "Doe"
-        self.assertEqual(generate_hpc_groupname(name), "ag_doe")
+        self.assertEqual(generate_hpc_groupname(name), "ag-doe")
