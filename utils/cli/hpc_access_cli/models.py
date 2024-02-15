@@ -9,7 +9,6 @@ import stat
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from hpc_access_cli.fs import get_extended_attribute
 from pydantic import BaseModel
 
 #: Login shell to use for disabled users.
@@ -48,6 +47,8 @@ class FsDirectory(BaseModel):
     @staticmethod
     def from_path(path: str) -> "FsDirectory":
         """Create a new instance from a path."""
+        from hpc_access_cli.fs import get_extended_attribute
+
         # Get owner user name, owner uid, group name, group gid
         uid = os.stat(path).st_uid
         gid = os.stat(path).st_gid
