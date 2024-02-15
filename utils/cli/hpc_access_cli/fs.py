@@ -1,5 +1,7 @@
 """Code for load file system resource management."""
 
+import errno
+import os
 from pathlib import Path
 from subprocess import check_call
 import sys
@@ -7,9 +9,27 @@ from typing import Dict, List
 
 from hpc_access_cli.models import FsDirectory, FsDirectoryOp, StateOperation
 from rich.console import Console
+import xattr
 
 #: The rich console to use for logging.
 console_err = Console(file=sys.stderr)
+
+
+def get_extended_attribute(path: str, attr_name: str) -> str:
+    """Get the value of an extended attribute."""
+    try:
+        # Get the value of the specified extended attribute
+        value = xattr.getxattr(path, attr_name).decode("utf-8")
+        return value
+    except OSError as e:
+        if os.environ.get("DEBUG", "0") == "1":
+            return "0"
+        # Handle the case when the attribute is not found
+        if e.errno == errno.ENODATA:
+            raise ValueError(f"extended attribute {attr_name} not found") from e
+        else:
+            # Re-raise the exception for other errors
+            raise
 
 
 def _transform_perms(perms: str) -> str:

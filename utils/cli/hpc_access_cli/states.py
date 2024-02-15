@@ -340,6 +340,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
     """
     # create UUID mapping from user/groupnames
     user_uuids = {u.uid: uuid4() for u in system_state.ldap_users.values()}
+    user_by_uid = {u.uid: u for u in system_state.ldap_users.values()}
     user_by_dn = {u.dn: u for u in system_state.ldap_users.values()}
     group_uuids = {g.cn: uuid4() for g in system_state.ldap_groups.values()}
     group_by_gid = {g.gid_number: g for g in system_state.ldap_groups.values()}
@@ -414,6 +415,11 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         if not p.owner_dn:
             console_err.log(f"no owner DN for {p.cn}, skipping")
             return
+        members = []
+        for uid in p.member_uids:
+            uid = uid.strip()
+            user = user_by_uid[uid]
+            members.append(user_uuids[user.uid])
         return HpcProject(
             uuid=group_uuids[p.cn],
             name=p.cn.replace("hpc-prj-", ""),
@@ -434,6 +440,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             folder=f"/data/cephfs-1/projects/{p.cn}",
             expiration=expiration,
             current_version=1,
+            members=members,
         )
 
     # construct the resulting state
