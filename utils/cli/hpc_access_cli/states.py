@@ -266,6 +266,7 @@ class TargetStateBuilder:
                 sn=user.last_name,
                 given_name=user.first_name,
                 uid=user.username,
+                mail=user.email,
                 gecos=gecos,
                 uid_number=user.uid,
                 gid_number=primary_group.gid,
@@ -373,6 +374,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             full_name=u.cn,
             first_name=u.given_name,
             last_name=u.sn,
+            email=u.mail,
             phone_number=u.gecos.office_phone if u.gecos else None,
             resources_requested=ResourceData(
                 tier1_work=0,

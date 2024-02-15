@@ -147,6 +147,8 @@ class LdapUser(BaseModel):
     dn: str
     #: The username.
     uid: str
+    #: The email address of the user.
+    mail: Optional[str]
     #: The user's surname.
     sn: Optional[str]
     #: The user's given name.
@@ -221,6 +223,8 @@ class HpcUser(BaseModel):
     primary_group: UUID
     #: Description of the record.
     description: Optional[str]
+    #: The user's email address.
+    email: Optional[str]
     #: The full name of the user.
     full_name: str
     #: The first name fo the user.

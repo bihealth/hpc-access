@@ -13,6 +13,7 @@ from hpc_access_cli.states import (
     gather_hpcaccess_state,
     gather_system_state,
 )
+import mechanize
 from rich.console import Console
 import typer
 from typing_extensions import Annotated
@@ -34,22 +35,33 @@ def mailman_sync(
     """obtain email addresses of active users and sync to mailman"""
     settings = load_settings(config_path)
     dst_state = gather_hpcaccess_state(settings.hpc_access)
-    for user in dst_state.hpc_users.values():
-        user.
+    emails = list(sorted(user.email for user in dst_state.hpc_users.values() if user.email))
+    console_err.log(f"will update to {len(emails)} email addresses")
+    console_err.log("\n".join(emails))
+
+    console_err.log(f"Opening URL to mailman '{settings.mailman.server_url}' ...")
+    br = mechanize.Browser()
+    br.set_handle_robots(False)
+    br.open(str(settings.mailman.server_url))
+    console_err.log("  ... filling login form")
+    br.select_form(nr=0)
+    br["adminpw"] = settings.mailman.admin_password.get_secret_value()
+    console_err.log("  ... submitting login form")
+    _ = br.submit()
+    console_err.log("  ... filling sync membership list form")
+    br.select_form(nr=0)
+    br["memberlist"] = "\n".join(emails)
+    if br.forms()[0].action != str(settings.mailman.server_url):  # type: ignore
+        raise Exception(f"unexpected form action {br.forms()[0].action}")  # type: ignore
+    console_err.log("  ... submitting sync membership list form")
+    if dry_run:
+        console_err.log("  ... **dry run, not submitting**")
+    else:
+        _ = br.submit()
+    console_err.log("... done")
 
 
-@app.command("record-usage")
-def record_usage(
-    config_path: Annotated[
-        str, typer.Option(..., help="path to configuration file")
-    ] = "/etc/hpc-access-cli/config.json",
-):
-    """record resource in hpc-access"""
-    settings = load_settings(config_path)
-    _ = settings
-
-
-@app.command("dump")
+@app.command("state-dump")
 def dump_data(
     config_path: Annotated[
         str, typer.Option(..., help="path to configuration file")
@@ -63,7 +75,7 @@ def dump_data(
     console_out.print_json(data=hpcaccess_state.model_dump(mode="json"))
 
 
-@app.command("sync")
+@app.command("state-sync")
 def sync_data(
     config_path: Annotated[
         str, typer.Option(..., help="path to configuration file")
