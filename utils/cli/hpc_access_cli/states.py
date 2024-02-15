@@ -292,6 +292,7 @@ class TargetStateBuilder:
                 dn=group_dn,
                 cn=group_name,
                 gid_number=group.gid,
+                description=group.description,
                 owner_dn=user_dn(owner),
                 delegate_dns=[user_dn(delegate)] if delegate else [],
                 member_uids=[],
@@ -311,6 +312,7 @@ class TargetStateBuilder:
                 dn=group_dn,
                 cn=project_name,
                 gid_number=project.gid,
+                description=project.description,
                 owner_dn=user_dn(owner),
                 delegate_dns=[user_dn(delegate)] if delegate else [],
                 member_uids=[],
@@ -366,6 +368,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         return HpcUser(
             uuid=user_uuids[u.uid],
             primary_group=group_uuids[group_by_gid[u.gid_number].cn],
+            description=None,
             full_name=u.cn,
             first_name=u.given_name,
             last_name=u.sn,
@@ -399,6 +402,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         return HpcGroup(
             uuid=group_uuids[g.cn],
             name=g.cn.replace("hpc-ag-", ""),
+            description=g.description,
             owner=user_uuids[user_by_dn[g.owner_dn].uid],
             delegate=user_uuids[user_by_dn[g.delegate_dns[0]].uid] if g.delegate_dns else None,
             resources_requested=ResourceData(
@@ -433,6 +437,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         return HpcProject(
             uuid=group_uuids[p.cn],
             name=p.cn.replace("hpc-prj-", ""),
+            description=g.description,
             group=group_uuids[group_by_gid[user_by_dn[p.owner_dn].gid_number].cn],
             delegate=user_uuids[user_by_dn[p.delegate_dns[0]].uid] if p.delegate_dns else None,
             resources_requested=ResourceData(
