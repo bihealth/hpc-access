@@ -10,6 +10,7 @@ from hpc_access_cli.states import (
     TargetStateBuilder,
     TargetStateComparison,
     convert_to_hpcaccess_state,
+    gather_hpcaccess_state,
     gather_system_state,
 )
 from rich.console import Console
@@ -21,6 +22,20 @@ app = typer.Typer()
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)
 console_out = Console(file=sys.stdout)
+
+
+@app.command("mailman-sync")
+def mailman_sync(
+    config_path: Annotated[
+        str, typer.Option(..., help="path to configuration file")
+    ] = "/etc/hpc-access-cli/config.json",
+    dry_run: Annotated[bool, typer.Option(..., help="perform a dry run (no changes)")] = True,
+):
+    """obtain email addresses of active users and sync to mailman"""
+    settings = load_settings(config_path)
+    dst_state = gather_hpcaccess_state(settings.hpc_access)
+    for user in dst_state.hpc_users.values():
+        user.
 
 
 @app.command("record-usage")
