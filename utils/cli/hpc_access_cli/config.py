@@ -59,10 +59,6 @@ class HpcaccessSettings(BaseModel):
 class Settings(BaseSettings):
     """Configuration of hpc-access-cli."""
 
-    #: Configuration of Charite LDAP.
-    ldap_charite: LdapSettings
-    #: Configuration of MDC LDAP.
-    ldap_mdc: LdapSettings
     #: Configuration for internal LDAP.
     ldap_hpc: LdapSettings
     #: Configuration for sending out emails via SMTP.
