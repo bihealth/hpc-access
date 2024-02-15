@@ -1,7 +1,10 @@
+import os
 import sys
-from typing import List, Optional
+from typing import List
 
 from hpc_access_cli.config import load_settings
+from hpc_access_cli.fs import FsResourceManager
+from hpc_access_cli.ldap import LdapConnection
 from hpc_access_cli.models import StateOperation
 from hpc_access_cli.states import (
     TargetStateBuilder,
@@ -63,16 +66,6 @@ def sync_data(
         typer.Option(..., help="file system operations to perform (default: all)"),
     ] = [],
     dry_run: Annotated[bool, typer.Option(..., help="perform a dry run (no changes)")] = True,
-    user_filter: Annotated[
-        Optional[str], typer.Option(..., help="regex filter for users to sync (default: all)")
-    ] = None,
-    group_filter: Annotated[
-        Optional[str], typer.Option(..., help="regex filter for groups to sync (default: all)")
-    ] = None,
-    fs_filter: Annotated[
-        Optional[str],
-        typer.Option(..., help="regex filter for file system folders to sync (default: all)"),
-    ] = None,
 ):
     """sync hpc-access state to HPC LDAP"""
     settings = load_settings(config_path).model_copy(
@@ -83,13 +76,24 @@ def sync_data(
             "dry_run": dry_run,
         }
     )
-    console_err.print_json(data=settings.model_dump(mode="json"))
+    # console_err.print_json(data=settings.model_dump(mode="json"))
     src_state = gather_system_state(settings)
     dst_builder = TargetStateBuilder(settings.hpc_access, src_state)
     dst_state = dst_builder.run()
     comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
     operations = comparison.run()
-    console_err.print_json(data=operations.model_dump(mode="json"))
+    # console_err.print_json(data=operations.model_dump(mode="json"))
+    connection = LdapConnection(settings.ldap_hpc)
+    console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
+    for group_op in operations.ldap_group_ops:
+        connection.apply_group_op(group_op, dry_run)
+    console_err.log(f"applying LDAP user operations now, dry_run={dry_run}")
+    for user_op in operations.ldap_user_ops:
+        connection.apply_user_op(user_op, dry_run)
+    console_err.log(f"applying file system operations now, dry_run={dry_run}")
+    fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
+    for fs_op in operations.fs_ops:
+        fs_mgr.apply_fs_op(fs_op, dry_run)
 
 
 if __name__ == "__main__":

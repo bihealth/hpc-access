@@ -1,10 +1,17 @@
 """Code for interfacing with LDAP servers."""
 
 import sys
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from hpc_access_cli.config import LdapSettings
-from hpc_access_cli.models import Gecos, LdapGroup, LdapUser
+from hpc_access_cli.models import (
+    Gecos,
+    LdapGroup,
+    LdapGroupOp,
+    LdapUser,
+    LdapUserOp,
+    StateOperation,
+)
 import ldap3
 from rich.console import Console
 
@@ -118,6 +125,26 @@ class LdapConnection:
             )
         return result
 
+    def apply_user_op(self, op: LdapUserOp, dry_run: bool):
+        """Apply a user operation to the LDAP server."""
+        if op.operation == StateOperation.CREATE:
+            self._user_op_create(op.user, dry_run)
+        elif op.operation == StateOperation.DISABLE:
+            self._user_op_disable(op.user, dry_run)
+        elif op.operation == StateOperation.UPDATE:
+            self._user_op_update(op.user.dn, op.diff, dry_run)
+
+    def _user_op_create(self, user: LdapUser, dry_run: bool):
+        pass
+
+    def _user_op_disable(self, user: LdapUser, dry_run: bool):
+        pass
+
+    def _user_op_update(
+        self, dn: str, diff: Dict[str, None | int | str | List[str] | Dict[str, Any]], dry_run: bool
+    ):
+        pass
+
     def load_groups(self) -> List[LdapGroup]:
         """Load group names from the LDAP server."""
         search_filter = "(&(objectClass=posixGroup)(cn=*))"
@@ -159,3 +186,23 @@ class LdapConnection:
                 )
             )
         return result
+
+    def apply_group_op(self, op: LdapGroupOp, dry_run: bool):
+        """Apply a group operation to the LDAP server."""
+        if op == StateOperation.CREATE:
+            self._group_op_create(op.group, dry_run)
+        elif op == StateOperation.DISABLE:
+            self._group_op_disable(op.group, dry_run)
+        elif op == StateOperation.UPDATE:
+            self._group_op_update(op.group.dn, op.diff, dry_run)
+
+    def _group_op_create(self, group: LdapGroup, dry_run: bool):
+        pass
+
+    def _group_op_disable(self, group: LdapGroup, dry_run: bool):
+        pass
+
+    def _group_op_update(
+        self, dn: str, diff: Dict[str, None | int | str | List[str] | Dict[str, Any]], dry_run: bool
+    ):
+        pass

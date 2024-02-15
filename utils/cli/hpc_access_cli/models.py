@@ -350,7 +350,7 @@ class FsDirectoryOp(BaseModel):
     #: The directory to operate on.
     directory: FsDirectory
     #: The diff to update.
-    diff: Dict[str, int | str]
+    diff: Dict[str, None | int | str]
 
 
 class LdapUserOp(BaseModel):
@@ -372,7 +372,7 @@ class LdapGroupOp(BaseModel):
     #: The group to operate on.
     group: LdapGroup
     #: The diff to update (``None`` => clear).
-    diff: Dict[str, None | int | str | List[str]]
+    diff: Dict[str, None | int | str | List[str] | Dict[str, Any]]
 
 
 class OperationsContainer(BaseModel):
