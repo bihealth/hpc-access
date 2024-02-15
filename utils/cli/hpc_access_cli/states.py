@@ -10,6 +10,7 @@ from hpc_access_cli.config import HpcaccessSettings, Settings
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
 from hpc_access_cli.models import (
+    LOGIN_SHELL_DISABLED,
     FsDirectory,
     FsDirectoryOp,
     Gecos,
@@ -349,7 +350,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
     # console.print_json(data={key: value.dn for key, value in group_by_owner_dn.items()})
 
     def build_hpcuser(u: LdapUser) -> HpcUser:
-        if u.login_shell != "/usr/sbin/nologin":
+        if u.login_shell != LOGIN_SHELL_DISABLED:
             status = Status.ACTIVE
             expiration = datetime.datetime.now() + datetime.timedelta(days=365)
         else:

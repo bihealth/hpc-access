@@ -12,6 +12,7 @@ mechanize = "*"
 rich = "*"
 pydantic-settings = "*"
 xattr = "*"
+pyhumps = "*"
 
 [dev-packages]
 pyright = "*"

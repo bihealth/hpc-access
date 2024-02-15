@@ -13,6 +13,9 @@ from uuid import UUID
 from pydantic import BaseModel
 import xattr
 
+#: Login shell to use for disabled users.
+LOGIN_SHELL_DISABLED = "/usr/sbin/nologin"
+
 
 def get_extended_attribute(path: str, attr_name: str) -> str:
     """Get the value of an extended attribute."""

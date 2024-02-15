@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from hpc_access_cli.config import LdapSettings
 from hpc_access_cli.models import (
+    LOGIN_SHELL_DISABLED,
     Gecos,
     LdapGroup,
     LdapGroupOp,
@@ -12,11 +13,15 @@ from hpc_access_cli.models import (
     LdapUserOp,
     StateOperation,
 )
+import humps
 import ldap3
 from rich.console import Console
 
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)
+
+#: The object classes for users.
+USER_OBJ_CLASSES = ("inetOrgPerson", "posixAccount", "ldapPublicKey", "bih-expireDates", "top")
 
 
 def attribute_as_str(attribute: ldap3.Attribute) -> Optional[str]:
@@ -132,18 +137,109 @@ class LdapConnection:
         elif op.operation == StateOperation.DISABLE:
             self._user_op_disable(op.user, dry_run)
         elif op.operation == StateOperation.UPDATE:
-            self._user_op_update(op.user.dn, op.diff, dry_run)
+            self._user_op_update(op.user, op.diff, dry_run)
 
     def _user_op_create(self, user: LdapUser, dry_run: bool):
-        pass
+        user_data = {
+            "cn": user.cn,
+            "uid": user.uid,
+            "uidNumber": user.uid_number,
+            "homeDirectory": user.home_directory,
+        }
+        if user.sn:
+            user_data["sn"] = user.sn
+        if user.given_name:
+            user_data["givenName"] = user.given_name
+        console_err.log(
+            f"+ create LDAP user\nDN={user.dn}\nclasses={USER_OBJ_CLASSES}\ndata={user_data}"
+        )
+        if not dry_run:
+            self.connection.add(
+                user.dn,
+                USER_OBJ_CLASSES,
+                user_data,
+            )
 
     def _user_op_disable(self, user: LdapUser, dry_run: bool):
-        pass
+        console_err.log(f"+ disable LDAP user DN: {user.dn}")
+        search_params = {
+            "search_base": self.config.search_base,
+            "search_filter": f"(&(objectClass=posixAccount)(uid={user.uid}))",
+            "search_scope": ldap3.SUBTREE,
+            "attributes": [
+                "objectclass",
+                "uid",
+                "uidNumber",
+                "telephoneNumber",
+                "mail",
+                "displayName",
+                "sshPublicKey",
+                "loginShell",
+                "sn",
+                "givenName",
+            ],
+            "paged_size": 20,
+            "generator": False,
+        }
+        if not self.connection.extend.standard.paged_search(**search_params):
+            msg = f"FATAL: could not find users with search base {self.config.search_base}"
+            raise Exception(msg)
+        writable = self.connection.entries[0].entry_writable()
+        writable["loginShell"] = LOGIN_SHELL_DISABLED
+        if not dry_run:
+            if not writable.entry_commit_changes():
+                raise Exception(f"Failed to disable user {user.uid}.")
+            else:
+                console_err.log(f"user diabled CN: {user.cn}")
 
     def _user_op_update(
-        self, dn: str, diff: Dict[str, None | int | str | List[str] | Dict[str, Any]], dry_run: bool
+        self,
+        user: LdapUser,
+        diff: Dict[str, None | int | str | List[str] | Dict[str, Any]],
+        dry_run: bool,
     ):
-        pass
+        search_params = {
+            "search_base": self.config.search_base,
+            "search_filter": f"(&(objectClass=posixAccount)(uid={user.uid}))",
+            "search_scope": ldap3.SUBTREE,
+            "attributes": [
+                "objectclass",
+                "uid",
+                "uidNumber",
+                "telephoneNumber",
+                "mail",
+                "displayName",
+                "sshPublicKey",
+                "loginShell",
+                "sn",
+                "givenName",
+            ],
+            "paged_size": 20,
+            "generator": False,
+        }
+        if not self.connection.extend.standard.paged_search(**search_params):
+            msg = f"FATAL: could not find users with search base {self.config.search_base}"
+            raise Exception(msg)
+        writable = self.connection.entries[0].entry_writable()
+        applied_diff = {}
+        for key, value in diff.items():
+            key = humps.camelize(key)
+            if key == "gecos":
+                gecos: Gecos = value or Gecos()  # type: ignore
+                applied_diff[key] = Gecos.model_validate(gecos).to_string()
+            elif key == "sshPublicKey":
+                # We only support clearing this list for now which is fine as the
+                # SSH keys live in the upstream ADs only.
+                applied_diff[key] = [(ldap3.MODIFY_DELETE, x) for x in writable[key]]
+            else:
+                applied_diff[key] = value or ""
+            writable[key] = value or ""
+        console_err.log(f"+ update LDAP user DN: {user.dn}, diff: {applied_diff}")
+        if not dry_run:
+            if not writable.entry_commit_changes():
+                raise Exception(f"Failed to disable user {user.uid}.")
+            else:
+                console_err.log(f"upser updated DN: {user.dn}")
 
     def load_groups(self) -> List[LdapGroup]:
         """Load group names from the LDAP server."""
@@ -194,15 +290,41 @@ class LdapConnection:
         elif op == StateOperation.DISABLE:
             self._group_op_disable(op.group, dry_run)
         elif op == StateOperation.UPDATE:
-            self._group_op_update(op.group.dn, op.diff, dry_run)
+            self._group_op_update(op.group, op.diff, dry_run)
 
     def _group_op_create(self, group: LdapGroup, dry_run: bool):
         pass
 
     def _group_op_disable(self, group: LdapGroup, dry_run: bool):
-        pass
+        """Disabling a group in LDAP currently is a no-op as this is applied on
+        the file system by setting the file count quota to 0.
+        """
+        _, _ = group, dry_run
 
     def _group_op_update(
-        self, dn: str, diff: Dict[str, None | int | str | List[str] | Dict[str, Any]], dry_run: bool
+        self,
+        group: LdapGroup,
+        diff: Dict[str, None | int | str | List[str] | Dict[str, Any]],
+        dry_run: bool,
     ):
-        pass
+        console_err.log(f"+ update LDAP group DN: {group.dn}, diff: {diff}")
+        search_params = {
+            "search_base": self.config.search_base,
+            "search_filter": f"(&(objectClass=gidNumber)(gidNumber={group.gid_number}))",
+            "search_scope": ldap3.SUBTREE,
+            "attributes": ["*"],
+            "paged_size": 20,
+            "generator": False,
+        }
+        if not self.connection.extend.standard.paged_search(**search_params):
+            msg = f"FATAL: could not find group with search base {self.config.search_base}"
+            raise Exception(msg)
+        writable = self.connection.entries[0].entry_writable()
+
+        for key, value in diff.items():
+            writable[key] = value
+        if not dry_run:
+            if not writable.entry_commit_changes():
+                raise Exception(f"Failed to update DN: {group.dn}.")
+            else:
+                console_err.log(f"group updated DN: {group.dn}")
