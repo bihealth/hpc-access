@@ -46,6 +46,7 @@ from usersec.models import (
     HpcUserCreateRequest,
 )
 from usersec.views import (
+    DEFAULT_HOME_DIRECTORY,
     MSG_PART_GROUP_CREATION,
     MSG_PART_GROUP_UPDATE,
     MSG_PART_PROJECT_CREATION,
@@ -74,7 +75,7 @@ if LDAP2_ENABLED:
     INSTITUTE2_USERNAME_SUFFIX = getattr(settings, "INSTITUTE2_USERNAME_SUFFIX")
     DOMAIN_MAPPING[LDAP2_DOMAIN] = INSTITUTE2_USERNAME_SUFFIX
 
-AG_PREFIX = "ag_"
+AG_PREFIX = "ag-"
 LDAP_USERNAME_SEPARATOR = "@"
 HPC_USERNAME_SEPARATOR = "_"
 
@@ -298,6 +299,8 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             expiration=obj.expiration,
         )
 
+        username = django_to_hpc_username(obj.requester.username)
+
         # Create HpcUser object
         hpcuser = HpcUser.objects.create_with_version(
             user=obj.requester,
@@ -305,9 +308,10 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             resources_requested=DEFAULT_USER_RESOURCES,
             creator=self.request.user,
             description="PI, created together with accepting the group request.",
-            username=django_to_hpc_username(obj.requester.username),
+            username=username,
             status=OBJECT_STATUS_ACTIVE,
             expiration=datetime(year=timezone.now().year + 1, month=1, day=31),
+            home_directory=DEFAULT_HOME_DIRECTORY.format(username=username),
         )
 
         # Set group owner

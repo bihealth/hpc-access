@@ -13,10 +13,10 @@ ENV PYTHONFAULTHANDLER 1
 
 WORKDIR /usr/src/app
 
-MAINTAINER Oliver Stolpe <oliver.stolpe@bih-charite.de>
-LABEL org.opencontainers.image.source https://github.com/bihealth/hpc-access
+LABEL org.opencontainers.image.authors="Oliver Stolpe <oliver.stolpe@bih-charite.de>"
+LABEL org.opencontainers.image.source="https://github.com/bihealth/hpc-access"
 
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl wget postgresql-client
 RUN apt-get clean autoclean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
@@ -39,8 +39,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libldap2-dev \
         libsasl2-dev \
         make \
-        postgresql-client \
-        wget \
         xmlsec1
 
 # Copy Pipfile and lock into the Docker image.

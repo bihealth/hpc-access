@@ -80,6 +80,26 @@ INVITATION_STATUS_CHOICES = (
     (INVITATION_STATUS_EXPIRED, INVITATION_STATUS_EXPIRED),
 )
 
+#: Login shell bash.
+LOGIN_SHELL_BASH = "/usr/bin/bash"
+
+#: Login shell fish.
+LOGIN_SHELL_FISH = "/usr/bin/fish"
+
+#: Login shell zsh.
+LOGIN_SHELL_ZSH = "/usr/bin/zsh"
+
+#: Login shell sh.
+LOGIN_SHELL_SH = "/usr/bin/sh"
+
+#: Login shell choices.
+LOGIN_SHELL_CHOICES = [
+    (LOGIN_SHELL_BASH, LOGIN_SHELL_BASH),
+    (LOGIN_SHELL_FISH, LOGIN_SHELL_FISH),
+    (LOGIN_SHELL_ZSH, LOGIN_SHELL_ZSH),
+    (LOGIN_SHELL_SH, LOGIN_SHELL_SH),
+]
+
 
 # ------------------------------------------------------------------------------
 # Mixins
@@ -325,14 +345,25 @@ class HpcUserAbstract(HpcObjectAbstract):
         help_text="Additional information about the user",
     )
 
-    #: POSIX id of the user on the cluster.
-    uid = models.IntegerField(null=True, help_text="Id of the user on the cluster")
-
     #: POSIX username on the cluster.
     username = models.CharField(max_length=32, help_text="Username of the user on the cluster")
 
     #: Expiration date of the user account
     expiration = models.DateTimeField(help_text="Expiration date of the user account")
+
+    #: Home directory of the user on the cluster.
+    home_directory = models.CharField(
+        max_length=64,
+        help_text="Path to the user home directory on the cluster",
+    )
+
+    #: Login shell of the user on the cluster.
+    login_shell = models.CharField(
+        max_length=32,
+        help_text="Login shell of the user on the cluster",
+        choices=LOGIN_SHELL_CHOICES,
+        default=LOGIN_SHELL_BASH,
+    )
 
 
 class HpcUser(VersionManagerMixin, HpcUserAbstract):
@@ -353,7 +384,7 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
             self.id,
             self.user.username if self.user else None,
             self.username,
-            self.uid,
+            self.user.uid if self.user else None,
             self.primary_group.name,
             self.status,
             self.creator.username if self.creator else None,
@@ -361,7 +392,10 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         )
 
     def __str__(self):
-        return "{} ({})".format(self.user.name, self.username)
+        self_user_name = None
+        if self.user:
+            self_user_name = self.user.username
+        return "{} ({})".format(self_user_name, self.username)
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
@@ -501,10 +535,16 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
         )
 
     def __str__(self):
+        self_owner_username = None
+        if self.owner:
+            self_owner_username = self.owner.username
+        self_delegate_username = None
+        if self.delegate:
+            self_delegate_username = self.delegate.username
         return "{} ({}, {})".format(
             self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
+            self_owner_username,
+            self_delegate_username,
         )
 
     def get_manager_emails(self):
@@ -661,10 +701,16 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
         )
 
     def __str__(self):
+        self_group_owner_username = None
+        if self.group and self.group.owner:
+            self_group_owner_username = self.group.owner.username
+        self_delegate_username = None
+        if self.delegate:
+            self_delegate_username = self.delegate.username
         return "{} (owner: {}, delegate: {})".format(
             self.name,
-            self.group.owner.username,
-            self.delegate.username if self.delegate else None,
+            self_group_owner_username,
+            self_delegate_username,
         )
 
     def get_manager_emails(self):

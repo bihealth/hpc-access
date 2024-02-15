@@ -9,7 +9,8 @@ class UserFactory(DjangoModelFactory):
     username = Faker("user_name")
     email = Faker("email")
     name = Faker("name")
-    phone = Faker("+123456")
+    phone = Faker("phone_number")
+    uid = Faker("random_int", min=1000, max=9999)
 
     @post_generation
     def password(self, create: bool, extracted: Sequence[Any], **kwargs):

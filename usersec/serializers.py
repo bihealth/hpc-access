@@ -1,5 +1,7 @@
 """DRF serializers for the usersec app."""
 
+from typing import Optional
+
 from rest_framework import serializers
 
 from usersec.models import HpcGroupVersion, HpcUser, HpcUserVersion
@@ -26,12 +28,37 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     resources_used = serializers.JSONField()
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
-    uid = serializers.IntegerField()
+    uid = serializers.SerializerMethodField()
     username = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
+    full_name = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+    home_directory = serializers.CharField()
+    login_shell = serializers.CharField()
+
+    def get_full_name(self, obj) -> str:
+        return obj.user.name
+
+    def get_last_name(self, obj) -> Optional[str]:
+        return obj.user.last_name
+
+    def get_first_name(self, obj) -> Optional[str]:
+        return obj.user.first_name
+
+    def get_phone_number(self, obj) -> Optional[str]:
+        return obj.user.phone
+
+    def get_uid(self, obj) -> Optional[int]:
+        return obj.user.uid
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
+            "full_name",
+            "first_name",
+            "last_name",
+            "phone_number",
             "primary_group",
             "resources_requested",
             "resources_used",
@@ -40,6 +67,8 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
             "uid",
             "username",
             "expiration",
+            "home_directory",
+            "login_shell",
         ]
 
 
@@ -125,7 +154,7 @@ class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSer
 class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC project serializers."""
 
-    owner = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+    group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
@@ -135,10 +164,11 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     name = serializers.CharField(read_only=True)
     folder = serializers.CharField()
     expiration = serializers.DateTimeField(read_only=True)
+    members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
-            "owner",
+            "group",
             "delegate",
             "resources_requested",
             "resources_used",
@@ -148,6 +178,7 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
             "name",
             "folder",
             "expiration",
+            "members",
         ]
 
 

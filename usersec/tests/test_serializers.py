@@ -12,7 +12,6 @@ from usersec.tests.factories import HpcGroupFactory, HpcProjectFactory, HpcUserF
 
 
 class ResetSequenceMixin:
-
     def setUp(self):
         super().setUp()
         HpcUserFactory.reset_sequence()
@@ -31,6 +30,9 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
         result["primary_group"] = "primary_group_uuid_placeholder"
+        result["phone_number"] = "phone_number_placeholder"
+        result["full_name"] = "name_placeholder"
+        result["uid"] = 2000
         self.assertMatchSnapshot(result)
 
 
@@ -44,6 +46,8 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcGroupSerializer(self.hpc_group)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        result["phone_number"] = "phone_number_placeholder"
+        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)
 
 
@@ -57,4 +61,7 @@ class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         serializer = HpcProjectSerializer(self.hpc_group)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        result["group"] = "group_uuid_placeholder"
+        result["phone_number"] = "phone_number_placeholder"
+        result["full_name"] = "name_placeholder"
         self.assertMatchSnapshot(result)

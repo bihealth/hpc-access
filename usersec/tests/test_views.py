@@ -266,8 +266,10 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
             "description": "description changed",
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "expiration": "2050-01-01",
         }
 
@@ -311,8 +313,10 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": "",
             "description": "description changed",
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "expiration": "2050-01-01",
         }
 
@@ -543,8 +547,10 @@ class TestHpcGroupChangeRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
             "description": "description changed",
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "expiration": "2050-01-01",
         }
 
@@ -588,8 +594,10 @@ class TestHpcGroupChangeRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": "",
             "description": "description changed",
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "expiration": "2050-01-01",
         }
 
@@ -927,8 +935,10 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
@@ -972,8 +982,10 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": "",
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "email": "other@" + settings.INSTITUTE_EMAIL_DOMAINS.split(",")[0],
             "expiration": "2050-01-01",
         }
@@ -1587,8 +1599,10 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 400}',
-            "tier1": 100,
-            "tier2": 200,
+            "tier1_scratch": 100,
+            "tier1_work": 200,
+            "tier2_mirrored": 300,
+            "tier2_unmirrored": 400,
             "expiration": self.obj.expiration,
             "name": self.obj.name,
             "description": self.obj.description,
@@ -1949,8 +1963,10 @@ class TestHpcProjectChangeRequestUpdateView(TestViewBase):
         update = {
             "comment": "I made a comment!",
             "resources_requested": '{"updated": 444}',
-            "tier1": 111,
-            "tier2": 222,
+            "tier1_scratch": 111,
+            "tier1_work": 222,
+            "tier2_mirrored": 333,
+            "tier2_unmirrored": 444,
             "expiration": self.obj.expiration,
             "description": self.obj.description,
             "members": [m.id for m in self.obj.members.all()],

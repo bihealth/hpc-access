@@ -88,10 +88,19 @@ class TestHpcGroupChangeRequestForm(TestCase):
             form.fields["resources_requested"].initial, self.hpc_group.resources_requested
         )
         self.assertEqual(
-            form.fields["tier1"].initial, self.hpc_group.resources_requested.get("tier1")
+            form.fields["tier1_scratch"].initial,
+            self.hpc_group.resources_requested.get("tier1_scratch"),
         )
         self.assertEqual(
-            form.fields["tier2"].initial, self.hpc_group.resources_requested.get("tier2")
+            form.fields["tier1_work"].initial, self.hpc_group.resources_requested.get("tier1_work")
+        )
+        self.assertEqual(
+            form.fields["tier2_mirrored"].initial,
+            self.hpc_group.resources_requested.get("tier2_mirrored"),
+        )
+        self.assertEqual(
+            form.fields["tier2_unmirrored"].initial,
+            self.hpc_group.resources_requested.get("tier2_unmirrored"),
         )
 
     def test_form_valid(self):

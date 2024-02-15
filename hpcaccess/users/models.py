@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField
+from django.db.models import BooleanField, CharField, IntegerField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -21,6 +21,7 @@ class User(AbstractUser):
         help_text=_("Designates whether the user is an HPC admin."),
     )
     phone = CharField(_("Phone number of User"), blank=True, max_length=32)
+    uid = IntegerField(_("UID of User"), blank=True, null=True)
 
     def get_absolute_url(self):
         """Get url for user's detail view.
