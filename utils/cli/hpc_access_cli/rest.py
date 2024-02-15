@@ -3,7 +3,7 @@
 from typing import List
 
 from hpc_access_cli.config import HpcaccessSettings
-from hpc_access_cli.models import HpcGroup, HpcProject, HpcUser
+from hpc_access_cli.models import HpcGroup, HpcProject, HpcUser, ResourceData
 import httpx
 
 
@@ -64,3 +64,25 @@ class HpcaccessClient:
             else:
                 break
         return result
+
+    def update_group_resources_used(self, group: HpcGroup):
+        """Update resource usage for a group."""
+        url = f"{self.settings.server_url}adminsec/api/hpcgroup/{group.uuid}/"
+        headers = {"Authorization": f"Token {self.settings.api_token.get_secret_value()}"}
+        resources_used = group.resources_used or ResourceData()
+        data = {
+            "resource_usage": resources_used,
+        }
+        response = httpx.patch(url, headers=headers, json=data)
+        response.raise_for_status()
+
+    def update_project_resources_used(self, project: HpcProject):
+        """Update resource usage for a project."""
+        url = f"{self.settings.server_url}adminsec/api/hpcproject/{project.uuid}/"
+        headers = {"Authorization": f"Token {self.settings.api_token.get_secret_value()}"}
+        resources_used = project.resources_used or ResourceData()
+        data = {
+            "resource_usage": resources_used,
+        }
+        response = httpx.patch(url, headers=headers, json=data)
+        response.raise_for_status()
