@@ -49,7 +49,7 @@ class FsResourceManager:
             if path_obj.is_dir():
                 result.append(FsDirectory.from_path(str(path_obj)))
         for path in (self.path_tier2_mirrored, self.path_tier2_unmirrored):
-            for path_obj in Path(path).glob("*/*/*"):
+            for path_obj in Path(path).glob("*/*"):
                 if path_obj.is_dir():
                     result.append(FsDirectory.from_path(str(path_obj)))
         result.sort(key=lambda x: x.path)
