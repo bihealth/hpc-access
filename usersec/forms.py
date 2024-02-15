@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.conf import settings
 from django.urls import reverse
@@ -386,12 +388,23 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         name = cleaned_data.get("name")
+        re_name_check = "^[a-z][a-z0-9-]*[a-z0-9]$"
 
         if not name:
             return
 
+        if not re.match(re_name_check, name):
+            self.add_error(
+                "name",
+                (
+                    "The project name must be lowercase, alphanumeric including hyphens (-), not starting "
+                    "with a number or a hyphen or ending with a hyphen."
+                ),
+            )
+            return
+
         if HpcProject.objects.filter(name=name).exists():
-            self.add_error("name", "A project with this identifiert already exists.")
+            self.add_error("name", "A project with this name already exists.")
             return
 
         return cleaned_data
