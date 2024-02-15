@@ -2,7 +2,6 @@
 
 import datetime
 import enum
-import errno
 import grp
 import os
 import pwd
@@ -10,28 +9,11 @@ import stat
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from hpc_access_cli.fs import get_extended_attribute
 from pydantic import BaseModel
-import xattr
 
 #: Login shell to use for disabled users.
 LOGIN_SHELL_DISABLED = "/usr/sbin/nologin"
-
-
-def get_extended_attribute(path: str, attr_name: str) -> str:
-    """Get the value of an extended attribute."""
-    try:
-        # Get the value of the specified extended attribute
-        value = xattr.getxattr(path, attr_name).decode("utf-8")
-        return value
-    except OSError as e:
-        if os.environ.get("DEBUG", "0") == "1":
-            return "0"
-        # Handle the case when the attribute is not found
-        if e.errno == errno.ENODATA:
-            raise ValueError(f"extended attribute {attr_name} not found") from e
-        else:
-            # Re-raise the exception for other errors
-            raise
 
 
 class FsDirectory(BaseModel):
@@ -312,6 +294,8 @@ class HpcProject(BaseModel):
     expiration: datetime.datetime
     #: The version of the project record.
     current_version: int
+    #: The project's member user UUIDs.
+    members: List[UUID]
 
 
 class MailmanSubscription(BaseModel):
