@@ -1,6 +1,7 @@
 """Configuration for hpc-access-cli."""
 
 from pathlib import Path
+import sys
 from typing import List
 
 from hpc_access_cli.models import StateOperation
@@ -10,7 +11,7 @@ from rich.console import Console
 import typer
 
 #: The rich console to use for output.
-console = Console()
+console_err = Console(file=sys.stderr)
 
 
 class LdapSettings(BaseModel):
@@ -104,7 +105,7 @@ def load_settings(config_path: str) -> Settings:
     :raises typer.Exit: If the configuration file does not exist.
     """
     if not Path(config_path).exists():
-        console.log(f"ERROR: Configuration file {config_path} does not exist.", style="red")
+        console_err.log(f"ERROR: Configuration file {config_path} does not exist.", style="red")
         raise typer.Exit(1)
     with open(config_path, "rt") as f:
         return Settings.model_validate_json(f.read())

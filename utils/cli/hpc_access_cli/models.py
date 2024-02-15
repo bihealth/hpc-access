@@ -241,6 +241,10 @@ class HpcUser(BaseModel):
     username: str
     #: Point in time of user expiration.
     expiration: datetime.datetime
+    #: The home directory.
+    home_directory: str
+    #: The login shell
+    login_shell: str
     #: The version of the user record.
     current_version: int
 
@@ -264,6 +268,8 @@ class HpcGroup(BaseModel):
     gid: Optional[int]
     #: The name of the record.
     name: str
+    #: The folder of the group.
+    folder: str
     #: Point in time of group expiration.
     expiration: datetime.datetime
     #: The version of the group record.
@@ -289,6 +295,8 @@ class HpcProject(BaseModel):
     gid: Optional[int]
     #: The name of the record.
     name: str
+    #: The folder of the group.
+    folder: str
     #: Point in time of group expiration.
     expiration: datetime.datetime
     #: The version of the project record.

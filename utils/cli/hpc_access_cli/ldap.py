@@ -1,5 +1,6 @@
 """Code for interfacing with LDAP servers."""
 
+import sys
 from typing import List, Optional
 
 from hpc_access_cli.config import LdapSettings
@@ -8,7 +9,7 @@ import ldap3
 from rich.console import Console
 
 #: The rich console to use for output.
-console = Console()
+console_err = Console(file=sys.stderr)
 
 
 def attribute_as_str(attribute: ldap3.Attribute) -> Optional[str]:
@@ -37,7 +38,7 @@ class LdapConnection:
             host=config.server_host,
             port=config.server_port,
         )
-        console.log(f"Connecting to {self.server.host}:{self.server.port}...")
+        console_err.log(f"Connecting to {self.server.host}:{self.server.port}...")
         #: Connection to the LDAP server.
         self.connection = ldap3.Connection(
             server=self.server,
@@ -47,13 +48,13 @@ class LdapConnection:
         )
         if not self.connection.bind():
             raise Exception("Failed to bind to LDAP server.")
-        console.log("... connected.")
+        console_err.log("... connected.")
 
     def load_users(self) -> List[LdapUser]:
         """Load ``LdapUser`` records from the LDAP server."""
         search_filter = "(&(objectClass=posixAccount)(uid=*))"
 
-        console.log(f"Searching for users with filter {search_filter}...")
+        console_err.log(f"Searching for users with filter {search_filter}...")
         if not self.connection.search(
             search_base=self.config.search_base,
             search_filter=search_filter,
@@ -121,7 +122,7 @@ class LdapConnection:
         """Load group names from the LDAP server."""
         search_filter = "(&(objectClass=posixGroup)(cn=*))"
 
-        console.log(f"Searching for groups with filter {search_filter}...")
+        console_err.log(f"Searching for groups with filter {search_filter}...")
         if not self.connection.search(
             search_base=self.config.search_base,
             search_filter=search_filter,

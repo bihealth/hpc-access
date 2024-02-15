@@ -1,7 +1,10 @@
 """State gathering, comparison and update."""
 
+import datetime
 import os
-from typing import Dict, List
+import sys
+from typing import Dict, List, Optional
+from uuid import uuid4
 
 from hpc_access_cli.config import HpcaccessSettings, Settings
 from hpc_access_cli.fs import FsResourceManager
@@ -11,6 +14,8 @@ from hpc_access_cli.models import (
     FsDirectoryOp,
     Gecos,
     HpcaccessState,
+    HpcGroup,
+    HpcProject,
     HpcUser,
     LdapGroup,
     LdapGroupOp,
@@ -19,13 +24,14 @@ from hpc_access_cli.models import (
     OperationsContainer,
     ResourceData,
     StateOperation,
+    Status,
     SystemState,
 )
 from hpc_access_cli.rest import HpcaccessClient
 from rich.console import Console
 
 #: The rich console to use for output.
-console = Console()
+console_err = Console(file=sys.stderr)
 
 #: Base DN for work groups.
 BASE_DN_GROUPS = "ou=Teams,ou=Groups,dc=hpc,dc=bihealth,dc=org"
@@ -62,7 +68,7 @@ class TargetStateBuilder:
         self.system_state = system_state
         #: The next gid.
         self.next_gid = self._get_next_gid(system_state)
-        console.log(f"Next available GID is {self.next_gid}.")
+        console_err.log(f"Next available GID is {self.next_gid}.")
 
     def _get_next_gid(self, system_state: SystemState) -> int:
         """Get the next available GID."""
@@ -77,17 +83,17 @@ class TargetStateBuilder:
 
     def _gather(self) -> HpcaccessState:
         """Gather the state."""
-        console.log("Loading hpc-access users, groups, and projects...")
+        console_err.log("Loading hpc-access users, groups, and projects...")
         rest_client = HpcaccessClient(self.settings)
         result = HpcaccessState(
             hpc_users={u.uuid: u for u in rest_client.load_users()},
             hpc_groups={g.uuid: g for g in rest_client.load_groups()},
             hpc_projects={p.uuid: p for p in rest_client.load_projects()},
         )
-        console.log("  # of users:", len(result.hpc_users))
-        console.log("  # of groups:", len(result.hpc_groups))
-        console.log("  # of projects:", len(result.hpc_projects))
-        console.log("... have hpc-access data now.")
+        console_err.log("  # of users:", len(result.hpc_users))
+        console_err.log("  # of groups:", len(result.hpc_groups))
+        console_err.log("  # of projects:", len(result.hpc_projects))
+        console_err.log("... have hpc-access data now.")
         return result
 
     def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
@@ -103,13 +109,13 @@ class TargetStateBuilder:
         result = {}
         for user in hpcaccess_state.hpc_users.values():
             if not user.uid:
-                console.log(
+                console_err.log(
                     f"User {user.full_name} has no uid, skipping.",
                 )
                 continue
             primary_group = hpcaccess_state.hpc_groups[user.primary_group]
             if not primary_group.gid:
-                console.log(
+                console_err.log(
                     f"Primary group {primary_group.name} has no gid, skipping.",
                 )
                 continue
@@ -129,13 +135,13 @@ class TargetStateBuilder:
             )
         for group in hpcaccess_state.hpc_groups.values():
             if not group.gid:
-                console.log(
+                console_err.log(
                     f"Group {group.name} has no gid, skipping.",
                 )
                 continue
             owner = hpcaccess_state.hpc_users[group.owner]
             if not owner.uid:
-                console.log(
+                console_err.log(
                     f"Owner {owner.full_name} has no uid, skipping.",
                 )
                 continue
@@ -184,14 +190,14 @@ class TargetStateBuilder:
                 )
         for project in hpcaccess_state.hpc_projects.values():
             if not project.gid:
-                console.log(
+                console_err.log(
                     f"Project {project.name} has no gid, skipping.",
                 )
                 continue
             owning_group = hpcaccess_state.hpc_groups[project.group]
             owner = hpcaccess_state.hpc_users[owning_group.owner]
             if not owner.uid:
-                console.log(
+                console_err.log(
                     f"Owner {owner.full_name} has no uid, skipping.",
                 )
                 continue
@@ -253,12 +259,12 @@ class TargetStateBuilder:
             )
             primary_group = hpcaccess_state.hpc_groups[user.primary_group]
             if not user.uid:
-                console.log(
+                console_err.log(
                     f"User {user.full_name} has no uid, skipping.",
                 )
                 continue
             if not primary_group.gid:
-                console.log(
+                console_err.log(
                     f"User {user.full_name} has no primary group, skipping.",
                 )
                 continue
@@ -284,7 +290,7 @@ class TargetStateBuilder:
         # build for work groups
         for group in state.hpc_groups.values():
             if not group.gid:
-                console.log(
+                console_err.log(
                     f"Group {group.name} has no gid, skipping.",
                 )
                 continue
@@ -303,7 +309,7 @@ class TargetStateBuilder:
         # build for projects
         for project in state.hpc_projects.values():
             if not project.gid:
-                console.log(
+                console_err.log(
                     f"Project {project.name} has no gid, skipping.",
                 )
                 continue
@@ -326,10 +332,10 @@ class TargetStateBuilder:
 def gather_system_state(settings: Settings) -> SystemState:
     """Gather the system state from LDAP and file system."""
     connection = LdapConnection(settings.ldap_hpc)
-    console.log("Loading LDAP users and groups...")
+    console_err.log("Loading LDAP users and groups...")
     ldap_users = connection.load_users()
     ldap_groups = connection.load_groups()
-    console.log("Loading file system directories...")
+    console_err.log("Loading file system directories...")
     fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
     fs_directories = fs_mgr.load_directories()
     result = SystemState(
@@ -337,11 +343,140 @@ def gather_system_state(settings: Settings) -> SystemState:
         ldap_groups={g.cn: g for g in ldap_groups},
         fs_directories={d.path: d for d in fs_directories},
     )
-    console.log("  # of users:", len(result.ldap_users))
-    console.log("  # of groups:", len(result.ldap_groups))
-    console.log("  # of directories:", len(result.fs_directories))
-    console.log("... have system state now")
+    console_err.log("  # of users:", len(result.ldap_users))
+    console_err.log("  # of groups:", len(result.ldap_groups))
+    console_err.log("  # of directories:", len(result.fs_directories))
+    console_err.log("... have system state now")
     return result
+
+
+def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
+    """Convert hpc-access to system state.
+
+    Note that this will make up the UUIDs.
+    """
+    # create UUID mapping from user/groupnames
+    user_uuids = {u.uid: uuid4() for u in system_state.ldap_users.values()}
+    user_by_dn = {u.dn: u for u in system_state.ldap_users.values()}
+    group_uuids = {g.cn: uuid4() for g in system_state.ldap_groups.values()}
+    group_by_gid = {g.gid_number: g for g in system_state.ldap_groups.values()}
+    group_by_owner_dn: Dict[str, LdapGroup] = {}
+    for g in system_state.ldap_groups.values():
+        if g.owner_dn:
+            group_by_owner_dn[user_by_dn[g.owner_dn].dn] = g
+    # console.print_json(data={key: value.dn for key, value in group_by_owner_dn.items()})
+
+    def build_hpcuser(u: LdapUser) -> HpcUser:
+        if u.login_shell != "/usr/sbin/nologin":
+            status = Status.ACTIVE
+            expiration = datetime.datetime.now() + datetime.timedelta(days=365)
+        else:
+            status = Status.EXPIRED
+            expiration = datetime.datetime.now()
+        return HpcUser(
+            uuid=user_uuids[u.uid],
+            primary_group=group_uuids[group_by_gid[u.gid_number].cn],
+            full_name=u.cn,
+            first_name=u.given_name,
+            last_name=u.sn,
+            phone_number=u.gecos.office_phone if u.gecos else None,
+            resources_requested=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            resources_used=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            status=status,
+            uid=u.uid_number,
+            username=u.uid,
+            expiration=expiration,
+            home_directory=u.home_directory,
+            login_shell=u.login_shell,
+            current_version=1,
+        )
+
+    def build_hpcgroup(g: LdapGroup) -> Optional[HpcGroup]:
+        expiration = datetime.datetime.now() + datetime.timedelta(days=365)
+        if not g.owner_dn or not user_by_dn[g.owner_dn].uid:
+            console_err.log(f"no UID for {g.owner_dn}, skipping")
+            return
+        return HpcGroup(
+            uuid=group_uuids[g.cn],
+            name=g.cn.replace("hpc-ag-", ""),
+            owner=user_uuids[user_by_dn[g.owner_dn].uid],
+            delegate=user_uuids[user_by_dn[g.delegate_dns[0]].uid] if g.delegate_dns else None,
+            resources_requested=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            resources_used=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            status=Status.ACTIVE,
+            gid=g.gid_number,
+            folder=f"/data/cephfs-1/groups/{g.cn}",
+            expiration=expiration,
+            current_version=1,
+        )
+
+    def build_hpcproject(p: LdapGroup) -> Optional[HpcProject]:
+        expiration = datetime.datetime.now() + datetime.timedelta(days=365)
+        if not p.owner_dn or not user_by_dn[p.owner_dn].uid:
+            console_err.log(f"no UID for {p.owner_dn}, skipping")
+            return
+        return HpcProject(
+            uuid=group_uuids[p.cn],
+            name=p.cn.replace("hpc-prj-", ""),
+            group=group_uuids[group_by_gid[user_by_dn[p.owner_dn].gid_number].cn],
+            delegate=user_uuids[user_by_dn[p.delegate_dns[0]].uid] if p.delegate_dns else None,
+            resources_requested=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            resources_used=ResourceData(
+                tier1=0,
+                tier2_mirrored=0,
+                tier2_unmirrored=0,
+            ),
+            status=Status.ACTIVE,
+            gid=p.gid_number,
+            folder=f"/data/cephfs-1/projects/{p.cn}",
+            expiration=expiration,
+            current_version=1,
+        )
+
+    # construct the resulting state
+    hpc_users = {}
+    for u in system_state.ldap_users.values():
+        hpc_user = build_hpcuser(u)
+        hpc_users[hpc_user.uuid] = hpc_user
+    hpc_groups = {}
+    for g in system_state.ldap_groups.values():
+        if not g.cn.startswith("hpc-ag-"):
+            continue
+        hpc_group = build_hpcgroup(g)
+        if hpc_group:
+            hpc_groups[hpc_group.uuid] = hpc_group
+    hpc_projects = {}
+    for p in system_state.ldap_groups.values():
+        if not p.cn.startswith("hpc-prj-"):
+            continue
+        hpc_project = build_hpcproject(p)
+        if hpc_project:
+            hpc_projects[hpc_project.uuid] = hpc_project
+    return HpcaccessState(
+        hpc_users=hpc_users,
+        hpc_groups=hpc_groups,
+        hpc_projects=hpc_projects,
+    )
 
 
 class TargetStateComparison:
@@ -370,13 +505,13 @@ class TargetStateComparison:
 
     def run(self) -> OperationsContainer:
         """Run the comparison."""
-        console.log("Comparing source and target state...")
+        console_err.log("Comparing source and target state...")
         result = OperationsContainer(
             ldap_user_ops=self._compare_ldap_users(),
             ldap_group_ops=self._compare_ldap_groups(),
             fs_ops=self._compare_fs_directories(),
         )
-        console.log("... have operations now.")
+        console_err.log("... have operations now.")
         return result
 
     def _compare_ldap_users(self) -> List[LdapUserOp]:
