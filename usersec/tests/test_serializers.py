@@ -44,6 +44,7 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def setUp(self):
         super().setUp()
         self.hpc_group = HpcGroupFactory()
+        self.maxDiff = None
 
     def testSerializeExisting(self):
         serializer = HpcGroupSerializer(self.hpc_group)
@@ -56,10 +57,11 @@ class TestHpcGroupSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
 class TestHpcProjectSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
     def setUp(self):
         super().setUp()
-        self.hpc_group = HpcProjectFactory()
+        self.hpc_project = HpcProjectFactory()
+        self.maxDiff = None
 
     def testSerializeExisting(self):
-        serializer = HpcProjectSerializer(self.hpc_group)
+        serializer = HpcProjectSerializer(self.hpc_project)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
         result["group"] = "group_uuid_placeholder"
