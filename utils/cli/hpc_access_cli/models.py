@@ -156,7 +156,7 @@ class LdapUser(BaseModel):
     #: The numeric user ID.
     uid_number: int
     #: The primary group of the user.
-    gid_number: int
+    gid_number: Optional[int]
     #: The home directory of the user.
     home_directory: str
     #: The login shell of the user.
@@ -220,7 +220,7 @@ class HpcUser(BaseModel):
     #: The UUID of the record.
     uuid: UUID
     #: The UUID of the primary ``HpcGroup``.
-    primary_group: UUID
+    primary_group: Optional[UUID]
     #: Description of the record.
     description: Optional[str]
     #: The user's email address.
@@ -288,7 +288,7 @@ class HpcProject(BaseModel):
     #: The UUID of the record.
     uuid: UUID
     #: The owning ``HpcGroup``, owner of group is owner of project.
-    group: UUID
+    group: Optional[UUID]
     #: Description of the record.
     description: Optional[str]
     #: The delegate for the project.

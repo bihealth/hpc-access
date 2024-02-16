@@ -43,10 +43,19 @@ BASE_DN_CHARITE = "ou=Charite,ou=Users,dc=hpc,dc=bihealth,dc=org"
 #: Base DN for MDC users
 BASE_DN_MDC = "ou=MDC,ou=Users,dc=hpc,dc=bihealth,dc=org"
 
-# Quota on user home (1G)
+#: Quota on user home (1G)
 QUOTA_HOME_BYTES = 1024 * 1024 * 1024
-# Quota on scratch (100T)
+#: Quota on scratch (100T)
 QUOTA_SCRATCH_BYTES = 100 * 1024 * 1024 * 1024 * 1024
+
+#: Group name for users without a group.
+HPC_ALUMNIS_GROUP = "hpc-alumnis"
+#: GID for users without a group.
+HPC_ALUMNIS_GID = 1030001
+#: Group name for hpc-users (active+has home)
+HPC_USERS_GROUP = "hpc-users"
+#: GID for hpc-users
+HPC_USERS_GID = 1005269
 
 
 def user_dn(user: HpcUser) -> str:
@@ -90,7 +99,7 @@ class TargetStateBuilder:
     def _get_next_gid(self, system_state: SystemState) -> int:
         """Get the next available GID."""
         gids = [g.gid_number for g in system_state.ldap_groups.values()]
-        gids.extend([u.gid_number for u in system_state.ldap_users.values()])
+        gids.extend([u.gid_number for u in system_state.ldap_users.values() if u.gid_number])
         return max(gids) + 1 if gids else 1000
 
     def run(self) -> SystemState:
@@ -104,6 +113,20 @@ class TargetStateBuilder:
         # LDAP groups so we have the Unix GIDs when users are considered.
         ldap_groups = self._build_ldap_groups(hpcaccess_state)
         ldap_users = self._build_ldap_users(hpcaccess_state)
+        # build hpc-users group
+        ldap_groups["hpc-users"] = LdapGroup(
+            dn="cn=hpc-users,ou=Groups,dc=hpc,dc=bihealth,dc=org",
+            cn="hpc-users",
+            gid_number=HPC_USERS_GID,
+            description="users allowed to login (active+have group)",
+            owner_dn=None,
+            delegate_dns=[],
+            member_uids=[
+                u.uid
+                for u in ldap_users.values()
+                if u.gid_number != HPC_ALUMNIS_GID and "nologin" not in u.login_shell
+            ],
+        )
         return SystemState(
             ldap_users=ldap_users,
             ldap_groups=ldap_groups,
@@ -114,18 +137,19 @@ class TargetStateBuilder:
         """Build the file system directories from the hpc-access state."""
         result = {}
         for user in hpcaccess_state.hpc_users.values():
-            primary_group = hpcaccess_state.hpc_groups[user.primary_group]
-            if not primary_group.gid:
-                console_err.log(
-                    f"Primary group {primary_group.name} has no gid, skipping.",
-                )
-                continue
+            if user.primary_group:
+                hpc_group = hpcaccess_state.hpc_groups[user.primary_group]
+                group_name = hpc_group.name
+                group_gid = hpc_group.gid or HPC_ALUMNIS_GID
+            else:
+                group_name = HPC_ALUMNIS_GROUP
+                group_gid = HPC_ALUMNIS_GID
             result[f"/data/cephfs-1/home/users/{user.username}"] = FsDirectory(
                 path=f"/data/cephfs-1/home/users/{user.username}",
                 owner_name=user.username,
                 owner_uid=user.uid,
-                group_name=primary_group.name,
-                group_gid=primary_group.gid,
+                group_name=group_name,
+                group_gid=group_gid,
                 perms="drwx--S---",
                 rbytes=None,
                 rfiles=None,
@@ -193,6 +217,11 @@ class TargetStateBuilder:
                     f"Project {project.name} has no gid, skipping.",
                 )
                 continue
+            if not project.group:
+                console_err.log(
+                    f"Project {project.name} has no owning group, skipping.",
+                )
+                continue
             owning_group = hpcaccess_state.hpc_groups[project.group]
             owner = hpcaccess_state.hpc_users[owning_group.owner]
             # Tier 1
@@ -254,12 +283,11 @@ class TargetStateBuilder:
                 office_phone=user.phone_number,
                 other=None,
             )
-            primary_group = hpcaccess_state.hpc_groups[user.primary_group]
-            if not primary_group.gid:
-                console_err.log(
-                    f"User {user.full_name} has no primary group, skipping.",
-                )
-                continue
+            if user.primary_group:
+                hpc_group = hpcaccess_state.hpc_groups[user.primary_group]
+                group_gid = hpc_group.gid or HPC_ALUMNIS_GID
+            else:
+                group_gid = HPC_ALUMNIS_GID
             result[user.username] = LdapUser(
                 dn=user_dn(user),
                 cn=user.full_name,
@@ -269,7 +297,7 @@ class TargetStateBuilder:
                 mail=user.email,
                 gecos=gecos,
                 uid_number=user.uid,
-                gid_number=primary_group.gid,
+                gid_number=group_gid,
                 home_directory=f"/data/cephfs-1/home/users/{user.username}",  # user.home_directory,
                 login_shell="/usr/bin/bash",  # user.login_shell,
                 # SSH keys are managed via upstream LDAP.
@@ -306,8 +334,12 @@ class TargetStateBuilder:
                 project.gid = self.next_gid
                 self.next_gid += 1
             group_dn = f"cn=hpc-prj-{project.name},{BASE_DN_PROJECTS}"
-            owning_group = state.hpc_groups[project.group]
-            owner = state.hpc_users[owning_group.owner]
+            if project.group:
+                owning_group = state.hpc_groups[project.group]
+                owner = state.hpc_users[owning_group.owner]
+                owner_dn = user_dn(owner)
+            else:
+                owner_dn = None
             delegate = state.hpc_users[project.delegate] if project.delegate else None
             project_name = f"hpc-prj-{project.name}"
             result[project_name] = LdapGroup(
@@ -315,7 +347,7 @@ class TargetStateBuilder:
                 cn=project_name,
                 gid_number=project.gid,
                 description=project.description,
-                owner_dn=user_dn(owner),
+                owner_dn=owner_dn,
                 delegate_dns=[user_dn(delegate)] if delegate else [],
                 member_uids=[],
             )
@@ -352,7 +384,11 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
     user_uuids = {u.uid: uuid4() for u in system_state.ldap_users.values()}
     user_by_uid = {u.uid: u for u in system_state.ldap_users.values()}
     user_by_dn = {u.dn: u for u in system_state.ldap_users.values()}
-    group_uuids = {g.cn: uuid4() for g in system_state.ldap_groups.values()}
+    group_uuids = {
+        g.cn: uuid4()
+        for g in system_state.ldap_groups.values()
+        if g.cn.startswith("hpc-ag-") or g.cn.startswith("hpc-prj-")
+    }
     group_by_gid = {g.gid_number: g for g in system_state.ldap_groups.values()}
     group_by_owner_dn: Dict[str, LdapGroup] = {}
     for g in system_state.ldap_groups.values():
@@ -367,9 +403,13 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         else:
             status = Status.EXPIRED
             expiration = datetime.datetime.now()
+        if u.gid_number and u.gid_number in group_by_gid:
+            primary_group = group_uuids.get(group_by_gid[u.gid_number].cn)
+        else:
+            primary_group = None
         return HpcUser(
             uuid=user_uuids[u.uid],
-            primary_group=group_uuids[group_by_gid[u.gid_number].cn],
+            primary_group=primary_group,
             description=None,
             full_name=u.cn,
             first_name=u.given_name,
@@ -437,11 +477,16 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             uid = uid.strip()
             user = user_by_uid[uid]
             members.append(user_uuids[user.uid])
+        gid_number = user_by_dn[p.owner_dn].gid_number
+        if not gid_number:
+            group = None
+        else:
+            group = group_uuids[group_by_gid[gid_number].cn]
         return HpcProject(
             uuid=group_uuids[p.cn],
             name=p.cn.replace("hpc-prj-", ""),
             description=g.description,
-            group=group_uuids[group_by_gid[user_by_dn[p.owner_dn].gid_number].cn],
+            group=group,
             delegate=user_uuids[user_by_dn[p.delegate_dns[0]].uid] if p.delegate_dns else None,
             resources_requested=ResourceData(
                 tier1_work=0,
