@@ -123,7 +123,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Scratch) [TB]",
             )
             self.fields["tier1_scratch"].initial = group.resources_requested["tier1_scratch"]
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
@@ -134,7 +134,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Work) [TB]",
             )
             self.fields["tier1_work"].initial = group.resources_requested["tier1_work"]
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
@@ -330,7 +330,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Scratch) [TB]",
             )
             self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
@@ -341,7 +341,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Work) [TB]",
             )
             self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
@@ -468,7 +468,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Scratch) [TB]",
             )
             self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
@@ -479,7 +479,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be used "
                     "with parallel access for computation."
                 ),
-                label="Fast Active Storage [TB]",
+                label="Fast Active Storage (Work) [TB]",
             )
             self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
