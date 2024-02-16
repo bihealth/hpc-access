@@ -26,6 +26,7 @@ ldap3 = "~=2.9.1"
 packages = "*"
 django-rest-framework = "*"
 django-rest-knox = "*"
+pydantic = "*"
 
 [dev-packages]
 Werkzeug = "*"
