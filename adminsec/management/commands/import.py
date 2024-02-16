@@ -76,12 +76,17 @@ class Command(BaseCommand):
 
                 for user_uuid, user_data in data.hpc_users.items():
                     ldap_user, suffix = user_data.username.split("_")
-                    hpcgroup = HpcGroup.objects.filter(uuid=user_data.primary_group)
-                    if not hpcgroup:
-                        self.stderr.write(
-                            f"Primary group {user_data.primary_group} of user {user_data.username} not found"
-                        )
-                        continue
+                    if user_data.primary_group:
+                        hpcgroup = HpcGroup.objects.filter(uuid=user_data.primary_group)
+                        if not hpcgroup:
+                            self.stderr.write(
+                                f"Primary group {user_data.primary_group} of user {user_data.username} not found"
+                            )
+                            continue
+                        hpcgroup = hpcgroup.first()
+                    else:
+                        hpcgroup = None
+
                     user = User.objects.create(
                         first_name=user_data.first_name.strip(),
                         last_name=user_data.last_name.strip(),
@@ -112,7 +117,7 @@ class Command(BaseCommand):
                         creator=worker_user,
                         status=user_data.status.name,
                         home_directory=user_data.home_directory,
-                        primary_group=hpcgroup.first(),
+                        primary_group=hpcgroup,
                         expiration=make_aware(user_data.expiration),
                         login_shell=user_data.login_shell,
                         username=user_data.username,
