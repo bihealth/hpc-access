@@ -35,11 +35,17 @@
             <dt class="col-sm-3">Resource Quotas</dt>
             <dd class="col-sm-9">
               <dl class="row">
-                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1)</dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1" }} TB</dd>
+                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Scratch)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_scratch" }} TB</dd>
 
-                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2)</dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2" }} TB</dd>
+                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Work)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_work" }} TB</dd>
+
+                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Unmirrored)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
+
+                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Mirrored)</dt>
+                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
               </dl>
             </dd>
 
