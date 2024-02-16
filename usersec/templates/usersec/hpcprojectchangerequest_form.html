@@ -8,15 +8,11 @@
   <div class="row">
     <h2>
       {% if update %}
-        Update HPC Project Change Request
+        Update HPC Project Change Request &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
       {% else %}
-        Request HPC Project Change
+        Request HPC Project Change &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
       {% endif %}
     </h2>
-  </div>
-
-  <div class="alert alert-warning">
-    Change request is for project <strong>{{ project }}</strong>
   </div>
 
   {% include "usersec/modules/comments.html" %}

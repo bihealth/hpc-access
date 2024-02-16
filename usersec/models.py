@@ -393,10 +393,9 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
         )
 
     def __str__(self):
-        self_user_name = None
-        if self.user:
-            self_user_name = self.user.username
-        return "{} ({})".format(self_user_name, self.username)
+        return "{} ({})".format(
+            ", ".join([self.user.last_name, self.user.first_name]), self.username
+        )
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
@@ -1283,16 +1282,6 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         related_name="%(class)s",
         help_text="Group the request belongs to",
         on_delete=models.CASCADE,
-    )
-
-    #: Delegate of the project, optional.
-    delegate = models.ForeignKey(
-        HpcUser,
-        related_name="%(class)s_delegate",
-        null=True,
-        blank=True,
-        help_text="The optional delegate can act on behalf of the project owner",
-        on_delete=models.SET_NULL,
     )
 
     #: Members of the project.

@@ -1309,7 +1309,6 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             requester=self.user_owner,
             group=self.hpc_group,
             status=REQUEST_STATUS_ACTIVE,
-            delegate=self.hpc_delegate,
         )
         self.obj.members.add(self.hpc_member, self.hpc_delegate)
 
