@@ -311,6 +311,7 @@ class HpcUserAbstract(HpcObjectAbstract):
         "HpcGroup",
         related_name="%(class)s",
         help_text="Primary group the user belongs to",
+        null=True,
         on_delete=models.CASCADE,
     )
 
