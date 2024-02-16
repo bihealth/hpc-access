@@ -27,7 +27,6 @@ packages = "*"
 django-rest-framework = "*"
 django-rest-knox = "*"
 pydantic = "*"
-xattr = "*"
 
 [dev-packages]
 Werkzeug = "*"
