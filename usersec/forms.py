@@ -563,11 +563,11 @@ class ProjectSelectForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        projects = list(user.hpcproject_delegate.all())
+        projects = user.hpcproject_delegate.all()
         group = user.primary_group
 
         if rules.test_rule("usersec.is_group_manager", user.user, group):
-            projects += list(group.hpcprojects.all())
+            projects |= group.hpcprojects.all()
 
         choices = [
             (
@@ -576,7 +576,7 @@ class ProjectSelectForm(forms.Form):
                 ),
                 str(project),
             )
-            for project in sorted(projects, key=lambda x: x.name)
+            for project in projects.order_by("name").distinct()
         ]
 
         self.fields["projects"] = forms.ChoiceField(choices=choices)
