@@ -249,6 +249,11 @@ class TestRules(TestRulesBase):
             )
         )
 
+    def test_is_project_manager_group_delegate_true(self):
+        self.assertTrue(
+            rules.test_rule("usersec.is_project_manager", self.user_delegate, self.hpc_project)
+        )
+
     def test_is_project_manager_member_false(self):
         self.assertFalse(
             rules.test_rule("usersec.is_project_manager", self.user_member, self.hpc_project)
@@ -400,11 +405,11 @@ class TestPermissions(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_hpcadmin,
             self.user_member2,
             self.user,
@@ -475,10 +480,10 @@ class TestPermissions(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
@@ -494,10 +499,10 @@ class TestPermissions(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
@@ -513,10 +518,10 @@ class TestPermissions(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_pending,
             self.user_hpcadmin,
             self.user_member,
@@ -1195,12 +1200,12 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member,
             self.user_member_other_group,
         ]
         bad_users = [
             self.user_pending,
-            self.user_delegate,
             self.user_hpcadmin,
             self.user_member2,
             self.user,
@@ -1909,10 +1914,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -1931,10 +1936,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -1972,10 +1977,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -1994,10 +1999,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -2016,10 +2021,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -2057,10 +2062,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -2079,10 +2084,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,
@@ -2110,10 +2115,10 @@ class TestPermissionsInViews(TestRulesBase):
         good_users = [
             self.superuser,
             self.user_owner,
+            self.user_delegate,
             self.user_member_other_group,
         ]
         bad_users = [
-            self.user_delegate,
             self.user_member,
             self.user_member2,
             self.user_pending,

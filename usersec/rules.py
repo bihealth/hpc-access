@@ -220,18 +220,38 @@ def _is_project_delegate_by_hpcprojectchangerequest(user, hpcprojectchangereques
     return False
 
 
+@rules.predicate
+def _is_group_delegate_by_hpcprojectchangerequest(user, hpcprojectchangerequest):
+    if hpcprojectchangerequest is None:
+        return False
+
+    delegate = hpcprojectchangerequest.project.group.delegate
+
+    if delegate:
+        return delegate.user == user
+
+    return False
+
+
 is_project_owner_by_hpcprojectchangerequest = (
     ~is_hpcadmin & is_cluster_user & _is_project_owner_by_hpcprojectchangerequest
 )
 is_project_delegate_by_hpcprojectchangerequest = (
     ~is_hpcadmin & is_cluster_user & _is_project_delegate_by_hpcprojectchangerequest
 )
+is_group_delegate_by_hpcprojectchangerequest = (
+    ~is_hpcadmin & is_cluster_user & _is_group_delegate_by_hpcprojectchangerequest
+)
 
 can_view_hpcprojectchangerequest = (
-    is_project_owner_by_hpcprojectchangerequest | is_project_delegate_by_hpcprojectchangerequest
+    is_project_owner_by_hpcprojectchangerequest
+    | is_project_delegate_by_hpcprojectchangerequest
+    | is_group_delegate_by_hpcprojectchangerequest
 )
 can_manage_hpcprojectchangerequest = (
-    is_project_owner_by_hpcprojectchangerequest | is_project_delegate_by_hpcprojectchangerequest
+    is_project_owner_by_hpcprojectchangerequest
+    | is_project_delegate_by_hpcprojectchangerequest
+    | is_group_delegate_by_hpcprojectchangerequest
 )
 
 
@@ -358,10 +378,10 @@ is_group_owner = ~is_hpcadmin & is_cluster_user & _is_group_owner
 is_group_delegate = ~is_hpcadmin & is_cluster_user & _is_group_delegate
 is_group_manager = is_group_owner | is_group_delegate
 
-can_view_hpcgroup = is_group_owner | is_group_delegate | is_group_member
-can_create_hpcprojectcreaterequest = is_group_owner | is_group_delegate
-can_create_hpcusercreaterequest = is_group_owner | is_group_delegate
-can_create_hpcgroupchangerequest = is_group_owner | is_group_delegate
+can_view_hpcgroup = is_group_manager | is_group_member
+can_create_hpcprojectcreaterequest = is_group_manager
+can_create_hpcusercreaterequest = is_group_manager
+can_create_hpcgroupchangerequest = is_group_manager
 
 
 # HpcProject based
@@ -392,13 +412,22 @@ def _is_project_delegate(user, project):
     return user.hpcuser_user.filter(hpcproject_delegate=project).exists()
 
 
+@rules.predicate
+def _is_associated_group_delegate(user, project):
+    if project is None:
+        return False
+
+    return user.hpcuser_user.filter(hpcgroup_delegate=project.group).exists()
+
+
 is_project_member = ~is_hpcadmin & is_cluster_user & _is_project_member
 is_project_owner = ~is_hpcadmin & is_cluster_user & _is_project_owner
 is_project_delegate = ~is_hpcadmin & is_cluster_user & _is_project_delegate
-is_project_manager = is_project_owner | is_project_delegate
+is_associated_group_delegate = ~is_hpcadmin & is_cluster_user & _is_associated_group_delegate
+is_project_manager = is_project_owner | is_project_delegate | is_associated_group_delegate
 
-can_view_hpcproject = is_project_owner | is_project_delegate | is_project_member
-can_create_hpcprojectchangerequest = is_project_owner | is_project_delegate
+can_view_hpcproject = is_project_manager | is_project_member
+can_create_hpcprojectchangerequest = is_project_manager
 
 
 # HpcGroupInvitation based
