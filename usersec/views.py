@@ -1587,11 +1587,6 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
         project = obj.project
 
         try:
-            request_obj = obj.hpcprojectcreaterequest or obj.hpcprojectchangerequest
-            if request_obj.delegate:
-                if request.user.hpcuser_user.filter(id=request_obj.delegate.id).exists():
-                    project.delegate = request_obj.delegate
-
             project.save_with_version()
             project.members.add(obj.user)
             project.version_history.last().members.add(obj.user)

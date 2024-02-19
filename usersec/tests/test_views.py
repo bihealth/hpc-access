@@ -1579,10 +1579,6 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
                 self.obj.description,
             )
             self.assertEqual(
-                response.context["form"]["delegate"].value(),
-                self.obj.delegate,
-            )
-            self.assertEqual(
                 response.context["form"]["name"].value(),
                 self.obj.name,
             )

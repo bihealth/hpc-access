@@ -103,6 +103,9 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
         self.fields["resources_requested"].initial = group.resources_requested
         self.fields["description"].initial = group.description
         self.fields["delegate"].initial = group.delegate
+        self.fields["delegate"].queryset = HpcUser.objects.filter(
+            primary_group=group, status="ACTIVE"
+        ).exclude(id=group.owner.id)
 
         # Add fields for storage. Will be merged into resources_requested field.
         if not user.is_hpcadmin:
@@ -146,7 +149,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "This storage is not mirrored and should be used for data that can be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Unmirrored [TB]",
+                label="Long-Term Storage (Unmirrored) [TB]",
             )
             self.fields["tier2_unmirrored"].initial = group.resources_requested["tier2_unmirrored"]
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -158,7 +161,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "This storage is mirrored and should be used for data that cannot be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Mirrored [TB]",
+                label="Long-Term Storage (Mirrored) [TB]",
             )
             self.fields["tier2_mirrored"].initial = group.resources_requested["tier2_mirrored"]
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -284,7 +287,6 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             "name",
             "members",
             "description",
-            "delegate",
             "comment",
             "resources_requested",
             "expiration",
@@ -297,9 +299,17 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         if hasattr(self.instance, "group"):
             group = self.instance.group
 
-        # Exclude users from delegate selection that have no User associated
-        self.fields["delegate"].queryset = (
-            self.fields["delegate"].queryset.exclude(user__isnull=True).exclude(id=group.owner.id)
+        # Set dummy delegate field for user information
+        self.fields["delegate"] = forms.CharField(
+            label="Delegate",
+            help_text="The delegate is responsible for the project and can manage its members.",
+            widget=forms.TextInput(
+                attrs={
+                    "placeholder": "You can select a delegate from the members once the project is set up."
+                }
+            ),
+            disabled=True,
+            required=False,
         )
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
@@ -316,7 +326,10 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
             # Exclude users from member selection that have no User associated
             self.fields["members_dropdown"] = forms.ModelChoiceField(
-                queryset=self.fields["members"].queryset.exclude(user__isnull=True),
+                queryset=self.fields["members"]
+                .queryset.filter(status="ACTIVE")
+                .exclude(user__isnull=True)
+                .exclude(id=group.owner.id),
                 label="Select Members",
                 help_text="Select members one by one and click add",
                 required=False,
@@ -353,7 +366,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "This storage is not mirrored and should be used for data that can be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Unmirrored [TB]",
+                label="Long-Term Storage (Unmirrored) [TB]",
             )
             self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -365,7 +378,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "This storage is mirrored and should be used for data that cannot be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Mirrored [TB]",
+                label="Long-Term Storage (Mirrored) [TB]",
             )
             self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -432,7 +445,8 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
         self.fields["resources_requested"].initial = project.resources_requested
         self.fields["description"].initial = project.description
         self.fields["delegate"].initial = project.delegate
-        self.fields["members"].initial = project.members.all()
+        self.fields["delegate"].queryset = project.members.all()
+        self.fields["members"].initial = project.members.all().order_by("user__last_name")
 
         # Exclude users from delegate selection that have no User associated
         self.fields["delegate"].queryset = (
@@ -454,7 +468,10 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
 
             # Exclude users from member selection that have no User associated
             self.fields["members_dropdown"] = forms.ModelChoiceField(
-                queryset=self.fields["members"].queryset.exclude(user__isnull=True),
+                queryset=self.fields["members"]
+                .queryset.filter(status="ACTIVE")
+                .exclude(user__isnull=True)
+                .order_by("user__last_name"),
                 label="Select Members",
                 help_text="Select members one by one and click add",
                 required=False,
@@ -491,7 +508,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "This storage is not mirrored and should be used for data that can be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Unmirrored [TB]",
+                label="Long-Term Storage (Unmirrored) [TB]",
             )
             self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -503,7 +520,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "This storage is mirrored and should be used for data that cannot be reconstructed from "
                     "other sources. Alternatively, you can use your group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage Mirrored [TB]",
+                label="Long-Term Storage (Mirrored) [TB]",
             )
             self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"

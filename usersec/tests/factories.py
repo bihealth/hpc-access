@@ -316,7 +316,6 @@ class HpcProjectCreateRequestFactory(HpcProjectRequestFactoryBase):
         model = HpcProjectCreateRequest
 
     group = factory.SubFactory(HpcGroupFactory)
-    delegate = None
     resources_requested = {"null": "null"}
     description = "some description"
     name = factory.Sequence(lambda n: f"hpc-project100{n}")
