@@ -40,7 +40,7 @@
             {% endif %}
 
             <dt class="col-sm-3">Expiration</dt>
-            <dd class="col-sm-9">{{ object.expiration }}</dd>
+            <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
           </dl>
         </div>
       </div>

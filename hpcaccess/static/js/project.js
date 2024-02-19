@@ -50,6 +50,20 @@ function consent() {
 }
 
 
+function toggleInactiveMembers() {
+    var members_inactive = $(".member_inactive");
+
+    for (var i = 0; i < members_inactive.length(); i++) {
+    }
+}
+
+
+function countInactiveMembers() {
+    var members_inactive = $(".groupMemberInactive");
+    $("#inactiveMembers").text(members_inactive.length);
+}
+
+
 function addOwnerMember() {
     var members = $("#id_members").val();
     members.push($("#submit").data("owner-id").toString());

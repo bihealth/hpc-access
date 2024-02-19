@@ -49,16 +49,16 @@
             <dt class="col-sm-3">Resource Quotas</dt>
             <dd class="col-sm-9">
               <dl class="row">
-                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Scratch)</dt>
+                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Scratch</sup></span></dt>
                 <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_scratch" }} TB</dd>
 
-                <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Work)</dt>
+                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Work</sup></span></dt>
                 <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_work" }} TB</dd>
 
-                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Unmirrored)</dt>
+                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Unmirrored</sup></span></dt>
                 <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
 
-                <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Mirrored)</dt>
+                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Mirrored</sup></span></dt>
                 <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
               </dl>
             </dd>
@@ -72,7 +72,7 @@
             <dd class="col-sm-9">{{ object.description }}</dd>
 
             <dt class="col-sm-3">Expiration</dt>
-            <dd class="col-sm-9">{{ object.expiration }}</dd>
+            <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
           </dl>
         </div>
         <div class="col-sm-6">

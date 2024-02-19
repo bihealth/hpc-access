@@ -35,7 +35,7 @@
               </li>
               <li title="Expiration date" data-bs-toggle="tooltip">
                 <span class="iconify" data-icon="mdi:clock"></span>
-                {{ object.expiration }}
+                {{ object.expiration|date:"Y-m-d" }}
               </li>
             </ul>
           </div>
@@ -50,9 +50,9 @@
             <i class="iconify" data-icon="mdi:user-group"></i>
             {{ object.primary_group.name }}
             {% if object.hpcgroup_owner.exists %}
-              <i class="iconify text-warning" data-icon="mdi:medal"></i>
+              <span class="badge rounded-pill bg-warning">Owner</span>
             {% elif object.hpcgroup_delegate.exists %}
-              <i class="iconify text-secondary" data-icon="mdi:medal-outline"></i>
+              <span class="badge rounded-pill bg-secondary">Delegate</span>
             {% endif %}
           </h4>
           <h6 class="card-subtitle text-muted">
@@ -63,51 +63,66 @@
           <div class="card-subtitle text-muted">
             <ul class="list-unstyled">
               <li>
-                <i class="iconify" data-icon="mdi:medal"></i>
-                {{ object.primary_group.owner.user.name }} |
-                <span class="small text-muted fw-bold">{{ object.primary_group.owner.username }}</span>
+                <strong>Owner:</strong>
+                {{ object.primary_group.owner.user.name }}
+                <span class="small">({{ object.primary_group.owner.username }})</span>
               </li>
               {% if object.primary_group.delegate %}
                 <li>
-                  <i class="iconify" data-icon="mdi:medal-outline"></i>
-                  {{ object.primary_group.delegate.user.name }} |
-                  <span class="small text-muted fw-bold">{{ object.primary_group.delegate.username }}</span>
+                  <strong>Delegate:</strong>
+                  {{ object.primary_group.delegate.user.name }}
+                  <span class="small">({{ object.primary_group.delegate.username }})</span>
                 </li>
               {% endif %}
               <li title="Expiration date" data-bs-toggle="tooltip">
-                <span class="iconify" data-icon="mdi:clock"></span>
-                {{ object.primary_group.expiration }}
+                <strong>Expires:</strong>
+                {{ object.primary_group.expiration|date:"Y-m-d" }}
               </li>
             </ul>
           </div>
 
           <hr />
 
-          <h6>Resource Quotas</h6>
+          <h6><strong>Resource Quotas</strong></h6>
           <dl class="row">
-            <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Scratch)</dt>
+            <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Scratch</sup></span></dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier1_scratch" }} TB</dd>
 
-            <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Work)</dt>
+            <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Work</sup></span></dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier1_work" }} TB</dd>
 
-            <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Unmirrored)</dt>
+            <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Unmirrored</sup></span></dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
 
-            <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Mirrored)</dt>
+            <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Mirrored</sup></span></dt>
             <dd class="col-sm-3">{{ object.primary_group.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
           </dl>
 
-          <h6>Members <span class="badge rounded-pill bg-secondary">{{ object.primary_group.hpcuser.count }}</span></h6>
+          <h6><strong>Members</strong>
+            <span class="badge rounded-pill bg-dark">{{ object.primary_group.hpcuser.count }}</span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Toggle inactive members">
+              <input type="checkbox" class="btn-check" id="toggleInactiveMembers" autocomplete="off">
+              <label class="btn btn-outline-secondary" style="border: 0px" for="toggleInactiveMembers">
+                <span class="badge rounded-pill bg-secondary">
+                  <span id="inactiveMembers">0</span> inactive
+                </span>
+                <span id="toggleInactiveMembersText">show</span>
+              </label>
+            </div>
+          </h6>
           <ul class="list-unstyled text-muted">
-            {% for member in object.primary_group.hpcuser.all %}
-              <li>
-                <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
-                {{ member.user.name|default:"<em>Unknown</em>" }} |
-                <span class="small fw-bold">{{ member.username }}</span>
+            {% for member in object.primary_group.hpcuser.all|order_by:"user__last_name" %}
+              <li {% if member.status != 'ACTIVE' %} class="groupMemberInactive" style="color: #aaaaaa"{% endif %}>
+                {% if member.status == 'ACTIVE' %}
+                  <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+                {% else %}
+                  <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
+                {% endif %}
+                {{ member.user.last_name|default:"<em>Unknown</em>" }}, {{ member.user.first_name|default:"<em>Unknown</em>" }}
+                <span class="small">({{ member.username }})</span>
                 <span class="small">
                   <i class="iconify" data-icon="mdi:clock"></i>
-                  {{ member.expiration }}
+                  {{ member.expiration|date:"Y-m-d" }}
                 </span>
               </li>
             {% empty %}
@@ -147,21 +162,21 @@
                     <div class="accordion-body">
                       <ul class="list-unstyled list-group text-muted">
                         <li>
-                          <i class="iconify" data-icon="mdi:medal"></i>
+                          <strong">Owner:</strong>
                           <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.group.owner.uuid %}">{{ invitation.project.group.owner.user.name }}</a>
-                          <span class="small text-muted fw-bold">{{ project.group.owner.username }}</span>
+                          <span class="small">({{ project.group.owner.username }})</span>
                         </li>
                         {% if invitation.project.delegate %}
                           <li>
-                            <i class="iconify" data-icon="mdi:medal-outline"></i>
+                            <strong>Delegate:</strong>
                             <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
-                            <span class="small text-muted fw-bold">{{ project.delegate.username }}</span>
+                            <span class="small">({{ project.delegate.username }})</span>
                           </li>
                         {% endif %}
                         {% if invitation.project.description %}
                           <li>
                             <i class="iconify" data-icon="mdi:text"></i>
-                            <span class="text-muted">{{ invitation.project.description }}</span>
+                            <span>{{ invitation.project.description }}</span>
                           </li>
                         {% endif %}
                       </ul>
@@ -183,16 +198,16 @@
           </div>
         {% endif %}
         <div class="accordion accordion-flush" id="projectAccordion">
-          {% for project in object.hpcproject_members.all %}
+          {% for project in object.hpcproject_members.all|order_by:"name" %}
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingProject{{ forloop.counter0 }}">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter0 }}">
                   <i class="iconify me-2" data-icon="mdi:package-variant"></i>
                   {{ project.name }}
                   {% if object|is_project_owner:project %}
-                    <i class="iconify text-warning ms-1" data-icon="mdi:medal"></i>
+                    <span class="badge rounded-pill bg-warning ms-1">Owner</span>
                   {% elif object|is_project_delegate:project %}
-                    <i class="iconify text-secondary ms-1" data-icon="mdi:medal-outline"></i>
+                    <span class="badge rounded-pill bg-secondary ms-1">Delegate</span>
                   {% endif %}
                 </button>
               </h2>
@@ -200,47 +215,51 @@
                 <div class="accordion-body">
                   <ul class="list-unstyled text-muted">
                     <li>
-                      <i class="iconify" data-icon="mdi:medal"></i>
-                      {{ project.group.owner.user.name }} |
-                      <span class="small text-muted fw-bold">{{ project.group.owner.username }}</span>
+                      <strong>Owner:</strong>
+                      {{ project.group.owner.user.name }}
+                      <span class="small">({{ project.group.owner.username }})</span>
                     </li>
                     {% if project.delegate %}
                       <li>
-                        <i class="iconify" data-icon="mdi:medal-outline"></i>
-                        {{ project.delegate.user.name }} |
-                        <span class="small text-muted fw-bold">{{ project.delegate.username }}</span>
+                        <strong>Delegate:</strong>
+                        {{ project.delegate.user.name }}
+                        <span class="small">({{ project.delegate.username }})</span>
                       </li>
                     {% endif %}
                     <li title="Expiration date" data-bs-toggle="tooltip">
-                      <span class="iconify" data-icon="mdi:clock"></span>
-                      {{ project.expiration }}
+                      <strong>Expires:</strong>
+                      {{ project.expiration|date:"Y-m-d" }}
                     </li>
                   </ul>
 
                   <hr />
 
-                  <h6>Resource Quotas</h6>
+                  <h6><strong>Resource Quotas</strong></h6>
                   <dl class="row">
-                    <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Scratch)</dt>
+                    <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Scratch</sup></span></dt>
                     <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier1_scratch" }} TB</dd>
 
-                    <dt class="col-sm-9 text-muted">Fast Active Storage (Tier 1 - Work)</dt>
+                    <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Work</sup></span></dt>
                     <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier1_work" }} TB</dd>
 
-                    <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Unmirrored)</dt>
+                    <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Unmirrored</sup></span></dt>
                     <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
 
-                    <dt class="col-sm-9 text-muted">Long-Term Storage (Tier 2 - Mirrored)</dt>
+                    <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Mirrored</sup></span></dt>
                     <dd class="col-sm-3">{{ project.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
                   </dl>
 
-                  <h6>Members <span class="badge rounded-pill bg-secondary">{{ project.members.count }}</span></h6>
+                  <h6><strong>Members</strong> <span class="badge rounded-pill bg-dark">{{ project.members.count }}</span></h6>
                   <ul class="list-unstyled text-muted">
-                    {% for member in project.members.all %}
-                      <li>
-                        <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
-                        {{ member.user.name }} |
-                        <strong class="small">{{ member.username }}</strong>
+                    {% for member in project.members.all|order_by:"user__last_name" %}
+                      <li {% if member.status != 'ACTIVE' %}style="color: #aaaaaa"{% endif %}>
+                        {% if member.status == 'ACTIVE' %}
+                          <a href="mailto:{{ member.user.email }}"><span class="iconify" data-icon="mdi:email"></span></a>
+                        {% else %}
+                          <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
+                        {% endif %}
+                        {{ member.user.last_name }}, {{ member.user.first_name }}
+                        <span class="small">({{ member.username }})</span>
                       </li>
                     {% endfor %}
                   </ul>
@@ -264,3 +283,16 @@
   {% endif %}
 
 {% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script>
+    $(document).ready(function() {
+      countInactiveMembers();
+      $("#toggleInactiveMembers").change(function() {
+        $(".groupMemberInactive").toggle();
+        $("#toggleInactiveMembersText").text($(this).prop("checked") ? "hide" : "show");
+      }).trigger("change");
+    });
+  </script>
+{% endblock %}
