@@ -90,3 +90,9 @@ def is_project_owner(user, project):
 def is_project_delegate(user, project):
     """Return if a user is owner of the project."""
     return project.delegate == user
+
+
+@register.filter
+def order_by(queryset, order):
+    """Return a sorted queryset."""
+    return queryset.order_by(order)
