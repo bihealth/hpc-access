@@ -2,44 +2,44 @@
 
 <div class="row mb-4">
   <div class="col-4 text-center">
-    {% if admin or group_manager %}
-      <h3>
-        <i class="iconify" data-icon="mdi:user-group"></i>
-        Group
-      </h3>
-    {% endif %}
+    <h3>
+      <i class="iconify" data-icon="mdi:user-group"></i>
+      Group
+    </h3>
   </div>
   <div class="col-4 text-center">
-    {% if admin or group_manager %}
-      <h3>
-        <i class="iconify" data-icon="mdi:user"></i>
-        User
-      </h3>
-    {% endif %}
+    <h3>
+      <i class="iconify" data-icon="mdi:user"></i>
+      User
+    </h3>
   </div>
   <div class="col-4 text-center">
-    {% if admin or group_manager or project_manager %}
-      <h3>
-        <i class="iconify" data-icon="mdi:package-variant"></i>
-        Project
-      </h3>
-    {% endif %}
+    <h3>
+      <i class="iconify" data-icon="mdi:package-variant"></i>
+      Project
+    </h3>
   </div>
 </div>
 <div class="row mb-4">
   <div class="col-4">
     {% if admin %}
       {% include 'usersec/modules/request_grid_group_create.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='create' obj='group' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_user_create.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='create' obj='user' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_project_create.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='create' obj='project' %}
     {% endif %}
   </div>
 </div>
@@ -47,16 +47,22 @@
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_group_change.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='update' obj='group' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_user_change.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='update' obj='user' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager or project_manager %}
       {% include 'usersec/modules/request_grid_project_change.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='update' obj='project' %}
     {% endif %}
   </div>
 </div>
@@ -64,16 +70,22 @@
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_group_delete.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='delete' obj='group' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager %}
       {% include 'usersec/modules/request_grid_user_delete.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='delete' obj='user' %}
     {% endif %}
   </div>
   <div class="col-4">
     {% if admin or group_manager or project_manager %}
       {% include 'usersec/modules/request_grid_project_delete.html' %}
+    {% else %}
+      {% include 'usersec/modules/request_grid_no_permission.html' with request='delete' obj='project' %}
     {% endif %}
   </div>
 </div>
