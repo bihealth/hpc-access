@@ -40,13 +40,13 @@
                   <dt class="col-sm-6">Owner</dt>
                   <dd class="col-sm-6">
                     <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.group.owner.uuid %}">{{ invitation.project.group.owner.user.name }}</a>
-                    <span class="small">({{ project.group.owner.username }})</span>
+                    <span class="small fw-light">({{ project.group.owner.username }})</span>
                   </dd>
                   {% if invitation.project.delegate %}
                     <dt class="col-sm-6">Delegate</dt>
                     <dd class="col-sm-6">
                       <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
-                      <span class="small">({{ project.delegate.username }})</span>
+                      <span class="small fw-light">({{ project.delegate.username }})</span>
                     </dd>
                   {% endif %}
                   {% if invitation.project.description %}
@@ -93,22 +93,29 @@
         <div id="collapse{{ forloop.counter0 }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter0 }}" data-bs-parent="#projectAccordion">
           <div class="accordion-body">
             <dl class="row mb-0">
-              <dt class="col-sm-6">Owner</dt>
-              <dd class="col-sm-6">
+              <dt class="col-sm-3">Owner</dt>
+              <dd class="col-sm-9">
                 {{ project.group.owner.user.name }}
-                <span class="small">({{ project.group.owner.username }})</span>
+                <span class="small fw-light">({{ project.group.owner.username }})</span>
               </dd>
-                <dt class="col-sm-6">Delegate</dt>
-                <dd class="col-sm-6">
-                  {% if project.delegate %}
-                    {{ project.delegate.user.name }}
-                    <span class="small">({{ project.delegate.username }})</span>
-                  {% else %}
-                    <em class="text-muted">None</em>
-                  {% endif %}
-                </dd>
-              <dt class="col-sm-6">Expires</dt>
-              <dd class="col-sm-6 mb-0">
+
+              <dt class="col-sm-3">Delegate</dt>
+              <dd class="col-sm-9">
+                {% if project.delegate %}
+                  {{ project.delegate.user.name }}
+                  <span class="small fw-light">({{ project.delegate.username }})</span>
+                {% else %}
+                  <em class="text-muted">None</em>
+                {% endif %}
+              </dd>
+
+              <dt class="col-sm-3">Folder</dt>
+              <dd class="col-sm-9">
+                {{ project.folder|default:"<em class='text-muted'>None</em>"}}
+              </dd>
+
+              <dt class="col-sm-3">Expires</dt>
+              <dd class="col-sm-9 mb-0">
                 {{ project.expiration|date:"Y/m/d" }}
               </dd>
             </dl>
@@ -116,7 +123,7 @@
             <hr />
 
             <dl class="row">
-              <dt class="col-sm-6">Fast Active Storage (<em>Tier 1</em>)</dt>
+              <dt class="col-sm-6">Fast Active Storage <span class="fw-light">(Tier 1)</span></dt>
               <dd class="col-sm-6">
                 <dl class="row">
                   <dt class="col-sm-7 small">Scratch</dt>
@@ -127,7 +134,7 @@
                 </dl>
               </dd>
 
-              <dt class="col-sm-6">Long-Term Storage (<em>Tier 2</em>)</dt>
+              <dt class="col-sm-6">Long-Term Storage <span class="fw-light">(Tier 2)</span></dt>
               <dd class="col-sm-6 mb-0">
                 <dl class="row mb-0">
                   <dt class="col-sm-7 small">Unmirrored</dt>
@@ -157,7 +164,7 @@
                     <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
                   {% endif %}
                   {{ member.user.last_name }}, {{ member.user.first_name }}
-                  <span class="small">({{ member.username }})</span>
+                  <span class="small fw-light">({{ member.username }})</span>
                 </li>
               {% endfor %}
             </ul>

@@ -36,20 +36,40 @@
       </div>
     {% endif %}
     <div class="tab-pane fade" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
+
       <ul class="list-unstyled">
         <li>
           <a href="mailto:{{ object.user.email }}" class="text-dark"><span class="iconify" data-icon="mdi:email"></span></a>
-          {{ object.user.email }}
+          {{ object.user.email|default:"<em class='text-muted'>None</em>" }}
         </li>
         <li>
           <span class="iconify" data-icon="mdi:phone-classic"></span>
-          {{ object.user.phone }}
-        </li>
-        <li>
-          <strong>Expires</strong>
-          {{ object.expiration|date:"Y/m/d" }}
+          {{ object.user.phone|default:"<em class='text-muted'>None</em>" }}
         </li>
       </ul>
+
+      <hr />
+
+      <dl class="row">
+        <dt class="col-sm-2">Member of Group</dt>
+        <dd class="col-sm-10">{{ object.primary_group.name }}</dd>
+
+        <dt class="col-sm-2">Member in Projects</dt>
+        <dd class="col-sm-10">
+          {% for project in object.hpcproject_members.all %}
+            {{ project.name }}</a>{% if not forloop.last %}; {% endif %}
+          {% endfor %}
+        </dd>
+
+        <dt class="col-sm-2">Home Directory</dt>
+        <dd class="col-sm-10">{{ object.home_directory|default:"<em class='text-muted'>None</em>" }}</dd>
+
+        <dt class="col-sm-2">Login Shell</dt>
+        <dd class="col-sm-10">{{ object.login_shell|default:"<em class='text-muted'>None</em>" }}</dd>
+
+        <dt class="col-sm-2">Expires</dt>
+        <dd class="col-sm-10">{{ object.expiration|date:"Y/m/d" }}</dd>
+      </dl>
     </div>
   </div>
 {% endblock content %}

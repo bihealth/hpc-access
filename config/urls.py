@@ -2,10 +2,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import include, path
 from django.views import defaults as default_views
+from django.views.generic.base import TemplateView
 from sentry_sdk import last_event_id
 
 from usersec import views
@@ -41,6 +43,14 @@ urlpatterns = [
         name="login",
     ),
     path(r"logout/", auth_views.logout_then_login, name="logout"),
+    path("impersonate/", include("impersonate.urls")),
+    path(
+        "admin_landing/",
+        permission_required("", login_url="home")(
+            TemplateView.as_view(template_name="pages/admin_landing.html")
+        ),
+        name="admin-landing",
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

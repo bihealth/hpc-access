@@ -117,6 +117,9 @@ class HomeView(LoginRequiredMixin, View):
     """Home view."""
 
     def get(self, request, *args, **kwargs):
+        if request.user.is_superuser:
+            return redirect(reverse("admin-landing"))
+
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 

@@ -690,7 +690,8 @@ class TestPermissionsInViews(TestRulesBase):
     def test_home_view(self):
         url = reverse("home")
         admin_users = [self.user_hpcadmin]
-        orphan_users = [self.superuser, self.user]
+        superusers = [self.superuser]
+        orphan_users = [self.user]
         hpc_users = [
             self.user_owner,
             self.user_delegate,
@@ -700,6 +701,13 @@ class TestPermissionsInViews(TestRulesBase):
         ]
         pending_users = [self.user_pending]
 
+        self.assert_permissions_on_url(
+            superusers,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("admin-landing"),
+        )
         self.assert_permissions_on_url(
             orphan_users,
             url,
