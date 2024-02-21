@@ -57,6 +57,11 @@
 
               {# Admin link #}
               <li>
+                {% if request.user.is_impersonate %}
+                  <a class="dropdown-item" href="{% url 'impersonate-stop' %}">
+                   <i class="iconify" data-icon="mdi:do-not-disturb-alt"></i> Stop Impersonation
+                </a>
+                {% endif %}
                 {% if request.user.is_superuser %}
                   <a class="dropdown-item" href="{% url 'admin:index' %}"
                      target="_blank">
@@ -93,5 +98,12 @@
     To perform actions intended for an HPC admin,
       please create a distinguished user with flags <em>is_hpcadmin=<strong>True</strong></em>
       and <em>is_superuser=<strong>False</strong></em>.
+  </div>
+{% endif %}
+
+{% if request.user.is_impersonate %}
+  <div class="container-fluid bg-warning text-dark p-2">
+    You <span class="small fw-light">({{ request.user.impersonator }})</span> are impersonating <strong>{{ request.user.username }}</strong>.
+    To stop impersonation, click on the user icon in the top right corner and select <em>Stop Impersonation</em>.
   </div>
 {% endif %}

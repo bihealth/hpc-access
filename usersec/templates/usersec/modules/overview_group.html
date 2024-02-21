@@ -20,30 +20,38 @@
   <div class="card-body">
     <div class="card-subtitle">
       <dl class="row">
-        <dt class="col-sm-6">Owner</dt>
-        <dd class="col-sm-6">
+        <dt class="col-sm-3">Owner</dt>
+        <dd class="col-sm-9">
           {{ object.primary_group.owner.user.name }}
-          <span class="small">({{ object.primary_group.owner.username }})</span>
+          <span class="small fw-light">({{ object.primary_group.owner.username }})</span>
         </dd>
-        <dt class="col-sm-6">Delegate</dt>
-        <dd class="col-sm-6">
+
+        <dt class="col-sm-3">Delegate</dt>
+        <dd class="col-sm-9">
           {% if object.primary_group.delegate %}
             {{ object.primary_group.delegate.user.name }}
-            <span class="small">({{ object.primary_group.delegate.username }})</span>
+            <span class="small fw-light">({{ object.primary_group.delegate.username }})</span>
           {% else %}
             <em class="text-muted">None</em>
           {% endif %}
         </dd>
-        <dt class="col-sm-6">Expires</dt>
-        <dd class="col-sm-6">
+
+        <dt class="col-sm-3">Folder</dt>
+        <dd class="col-sm-9">
+          {{ object.primary_group.folder|default:"<em class='text-muted'>None</em>"}}
+        </dd>
+
+        <dt class="col-sm-3">Expires</dt>
+        <dd class="col-sm-9">
           {{ object.primary_group.expiration|date:"Y/m/d" }}
         </dd>
+      </dl>
     </div>
 
     <hr />
 
     <dl class="row">
-      <dt class="col-sm-6">Fast Active Storage (<em>Tier 1</em>)</dt>
+      <dt class="col-sm-6">Fast Active Storage <span class="fw-light">(Tier 1)</span></dt>
       <dd class="col-sm-6">
         <dl class="row">
           <dt class="col-sm-6 small">Scratch</dt>
@@ -54,7 +62,7 @@
         </dl>
       </dd>
 
-      <dt class="col-sm-6">Long-Term Storage (<em>Tier 2</em>)</dt>
+      <dt class="col-sm-6">Long-Term Storage <span class="fw-light">(Tier 2)</span></dt>
       <dd class="col-sm-6 mb-0">
         <dl class="row mb-0">
           <dt class="col-sm-6 small">Unmirrored</dt>
@@ -90,7 +98,7 @@
             <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
           {% endif %}
           {{ member.user.last_name|default:"<em>Unknown</em>" }}, {{ member.user.first_name|default:"<em>Unknown</em>" }}
-          <span class="small">({{ member.username }})</span>
+          <span class="small fw-light">({{ member.username }})</span>
           <span class="small text-muted">
             <i class="iconify" data-icon="mdi:clock"></i>
             {{ member.expiration|date:"Y/m/d" }}

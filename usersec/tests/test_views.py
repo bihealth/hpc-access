@@ -46,6 +46,11 @@ class TestViewBase(TestCase):
     """Test base for views."""
 
     def setUp(self):
+        # Superuser
+        self.superuser = self.make_user("superuser")
+        self.superuser.is_superuser = True
+        self.superuser.save()
+
         # HPC Admin
         self.user_hpcadmin = self.make_user("hpcadmin")
         self.user_hpcadmin.is_hpcadmin = True
@@ -107,6 +112,11 @@ class TestHomeView(TestViewBase):
         with self.login(self.user_hpcadmin):
             response = self.client.get(reverse("home"))
             self.assertRedirects(response, reverse("adminsec:overview"))
+
+    def test_get_superuser(self):
+        with self.login(self.superuser):
+            response = self.client.get(reverse("home"))
+            self.assertRedirects(response, reverse("admin-landing"))
 
 
 class TestOrphanUserView(TestViewBase):

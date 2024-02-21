@@ -78,6 +78,7 @@ THIRD_PARTY_APPS = [
     "rules.apps.AutodiscoverRulesConfig",
     "rest_framework",
     "knox",
+    "impersonate",
 ]
 
 LOCAL_APPS = [
@@ -140,6 +141,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "impersonate.middleware.ImpersonateMiddleware",
 ]
 
 # STATIC
