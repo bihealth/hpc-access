@@ -7,7 +7,7 @@
         <i class="iconify" data-icon="mdi:create"></i>
         Create Requests
       {% else %}
-        <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}">
           <i class="iconify" data-icon="mdi:create"></i>
           Add User To Group
         </a>

@@ -1,0 +1,104 @@
+{% load common %}
+
+<div class="card">
+  <div class="card-header">
+    <h4 class="card-title">
+      <i class="iconify" data-icon="mdi:user-group"></i>
+      {{ object.primary_group.name }}
+      {% if object.hpcgroup_owner.exists %}
+        <span class="badge rounded-pill bg-warning">Owner</span>
+      {% elif object.hpcgroup_delegate.exists %}
+        <span class="badge rounded-pill bg-secondary">Delegate</span>
+      {% else %}
+        <span class="badge rounded-pill bg-light text-secondary" style="border: 1px solid #6c757d !important">Member</span>
+      {% endif %}
+    </h4>
+    <h6 class="card-subtitle text-muted">
+      <q class="fst-italic">{{ object.primary_group.description|default:"Information about your work group" }}</q>
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="card-subtitle">
+      <dl class="row">
+        <dt class="col-sm-6">Owner</dt>
+        <dd class="col-sm-6">
+          {{ object.primary_group.owner.user.name }}
+          <span class="small">({{ object.primary_group.owner.username }})</span>
+        </dd>
+        <dt class="col-sm-6">Delegate</dt>
+        <dd class="col-sm-6">
+          {% if object.primary_group.delegate %}
+            {{ object.primary_group.delegate.user.name }}
+            <span class="small">({{ object.primary_group.delegate.username }})</span>
+          {% else %}
+            <em class="text-muted">None</em>
+          {% endif %}
+        </dd>
+        <dt class="col-sm-6">Expires</dt>
+        <dd class="col-sm-6">
+          {{ object.primary_group.expiration|date:"Y/m/d" }}
+        </dd>
+    </div>
+
+    <hr />
+
+    <dl class="row">
+      <dt class="col-sm-6">Fast Active Storage (<em>Tier 1</em>)</dt>
+      <dd class="col-sm-6">
+        <dl class="row">
+          <dt class="col-sm-6 small">Scratch</dt>
+          <dd class="col-sm-6">{{ object.primary_group.resources_requested|lookup:"tier1_scratch" }} TB</dd>
+
+          <dt class="col-sm-6 small">Work</dt>
+          <dd class="col-sm-6">{{ object.primary_group.resources_requested|lookup:"tier1_work" }} TB</dd>
+        </dl>
+      </dd>
+
+      <dt class="col-sm-6">Long-Term Storage (<em>Tier 2</em>)</dt>
+      <dd class="col-sm-6 mb-0">
+        <dl class="row mb-0">
+          <dt class="col-sm-6 small">Unmirrored</dt>
+          <dd class="col-sm-6">{{ object.primary_group.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
+
+          <dt class="col-sm-6 small">Mirrored</dt>
+          <dd class="col-sm-6 mb-0">{{ object.primary_group.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
+        </dl>
+      </dd>
+    </dl>
+
+    <hr />
+
+    <h6>
+      <strong>Members</strong>
+      <span class="badge rounded-pill bg-dark">{{ object.primary_group.hpcuser.count }}</span>
+      <div class="btn-group btn-group-sm" role="group" id="toggleInactiveGroupMembersGroup" aria-label="Toggle inactive group members">
+        <input type="checkbox" class="btn-check" id="toggleInactiveGroupMembers" autocomplete="off">
+        <label class="btn btn-outline-secondary" style="border: 0px" for="toggleInactiveGroupMembers">
+          <span class="badge rounded-pill bg-secondary">
+            <span id="inactiveGroupMembers">0</span> inactive
+          </span>
+          <span id="toggleInactiveGroupMembersText">show</span>
+        </label>
+      </div>
+    </h6>
+    <ul class="list-unstyled">
+      {% for member in object.primary_group.hpcuser.all|order_by:"user__last_name" %}
+        <li {% if member.status != 'ACTIVE' %} class="groupMemberInactive text-muted text-decoration-line-through" style="color: #aaaaaa"{% endif %}>
+          {% if member.status == 'ACTIVE' %}
+            <a href="mailto:{{ member.user.email }}" class="text-dark"><span class="iconify" data-icon="mdi:email" class="text-dark"></span></a>
+          {% else %}
+            <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
+          {% endif %}
+          {{ member.user.last_name|default:"<em>Unknown</em>" }}, {{ member.user.first_name|default:"<em>Unknown</em>" }}
+          <span class="small">({{ member.username }})</span>
+          <span class="small text-muted">
+            <i class="iconify" data-icon="mdi:clock"></i>
+            {{ member.expiration|date:"Y/m/d" }}
+          </span>
+        </li>
+      {% empty %}
+        <li><em class="text-muted">No members (?)</em></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

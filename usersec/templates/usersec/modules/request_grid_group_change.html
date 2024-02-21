@@ -7,7 +7,7 @@
         <i class="iconify" data-icon="mdi:refresh"></i>
         Change Requests
       {% else %}
-        <a class="btn btn-sm btn-primary" href="{% url 'usersec:hpcgroupchangerequest-create' hpcgroup=object.primary_group.uuid %}">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'usersec:hpcgroupchangerequest-create' hpcgroup=object.primary_group.uuid %}">
           <i class="iconify" data-icon="mdi:refresh"></i>
           Update Group
         </a>
