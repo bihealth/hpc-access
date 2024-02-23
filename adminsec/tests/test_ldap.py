@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 
 from adminsec.ldap import LdapConnector
@@ -119,7 +120,7 @@ class TestLdapConnector(TestCase):
     def test_get_ldap_username_domain_by_mail_not_valid(self):
         self.ldap.connect()
 
-        with self.assertRaisesRegex(Exception, "Email not valid"):
+        with self.assertRaisesRegex(Exception, "Email some@other.mail not valid"):
             self.ldap.get_ldap_username_domain_by_mail("some@other.mail")
 
     @override_settings(**LDAP_DEFAULT_MOCKS)
@@ -130,3 +131,42 @@ class TestLdapConnector(TestCase):
             self.ldap.get_ldap_username_domain_by_mail(
                 "some@" + INSTITUTE_EMAIL_DOMAINS.split(",")[0]
             )
+
+    @override_settings(**LDAP_DEFAULT_MOCKS)
+    def test_get_user_info(self):
+        self.ldap.connect()
+
+        userinfo = self.ldap.get_user_info(f"{USERNAME}@{AUTH_LDAP_USERNAME_DOMAIN}")
+
+        self.assertEqual(userinfo.mail.value, USER_MAIL_INSTITUTE)
+
+        userinfo2 = self.ldap.get_user_info(f"{USERNAME2}@{AUTH_LDAP2_USERNAME_DOMAIN}")
+
+        self.assertEqual(userinfo2.mail.value, USER_MAIL_INSTITUTE2)
+
+    @override_settings(**LDAP_DEFAULT_MOCKS)
+    def test_get_user_info_wrong_username_format(self):
+        self.ldap.connect()
+
+        with self.assertRaisesRegex(
+            ValueError, rf"Username must be in the form username@DOMAIN \(violator: '{USERNAME}'\)"
+        ):
+            self.ldap.get_user_info(USERNAME)
+
+    @override_settings(**LDAP_DEFAULT_MOCKS)
+    def test_get_user_info_wrong_domain(self):
+        self.ldap.connect()
+
+        with self.assertRaisesRegex(
+            ImproperlyConfigured, r"Domain SOME-OTHER-DOMAIN not valid\. Maybe LDAP not activated\?"
+        ):
+            self.ldap.get_user_info(f"{USERNAME}@SOME-OTHER-DOMAIN")
+
+    @override_settings(**LDAP_DEFAULT_MOCKS)
+    def test_get_user_info_user_doesnt_exist(self):
+        self.ldap.connect()
+
+        with self.assertRaisesRegex(
+            Exception, rf"No user found for username: some_other_user@{AUTH_LDAP2_USERNAME_DOMAIN}"
+        ):
+            self.ldap.get_user_info(f"some_other_user@{AUTH_LDAP2_USERNAME_DOMAIN}")

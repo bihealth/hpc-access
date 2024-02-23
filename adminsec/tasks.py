@@ -1,31 +1,75 @@
 # Create your tasks here
-import os
+from collections import defaultdict
 
-import yaml
+from django.contrib.auth import get_user_model
 
+from adminsec.ldap import LdapConnector
 from config.celery import app
-from usersec.models import HpcProject
+
+User = get_user_model()
+
+
+def _sync_ldap(write=False, verbose=False, ldapcon=None):
+    if not ldapcon:
+        ldapcon = LdapConnector(logging=verbose)
+
+    ldapcon.connect()
+
+    exception_count = defaultdict(int)
+
+    for user in User.objects.filter(
+        is_superuser=False,
+        is_staff=False,
+        is_hpcadmin=False,
+    ):
+        try:
+            userinfo = ldapcon.get_user_info(user.username)
+            userAccountControl = userinfo.userAccountControl
+            phone = userinfo.telephoneNumber
+            uid = userinfo.uidNumber
+            first_name = userinfo.givenName
+            last_name = userinfo.sn
+            mail = userinfo.mail
+            disabled = True
+
+            if userAccountControl:
+                disabled = bool(int(userinfo.userAccountControl.value) & 2)
+
+            if last_name:
+                user.last_name = last_name.value.strip()
+
+            if first_name:
+                user.first_name = first_name.value.strip()
+
+            if mail:
+                user.email = mail.value
+
+            if phone:
+                user.phone = phone.value
+
+            if uid:
+                user.uid = uid.value
+
+            user.name = " ".join([user.first_name, user.last_name])
+            user.is_active = not disabled
+
+            if user.hpcuser_user.count():
+                hpcuser = user.hpcuser_user.first()
+                hpcuser.status = "EXPIRED" if disabled else "ACTIVE"
+
+                if write:
+                    hpcuser.save()
+
+            if write:
+                user.save()
+
+        except Exception as e:
+            exception_count[str(e)] += 1
+            continue
+
+    return exception_count
 
 
 @app.task(bind=True)
-def export_projects(_self):
-    with open("export/projects.yaml", "w") as fh:
-        projects = [
-            {
-                "uuid": str(project.uuid),
-                "type": "HpcProject",
-                "date_created": str(project.date_created),
-                "description": project.description,
-                "status": project.status,
-                "name": project.name,
-                "expiration": str(project.expiration),
-                "group": {
-                    "name": project.group.name,
-                    "owner": project.group.owner.username,
-                },
-                "members": [member.username for member in project.members.all()],
-            }
-            for project in HpcProject.objects.all()
-        ]
-        print(f"Exporting {len(projects)} projects to {os.path.realpath(fh.name)} ...")
-        yaml.dump(projects, fh)
+def sync_ldap(_self, write=False, verbose=False):
+    _sync_ldap(write, verbose)
