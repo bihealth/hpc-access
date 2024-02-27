@@ -12,12 +12,16 @@ load_dotenv()
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # hpcaccess/
 APPS_DIR = ROOT_DIR / "hpcaccess"
-env = environ.Env()
+env = environ.FileAwareEnv()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
-    env.read_env(ROOT_DIR / ".env")
+    env_file = ROOT_DIR / ".env"
+    print("Loading : {}".format(env_file))
+    env.read_env(env_file)
+    print("The .env file has been loaded. See base.py for more information")
+
 
 # GENERAL
 # ------------------------------------------------------------------------------

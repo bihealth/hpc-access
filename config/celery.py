@@ -15,9 +15,9 @@ app = Celery("hpcaccess")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.conf.beat_schedule = {
-    "export_projects": {
-        "task": "adminsec.tasks.export_projects",
-        "schedule": crontab(minute="*/10"),
+    "sync_ldap": {
+        "task": "adminsec.tasks.sync_ldap",
+        "schedule": crontab(hour=0, minute=5),
     },
 }
 app.conf.timezone = "UTC"
