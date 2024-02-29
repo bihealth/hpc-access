@@ -278,6 +278,12 @@ urlpatterns_api = [
         view=views_api.HpcProjectRetrieveUpdateApiView.as_view(),
         name="api-hpcproject-retrieveupdate",
     ),
+    # API endpoints for HpcGroupCreateRequest
+    path(
+        "api/hpcgroupcreaterequest/<uuid:hpcgroupcreaterequest>/",
+        view=views_api.HpcGroupCreateRequestRetrieveUpdateApiView.as_view(),
+        name="api-hpcgroupcreaterequest-retrieveupdate",
+    ),
 ]
 
 urlpatterns = urlpatterns_ui + urlpatterns_api

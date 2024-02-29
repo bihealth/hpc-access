@@ -1,5 +1,8 @@
 """DRF views for the adminsec app."""
 
+import re
+
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
     RetrieveUpdateAPIView,
@@ -7,8 +10,11 @@ from rest_framework.generics import (
 )
 from rest_framework.permissions import IsAdminUser
 
-from usersec.models import HpcGroup, HpcProject, HpcUser
+from adminsec.constants import POSIX_AG_PREFIX
+from adminsec.permissions_api import IsHpcAdminUser
+from usersec.models import HpcGroup, HpcGroupCreateRequest, HpcProject, HpcUser
 from usersec.serializers import (
+    HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,
     HpcProjectSerializer,
     HpcUserSerializer,
@@ -73,3 +79,57 @@ class HpcProjectRetrieveUpdateApiView(RetrieveUpdateAPIView):
     def get_object(self):
         """Return the object to be used in the view."""
         return get_object_or_404(HpcProject, uuid=self.kwargs["hpcproject"])
+
+
+class HpcGroupCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
+    """API view for retrieving, updating and deleting a user."""
+
+    queryset = HpcGroupCreateRequest.objects.all()
+    serializer_class = HpcGroupCreateRequestSerializer
+    permission_classes = [IsAdminUser | IsHpcAdminUser]
+
+    def get_object(self):
+        """Return the object to be used in the view."""
+        return get_object_or_404(HpcGroupCreateRequest, uuid=self.kwargs["hpcgroupcreaterequest"])
+
+    def perform_update(self, serializer):
+        """Create a new object."""
+        name = serializer.validated_data.get("group_name")
+        folder = serializer.validated_data.get("folder")
+
+        re_name_core = r"[a-z][a-z0-9-]*[a-z0-9]"
+        re_name_check = rf"^{POSIX_AG_PREFIX}{re_name_core}$"
+        re_folder_check = rf"^(/[a-zA-Z0-9-_]*)+{re_name_core}$"
+
+        if name is not None:
+            if not re.match(re_name_check, name):
+                raise ValidationError(
+                    {
+                        "group_name": (
+                            f"The group name must start with `{POSIX_AG_PREFIX}`, be lowercase, "
+                            "alphanumeric including hyphens (-), not starting with a number or "
+                            f"a hyphen or ending with a hyphen. (regex: {re_name_check})"
+                        )
+                    }
+                )
+
+            if HpcGroup.objects.filter(name=name).exists():
+                raise ValidationError({"group_name": f"Group with name `{name}` already exists."})
+
+        if folder is not None:
+            if not re.match(re_folder_check, folder):
+                raise ValidationError(
+                    {
+                        "folder": (
+                            "The path must be a valid UNIX path starting with a slash, "
+                            "only alphanumeric and hpyhen and underscore are allowed and "
+                            "the last folder name must follow the group name rules. "
+                            f"(regex: {re_folder_check})"
+                        )
+                    }
+                )
+
+            if HpcGroup.objects.filter(folder=folder).exists():
+                raise ValidationError({"folder": f"Folder with path '{folder}' already exists."})
+
+        super().perform_update(serializer)

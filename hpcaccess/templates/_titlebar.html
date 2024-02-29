@@ -93,12 +93,21 @@
 </div>
 
 {% if request.user.is_superuser %}
-  <div class="container-fluid bg-danger text-dark p-2">
-    You are logged in as <strong>superuser</strong>.
-    To perform actions intended for an HPC admin,
+  {% if not request.user.is_hpcadmin %}
+    <div class="container-fluid bg-warning text-dark p-2">
+      You are logged in as <strong>superuser</strong>.
+      Please use this account solely for administrative tasks, i.e. impersonating other users and the Django admin.
+      Every other action will cause inconsistencies in the system. To perform actions intended for an HPC admin,
       please create a distinguished user with flags <em>is_hpcadmin=<strong>True</strong></em>
       and <em>is_superuser=<strong>False</strong></em>.
-  </div>
+    </div>
+  {% else %}
+    <div class="container-fluid bg-danger text-dark p-2">
+      Your account is registered as <strong>superuser</strong> and <strong>hpcadmin</strong> simultaneously.
+      This can lead to inconsistencies in the system. Please stop what you are doing and fix your user account settings
+      by settings flags <em>is_hpcadmin=<strong>True</strong></em> and <em>is_superuser=<strong>False</strong></em> or vice versa.
+    </div>
+  {% endif %}
 {% endif %}
 
 {% if request.user.is_impersonate %}

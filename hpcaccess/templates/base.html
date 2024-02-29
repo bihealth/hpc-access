@@ -122,9 +122,22 @@
       {% endif %}
 
       <div class="container">
-      {% block content %}
-        <p>Use this document as a way to quick start any new project.</p>
-      {% endblock content %}
+        {% if user.is_hpcadmin and user.is_superuser %}
+          <div class="card text-white bg-danger mt-5">
+            <h5 class="card-header">Problematic user account settings</h5>
+            <div class="card-body">
+              <p class="card-text">
+                Your account is registered as <strong>superuser</strong> and <strong>hpcadmin</strong> simultaneously.
+                This can lead to inconsistencies in the system.
+                Please fix your user account settings by setting the flags in the <a class="text-light fw-bold" href="{% url 'admin:index' %}">Django admin</a> to <em>is_hpcadmin=<strong>True</strong></em> and <em>is_superuser=<strong>False</strong></em> or vice versa.
+              </p>
+            </div>
+          </div>
+      {% else %}
+        {% block content %}
+          <p>Use this document as a way to quick start any new project.</p>
+        {% endblock content %}
+      {% endif %}
       </div>
     </div> <!-- /container -->
 

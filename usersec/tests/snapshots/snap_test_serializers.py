@@ -6,6 +6,17 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
+snapshots["TestHpcGroupCreateRequestSerializer::testSerializeExisting 1"] = {
+    "current_version": 1,
+    "date_created": "2019-01-01T00:00:00Z",
+    "description": "some group create request",
+    "expiration": "2050-01-01T00:00:00Z",
+    "folder": None,
+    "group_name": None,
+    "resources_requested": {"null": "null"},
+    "uuid": "uuid_placeholder",
+}
+
 snapshots["TestHpcGroupSerializer::testSerializeExisting 1"] = {
     "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",

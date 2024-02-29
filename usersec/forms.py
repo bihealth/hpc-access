@@ -7,6 +7,11 @@ from django.utils import timezone
 from django.utils.datetime_safe import datetime
 import rules
 
+from adminsec.constants import (
+    DEFAULT_GROUP_RESOURCES,
+    DEFAULT_PROJECT_RESOURCES,
+    DEFAULT_USER_RESOURCES,
+)
 from usersec.models import (
     HpcGroupChangeRequest,
     HpcGroupCreateRequest,
@@ -17,25 +22,6 @@ from usersec.models import (
     HpcUserChangeRequest,
     HpcUserCreateRequest,
 )
-
-DEFAULT_USER_RESOURCES = {
-    "tier1_scratch": 1,
-    "tier1_work": 1,
-    "tier2_mirrored": 0,
-    "tier2_unmirrored": 0,
-}
-DEFAULT_GROUP_RESOURCES = {
-    "tier1_scratch": 1,
-    "tier1_work": 1,
-    "tier2_mirrored": 0,
-    "tier2_unmirrored": 0,
-}
-DEFAULT_PROJECT_RESOURCES = {
-    "tier1_scratch": 1,
-    "tier1_work": 1,
-    "tier2_mirrored": 0,
-    "tier2_unmirrored": 0,
-}
 
 
 class HpcGroupCreateRequestForm(forms.ModelForm):
@@ -55,6 +41,8 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
         self.fields["resources_requested"].initial = DEFAULT_GROUP_RESOURCES
+        if self.instance:
+            self.fields["description"].initial = self.instance.description
 
         # Add fields for storage. Will be merged into resources_requested field.
         if not user.is_hpcadmin:
@@ -68,6 +56,7 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
             )
 
         else:
+            print("hiding description and expiration fields because user is hpcadmin")
             self.fields["description"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
@@ -79,7 +68,7 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
         self.fields["comment"].widget.attrs["rows"] = 3
         self.fields["comment"].help_text = (
             "For the initial group creation request provide some 'proof' that you are a group leader such as linking "
-            "to your group website at Charite or MDC."
+            "to your group website at Charite or MDC. This field is for communication between you and the HPC team."
         )
 
 

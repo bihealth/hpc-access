@@ -1,6 +1,6 @@
 {% load common %}
 
-<div class="card">
+<div class="card mt-5">
   <div class="card-header">
     <h4 class="card-title">
       <i class="iconify" data-icon="mdi:package-variant"></i>
@@ -123,27 +123,7 @@
             <hr />
 
             <dl class="row">
-              <dt class="col-sm-6">Fast Active Storage <span class="fw-light">(Tier 1)</span></dt>
-              <dd class="col-sm-6">
-                <dl class="row">
-                  <dt class="col-sm-7 small">Scratch</dt>
-                  <dd class="col-sm-5">{{ project.resources_requested|lookup:"tier1_scratch" }} TB</dd>
-
-                  <dt class="col-sm-7 small">Work</dt>
-                  <dd class="col-sm-5">{{ project.resources_requested|lookup:"tier1_work" }} TB</dd>
-                </dl>
-              </dd>
-
-              <dt class="col-sm-6">Long-Term Storage <span class="fw-light">(Tier 2)</span></dt>
-              <dd class="col-sm-6 mb-0">
-                <dl class="row mb-0">
-                  <dt class="col-sm-7 small">Unmirrored</dt>
-                  <dd class="col-sm-5">{{ project.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
-
-                  <dt class="col-sm-7 small">Mirrored</dt>
-                  <dd class="col-sm-5 mb-0">{{ project.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
-                </dl>
-              </dd>
+              {% include "usersec/modules/resources.html" with object=project %}
             </dl>
 
             <hr />

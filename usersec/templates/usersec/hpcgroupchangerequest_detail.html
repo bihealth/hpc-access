@@ -4,7 +4,7 @@
 
 {% block content %}
 
-  <div class="card">
+  <div class="card mt-5">
     <div class="card-header">
       <h4 class="card-title">
         HPC Group Change Request
@@ -45,34 +45,19 @@
       <div class="row">
         <div class="col-sm-6">
           <dl class="row">
-            <dt class="col-sm-3">Resource Quotas</dt>
-            <dd class="col-sm-9">
-              <dl class="row">
-                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Scratch</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_scratch" }} TB</dd>
+            {% include "usersec/modules/resources.html" with object=object %}
 
-                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Work</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_work" }} TB</dd>
+            <dt class="col-sm-6">Requester</dt>
+            <dd class="col-sm-6">{{ object.requester }}</dd>
 
-                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Unmirrored</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
+            <dt class="col-sm-6">Description</dt>
+            <dd class="col-sm-6">{{ object.description }}</dd>
 
-                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Mirrored</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
-              </dl>
-            </dd>
+            <dt class="col-sm-6">Delegate</dt>
+            <dd class="col-sm-6">{{ object.delegate|default:"<em class='text-muted'>No delegate</em>" }}</dd>
 
-            <dt class="col-sm-3">Requester</dt>
-            <dd class="col-sm-9">{{ object.requester }}</dd>
-
-            <dt class="col-sm-3">Description</dt>
-            <dd class="col-sm-9">{{ object.description }}</dd>
-
-            <dt class="col-sm-3">Delegate</dt>
-            <dd class="col-sm-9">{{ object.delegate|default:"<em class='text-muted'>No delegate</em>" }}</dd>
-
-            <dt class="col-sm-3">Expiration</dt>
-            <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
+            <dt class="col-sm-6">Expiration</dt>
+            <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
           </dl>
         </div>
         <div class="col-sm-6">
