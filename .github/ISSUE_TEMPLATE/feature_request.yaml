@@ -15,15 +15,5 @@ body:
       label: What is your feature request?
       description: Also tell us why you think this is useful for you.
       placeholder: Tell us what you wish for!
-      value: "I need that feature!"
     validations:
       required: true
-  - type: textarea
-    id: similar-feature
-    attributes:
-      label: Have you seen anything similar somewhere else?
-      description: Post a link or describe it.
-      placeholder: Tell us what you've seen!
-      value: "They did a similar thing!"
-    validations:
-      required: false

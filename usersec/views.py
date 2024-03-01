@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
@@ -12,6 +13,7 @@ from django.views.generic.detail import SingleObjectMixin
 import rules
 from rules.contrib.views import PermissionRequiredMixin
 
+from adminsec.constants import DEFAULT_HOME_DIRECTORY
 from adminsec.email import (
     send_notification_admin_request,
     send_notification_manager_group_request,
@@ -91,12 +93,6 @@ MSG_INVITATION_PROJECT_USER_ADD_SUCCESS = "Successfully joined the project."
 
 COMMENT_REACTIVATED = "Request re-activated"
 COMMENT_RETRACTED = "Request retracted"
-
-# -----------------------------------------------------------------------------
-# Other
-# -----------------------------------------------------------------------------
-
-DEFAULT_HOME_DIRECTORY = "/data/cephfs-1/home/users/{username}"
 
 
 class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
@@ -1487,6 +1483,7 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
     slug_url_kwarg = "hpcgroupinvitation"
     permission_required = "usersec.manage_hpcgroupinvitation"
 
+    @transaction.atomic
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
 

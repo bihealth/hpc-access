@@ -10,6 +10,14 @@ from django.utils.datetime_safe import datetime
 from django.views import View
 from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
 
+from adminsec.constants import (
+    DEFAULT_GROUP_DIRECTORY,
+    DEFAULT_HOME_DIRECTORY,
+    DEFAULT_USER_RESOURCES,
+    HPC_USERNAME_SEPARATOR,
+    LDAP_USERNAME_SEPARATOR,
+    POSIX_AG_PREFIX,
+)
 from adminsec.email import (
     send_notification_manager_change_request_approved,
     send_notification_manager_group_created,
@@ -22,7 +30,6 @@ from adminsec.email import (
 from adminsec.ldap import LdapConnector
 from hpcaccess.users.models import User
 from usersec.forms import (
-    DEFAULT_USER_RESOURCES,
     HpcGroupChangeRequestForm,
     HpcGroupCreateRequestForm,
     HpcProjectChangeRequestForm,
@@ -46,7 +53,6 @@ from usersec.models import (
     HpcUserCreateRequest,
 )
 from usersec.views import (
-    DEFAULT_HOME_DIRECTORY,
     MSG_PART_GROUP_CREATION,
     MSG_PART_GROUP_UPDATE,
     MSG_PART_PROJECT_CREATION,
@@ -75,9 +81,6 @@ if LDAP2_ENABLED:
     INSTITUTE2_USERNAME_SUFFIX = getattr(settings, "INSTITUTE2_USERNAME_SUFFIX")
     DOMAIN_MAPPING[LDAP2_DOMAIN] = INSTITUTE2_USERNAME_SUFFIX
 
-AG_PREFIX = "ag-"
-LDAP_USERNAME_SEPARATOR = "@"
-HPC_USERNAME_SEPARATOR = "_"
 
 # ------------------------------------------------------------------------------
 # UI message texts
@@ -138,17 +141,6 @@ def ldap_to_django_username(username, domain):
 
 def convert_to_posix(name):
     return unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
-
-
-# TODO this should be just a suggestion and the field should be editable
-def generate_hpc_groupname(name):
-    name_split = name.rsplit(" ", 1)
-    surname = ""
-    if len(name_split) == 2:
-        surname = name_split[1]
-    elif len(name_split) == 1:
-        surname = name_split[0]
-    return f"{AG_PREFIX}{convert_to_posix(surname).lower()}"
 
 
 class AdminView(HpcPermissionMixin, TemplateView):
@@ -220,6 +212,7 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
+        name = f"{POSIX_AG_PREFIX}{convert_to_posix(obj.requester.last_name.lower())}"
         context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
@@ -227,8 +220,11 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["hpc_group_name_suggestion"] = obj.group_name if obj.group_name else name
+        context["hpc_group_path_suggestion"] = (
+            obj.folder if obj.folder else DEFAULT_GROUP_DIRECTORY.format(group_name=name)
+        )
         context["admin"] = True
-        context["suggested_groupname"] = generate_hpc_groupname(obj.requester.name)
         return context
 
 
@@ -287,15 +283,65 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
+
+        if not obj.group_name:
+            messages.error(
+                self.request,
+                "Group name is empty. Please submit a group name before approving the request.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": obj.uuid},
+                )
+            )
+
+        if HpcGroup.objects.filter(name=obj.group_name).exists():
+            messages.error(
+                self.request,
+                f"Group with name '{obj.group_name}' already exists. Please choose another group name.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": obj.uuid},
+                )
+            )
+
+        if not obj.folder:
+            messages.error(
+                self.request,
+                "Folder is empty. Please submit a path before approving the request.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": obj.uuid},
+                )
+            )
+
+        if HpcGroup.objects.filter(folder=obj.folder).exists():
+            messages.error(
+                self.request,
+                f"Folder with path '{obj.folder}' already exists. Please choose another path.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": obj.uuid},
+                )
+            )
 
         # Create HpcGroup object
         hpcgroup = HpcGroup.objects.create_with_version(
             resources_requested=obj.resources_requested,
             description=obj.description,
             creator=self.request.user,
-            name=generate_hpc_groupname(obj.requester.name),
+            name=obj.group_name,
+            folder=obj.folder,
             expiration=obj.expiration,
         )
 

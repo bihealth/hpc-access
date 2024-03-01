@@ -52,13 +52,17 @@
 
       <dl class="row">
         <dt class="col-sm-2">Member of Group</dt>
-        <dd class="col-sm-10">{{ object.primary_group.name }}</dd>
+        <dd class="col-sm-10">AG {{ object.primary_group.owner.user.last_name }}</dd>
 
-        <dt class="col-sm-2">Member in Projects</dt>
+        <dt class="col-sm-2">Member of Projects</dt>
         <dd class="col-sm-10">
-          {% for project in object.hpcproject_members.all %}
-            {{ project.name }}</a>{% if not forloop.last %}; {% endif %}
+          <ul class="list-unstyled">
+          {% for project in object.hpcproject_members.all|order_by:"name" %}
+            <li>{{ project.name }}</li>
+          {% empty %}
+            <li><em class="text-muted">None</em></li>
           {% endfor %}
+          </ul>
         </dd>
 
         <dt class="col-sm-2">Home Directory</dt>

@@ -794,7 +794,9 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
     #: Comment for communication.
     comment = models.TextField(
-        blank=True, null=True, help_text="Comment request or summarize revision"
+        blank=True,
+        null=True,
+        help_text="This field is for communication between you and the HPC team.",
     )
 
     def get_comment_history(self):
@@ -879,6 +881,16 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
 
     #: Groups requested resources as JSON.
     resources_requested = models.JSONField()
+
+    #: POSIX name of the group on the cluster.
+    group_name = models.CharField(
+        max_length=64, help_text="POSIX name of the group on the cluster", null=True, blank=True
+    )
+
+    #: Folder ot the group on the cluster.
+    folder = models.CharField(
+        max_length=64, help_text="Path to the group folder on the cluster", null=True, blank=True
+    )
 
     #: Description of what the group is working on.
     description = models.CharField(

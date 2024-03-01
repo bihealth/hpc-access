@@ -4,7 +4,13 @@ from typing import Optional
 
 from rest_framework import serializers
 
-from usersec.models import HpcGroupVersion, HpcUser, HpcUserVersion
+from usersec.models import (
+    HpcGroupCreateRequest,
+    HpcGroupCreateRequestVersion,
+    HpcGroupVersion,
+    HpcUser,
+    HpcUserVersion,
+)
 
 
 class HpcObjectAbstractSerializer(serializers.Serializer):
@@ -208,5 +214,79 @@ class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.Mode
     class Meta:
         model = HpcUserVersion
         fields = HpcProjectAbstractSerializer.Meta.fields + [
+            "version",
+        ]
+
+
+class HpcRequestAbstractSerializer(HpcObjectAbstractSerializer):
+    """Common base class for HPC request serializers."""
+
+    status = serializers.CharField(read_only=True)
+    requester = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+    comment = serializers.CharField(read_only=True)
+
+    class Meta:
+        fields = HpcObjectAbstractSerializer.Meta.fields + [
+            "status",
+            "requester",
+            "comment",
+        ]
+
+
+class HpcGroupRequestAbstract(HpcRequestAbstractSerializer):
+    """Common base class for HPC group request serializers."""
+
+    group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+
+    class Meta:
+        fields = HpcRequestAbstractSerializer.Meta.fields + [
+            "group",
+        ]
+
+
+class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
+    """Common base class for HPC group create request serializers."""
+
+    resources_requested = serializers.JSONField(read_only=True)
+    description = serializers.CharField(read_only=True)
+    expiration = serializers.DateTimeField(read_only=True)
+    folder = serializers.CharField()
+    group_name = serializers.CharField()
+
+    class Meta:
+        fields = HpcObjectAbstractSerializer.Meta.fields + [
+            "resources_requested",
+            "description",
+            "expiration",
+            "group_name",
+            "folder",
+        ]
+
+
+class HpcGroupCreateRequestSerializer(
+    HpcGroupCreateRequestAbstractSerializer, serializers.ModelSerializer
+):
+    """Serializer for HpcGroupCreateRequest model."""
+
+    current_version = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = HpcGroupCreateRequest
+        fields = HpcGroupCreateRequestAbstractSerializer.Meta.fields + [
+            "current_version",
+        ]
+
+
+class HpcGroupCreateRequestVersionSerializer(
+    HpcGroupCreateRequestAbstractSerializer, serializers.ModelSerializer
+):
+    """Serializer for HpcGroupCreateRequestVersion model."""
+
+    version = serializers.IntegerField(read_only=True)
+    belongs_to = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+
+    class Meta:
+        model = HpcGroupCreateRequestVersion
+        fields = HpcGroupCreateRequestAbstractSerializer.Meta.fields + [
             "version",
         ]

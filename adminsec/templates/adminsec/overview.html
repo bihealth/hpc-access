@@ -2,11 +2,13 @@
 
 {% block content %}
 
-  <h1 class="mb-4 mt-4">
+  <h2 class="mb-5 mt-5">
+    <span class="fw-light">
+      Welcome {% if user.first_name or user.last_name %} {{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+      &mdash;
+    </span>
     Open Requests
-  </h1>
-
-  <hr class="mb-4" />
+  </h2>
 
   {% include "usersec/modules/request_grid.html" %}
 

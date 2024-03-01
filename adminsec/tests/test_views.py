@@ -10,7 +10,6 @@ from django.urls import reverse
 from adminsec.views import (
     convert_to_posix,
     django_to_hpc_username,
-    generate_hpc_groupname,
     ldap_to_hpc_username,
 )
 from usersec.models import (
@@ -267,6 +266,9 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_USERNAME_SUFFIX="c",
     )
     def test_post(self):
+        self.obj.group_name = "hpc-ag-doe"
+        self.obj.folder = "/home/hpc-ag-doe"
+        self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.post(
                 reverse(
@@ -302,11 +304,155 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
-            self.assertEqual(hpcgroup.name, "ag-doe")
-
+            self.assertEqual(hpcgroup.name, "hpc-ag-doe")
+            self.assertEqual(hpcgroup.folder, "/home/hpc-ag-doe")
             self.assertEqual(hpcgroup_version.owner, hpcuser)
-
             self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(
+        INSTITUTE_EMAIL_DOMAINS="charite.de",
+        INSTITUTE_USERNAME_SUFFIX="c",
+    )
+    def test_post_missing_group_name(self):
+        hpcgroups_precount = HpcGroup.objects.count()
+        hpcusers_precount = HpcUser.objects.count()
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-approve",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]),
+                "Group name is empty. Please submit a group name before approving the request.",
+            )
+
+            self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
+            self.assertEqual(HpcUser.objects.count(), hpcusers_precount)
+
+    @override_settings(
+        INSTITUTE_EMAIL_DOMAINS="charite.de",
+        INSTITUTE_USERNAME_SUFFIX="c",
+    )
+    def test_post_not_unique_group_name(self):
+        hpcgroups_precount = HpcGroup.objects.count()
+        hpcusers_precount = HpcUser.objects.count()
+        existing_name = HpcGroup.objects.first().name
+        self.obj.group_name = existing_name
+        self.obj.save()
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-approve",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]),
+                f"Group with name '{self.obj.group_name}' already exists. Please choose another group name.",
+            )
+
+            self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
+            self.assertEqual(HpcUser.objects.count(), hpcusers_precount)
+
+    @override_settings(
+        INSTITUTE_EMAIL_DOMAINS="charite.de",
+        INSTITUTE_USERNAME_SUFFIX="c",
+    )
+    def test_post_missing_folder(self):
+        hpcgroups_precount = HpcGroup.objects.count()
+        hpcusers_precount = HpcUser.objects.count()
+        self.obj.group_name = "hpc-ag-doe"
+        self.obj.save()
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-approve",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]),
+                "Folder is empty. Please submit a path before approving the request.",
+            )
+
+            self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
+            self.assertEqual(HpcUser.objects.count(), hpcusers_precount)
+
+    @override_settings(
+        INSTITUTE_EMAIL_DOMAINS="charite.de",
+        INSTITUTE_USERNAME_SUFFIX="c",
+    )
+    def test_post_not_unique_folder(self):
+        hpcgroups_precount = HpcGroup.objects.count()
+        hpcusers_precount = HpcUser.objects.count()
+        existing_folder = HpcGroup.objects.first().folder
+        self.obj.group_name = "hpc-ag-doe"
+        self.obj.folder = existing_folder
+        self.obj.save()
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-approve",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse(
+                    "adminsec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(
+                str(messages[0]),
+                f"Folder with path '{self.obj.folder}' already exists. Please choose another path.",
+            )
+
+            self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
+            self.assertEqual(HpcUser.objects.count(), hpcusers_precount)
 
 
 class TestHpcGroupCreateRequestDenyView(TestViewBase):
@@ -1739,7 +1885,3 @@ class TestFunctions(TestViewBase):
     def test_convert_to_posix(self):
         name = "LeéèÄAöo"
         self.assertEqual(convert_to_posix(name), "LeeeAAoo")
-
-    def test_generate_hpc_groupname(self):
-        name = "Doe"
-        self.assertEqual(generate_hpc_groupname(name), "ag-doe")

@@ -4,7 +4,7 @@
 
 {% block content %}
 
-  <div class="card">
+  <div class="card mt-5">
     <div class="card-header">
       <h4 class="card-title">
         {{ object.name }}
@@ -32,22 +32,7 @@
       <div class="row">
         <div class="col-sm-6">
           <dl class="row">
-            <dt class="col-sm-3">Resource Quotas</dt>
-            <dd class="col-sm-9">
-              <dl class="row">
-                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Scratch</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_scratch" }} TB</dd>
-
-                <dt class="col-sm-9 text-muted">Fast Active Storage <span class="small">(Tier 1)<sup>Work</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier1_work" }} TB</dd>
-
-                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Unmirrored</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
-
-                <dt class="col-sm-9 text-muted">Long-Term Storage <span class="small">(Tier 2)<sup>Mirrored</sup></span></dt>
-                <dd class="col-sm-3">{{ object.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
-              </dl>
-            </dd>
+            {% include "usersec/modules/resources.html" with object=object %}
 
             <dt class="col-sm-3">Expiration</dt>
             <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
