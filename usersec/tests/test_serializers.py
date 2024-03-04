@@ -6,12 +6,14 @@ from hpcaccess.utils.tests import FROZEN_TIME
 from usersec.serializers import (
     HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,
+    HpcProjectCreateRequestSerializer,
     HpcProjectSerializer,
     HpcUserSerializer,
 )
 from usersec.tests.factories import (
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
+    HpcProjectCreateRequestFactory,
     HpcProjectFactory,
     HpcUserFactory,
 )
@@ -85,4 +87,20 @@ class TestHpcGroupCreateRequestSerializer(ResetSequenceMixin, TestCaseSnap, Test
         serializer = HpcGroupCreateRequestSerializer(self.hpc_group_create_request)
         result = dict(serializer.data)
         result["uuid"] = "uuid_placeholder"
+        self.assertMatchSnapshot(result)
+
+
+@freeze_time(FROZEN_TIME)
+class TestHpcProjectCreateRequestSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
+    def setUp(self):
+        super().setUp()
+        self.hpc_project_create_request = HpcProjectCreateRequestFactory()
+        self.maxDiff = None
+
+    def testSerializeExisting(self):
+        serializer = HpcProjectCreateRequestSerializer(self.hpc_project_create_request)
+        result = dict(serializer.data)
+        result["uuid"] = "uuid_placeholder"
+        result["group"] = "group_uuid_placeholder"
+        result["name_requested"] = "name_requested_placeholder"
         self.assertMatchSnapshot(result)

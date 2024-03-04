@@ -883,7 +883,7 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     resources_requested = models.JSONField()
 
     #: POSIX name of the group on the cluster.
-    group_name = models.CharField(
+    name = models.CharField(
         max_length=64, help_text="POSIX name of the group on the cluster", null=True, blank=True
     )
 
@@ -1303,10 +1303,20 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         help_text="Members of the project",
     )
 
-    #: Name of the project
-    name = models.CharField(
-        max_length=512,
+    #: Requested project name
+    name_requested = models.CharField(
+        max_length=64,
         help_text="Please use only alphanumeric characters, dashes or underscores and no spaces",
+    )
+
+    #: POSIX id of the project on the cluster.
+    name = models.CharField(
+        max_length=64, help_text="POSIX name of the project on the cluster", null=True, blank=True
+    )
+
+    #: Folder ot the project on the cluster.
+    folder = models.CharField(
+        max_length=64, help_text="Path to the project folder on the cluster", null=True, blank=True
     )
 
     #: Description of the project.

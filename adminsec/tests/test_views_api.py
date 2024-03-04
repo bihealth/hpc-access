@@ -11,6 +11,7 @@ from usersec.models import REQUEST_STATUS_ACTIVE
 from usersec.tests.factories import (
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
+    HpcProjectCreateRequestFactory,
     HpcProjectFactory,
     HpcUserFactory,
 )
@@ -46,7 +47,13 @@ class ApiTestCase(TestCase):
         self.hpcuser_user.save()
         # Create HpcGroupCreateRequest.
         self.hpcgroupcreaterequest = HpcGroupCreateRequestFactory(
-            requester=self.user_user, status=REQUEST_STATUS_ACTIVE, group_name="groupname"
+            requester=self.user_user,
+            status=REQUEST_STATUS_ACTIVE,
+        )
+        # Create HpcProjectCreateRequest.
+        self.hpcprojectcreaterequest = HpcProjectCreateRequestFactory(
+            requester=self.user_user,
+            status=REQUEST_STATUS_ACTIVE,
         )
 
 
@@ -318,7 +325,7 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
                 self.patch(
                     "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                     hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                    data={"group_name": "hpc-ag-newname", "folder": "/newfolder"},
+                    data={"name": "hpc-ag-newname", "folder": "/newfolder"},
                 )
                 self.response_200()
 
@@ -329,23 +336,23 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
                 self.patch(
                     "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                     hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                    data={"group_name": "hpc-ag-newname", "folder": "/newfolder"},
+                    data={"name": "hpc-ag-newname", "folder": "/newfolder"},
                 )
                 self.response_403()
 
-    def test_patch_fail_400_group_name_regex(self):
+    def test_patch_fail_400_name_regex(self):
         """Test the PATCH method (non-staff cannot do)."""
         with self.login(self.user_hpcadmin):
             self.patch(
                 "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                 hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                data={"group_name": "newname", "folder": "/newfolder"},
+                data={"name": "newname", "folder": "/newfolder"},
             )
             self.response_400()
             self.assertEqual(
                 self.last_response.json(),
                 {
-                    "group_name": (
+                    "name": (
                         "The group name must start with `hpc-ag-`, be lowercase, "
                         "alphanumeric including hyphens (-), not starting with a number "
                         "or a hyphen or ending with a hyphen. (regex: "
@@ -354,7 +361,7 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
                 },
             )
 
-    def test_patch_fail_400_group_name_duplicate(self):
+    def test_patch_fail_400_name_duplicate(self):
         """Test the PATCH method (non-staff cannot do)."""
         self.hpcuser_group.name = "hpc-ag-newname"
         self.hpcuser_group.save()
@@ -362,12 +369,12 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
             self.patch(
                 "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                 hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                data={"group_name": "hpc-ag-newname", "folder": "/newfolder"},
+                data={"name": "hpc-ag-newname", "folder": "/newfolder"},
             )
             self.response_400()
             self.assertEqual(
                 self.last_response.json(),
-                {"group_name": "Group with name `hpc-ag-newname` already exists."},
+                {"name": "Group with name `hpc-ag-newname` already exists."},
             )
 
     def test_patch_fail_400_folder_regex(self):
@@ -376,7 +383,7 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
             self.patch(
                 "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                 hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                data={"group_name": "hpc-ag-newname", "folder": "2newfolder"},
+                data={"name": "hpc-ag-newname", "folder": "2newfolder"},
             )
             self.response_400()
             self.assertEqual(
@@ -399,7 +406,7 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
             self.patch(
                 "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                 hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
-                data={"group_name": "hpc-ag-newname", "folder": "/newfolder"},
+                data={"name": "hpc-ag-newname", "folder": "/newfolder"},
             )
             self.response_400()
             self.assertEqual(
@@ -414,6 +421,139 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
                 self.delete(
                     "adminsec:api-hpcgroupcreaterequest-retrieveupdate",
                     hpcgroupcreaterequest=self.hpcgroupcreaterequest.uuid,
+                )
+                if user.is_staff or user.is_hpcadmin:
+                    self.response_405()
+                else:
+                    self.response_403()
+
+
+class TestHpcProjectCreateRequestRetrieveUpdateApiView(ApiTestCase):
+    """Tests for the HpcProjectCreateRequestRetrieveUpdateApiView."""
+
+    def test_get_succeed(self):
+        """Test the GET method (staff users can do)."""
+        for user in [self.user_staff, self.user_admin, self.user_hpcadmin]:
+            with self.login(user):
+                self.get(
+                    "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                    hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                )
+                self.response_200()
+
+    def test_get_fail(self):
+        """Test the GET method (non-staff cannot do)."""
+        for user in [self.user_user]:
+            with self.login(user):
+                self.get(
+                    "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                    hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                )
+                self.response_403()
+
+    def test_patch_succeed(self):
+        """Test the PATCH method (staff users can do)."""
+        for user in [self.user_staff, self.user_admin, self.user_hpcadmin]:
+            with self.login(user):
+                self.patch(
+                    "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                    hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                    data={"name": "hpc-prj-newname", "folder": "/newfolder"},
+                )
+                self.response_200()
+
+    def test_patch_fail_403(self):
+        """Test the PATCH method (non-staff cannot do)."""
+        for user in [self.user_user]:
+            with self.login(user):
+                self.patch(
+                    "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                    hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                    data={"name": "hpc-prj-newname", "folder": "/newfolder"},
+                )
+                self.response_403()
+
+    def test_patch_fail_400_name_regex(self):
+        """Test the PATCH method (non-staff cannot do)."""
+        with self.login(self.user_hpcadmin):
+            self.patch(
+                "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                data={"name": "newname", "folder": "/newfolder"},
+            )
+            self.response_400()
+            self.assertEqual(
+                self.last_response.json(),
+                {
+                    "name": (
+                        "The project name must start with `hpc-prj-`, be lowercase, "
+                        "alphanumeric including hyphens (-), not starting with a number "
+                        "or a hyphen or ending with a hyphen. (regex: "
+                        "^hpc-prj-[a-z][a-z0-9-]*[a-z0-9]$)"
+                    )
+                },
+            )
+
+    def test_patch_fail_400_name_duplicate(self):
+        """Test the PATCH method (non-staff cannot do)."""
+        self.hpcuser_project.name = "hpc-prj-newname"
+        self.hpcuser_project.save()
+        with self.login(self.user_hpcadmin):
+            self.patch(
+                "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                data={"name": "hpc-prj-newname", "folder": "/newfolder"},
+            )
+            self.response_400()
+            self.assertEqual(
+                self.last_response.json(),
+                {"name": "Project with name `hpc-prj-newname` already exists."},
+            )
+
+    def test_patch_fail_400_folder_regex(self):
+        """Test the PATCH method (non-staff cannot do)."""
+        with self.login(self.user_hpcadmin):
+            self.patch(
+                "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                data={"name": "hpc-prj-newname", "folder": "2newfolder"},
+            )
+            self.response_400()
+            self.assertEqual(
+                self.last_response.json(),
+                {
+                    "folder": (
+                        "The path must be a valid UNIX path starting with a slash, only "
+                        "alphanumeric and hpyhen and underscore are allowed and the last "
+                        "folder name must follow the project name rules. (regex: "
+                        "^(/[a-zA-Z0-9-_]*)+[a-z][a-z0-9-]*[a-z0-9]$)"
+                    )
+                },
+            )
+
+    def test_patch_fail_400_folder_duplicate(self):
+        """Test the PATCH method (non-staff cannot do)."""
+        self.hpcuser_project.folder = "/newfolder"
+        self.hpcuser_project.save()
+        with self.login(self.user_hpcadmin):
+            self.patch(
+                "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
+                data={"name": "hpc-prj-newname", "folder": "/newfolder"},
+            )
+            self.response_400()
+            self.assertEqual(
+                self.last_response.json(),
+                {"folder": "Folder with path '/newfolder' already exists."},
+            )
+
+    def test_delete_fail(self):
+        """No user can DELETE."""
+        for user in [self.user_staff, self.user_admin, self.user_user, self.user_hpcadmin]:
+            with self.login(user):
+                self.delete(
+                    "adminsec:api-hpcprojectcreaterequest-retrieveupdate",
+                    hpcprojectcreaterequest=self.hpcprojectcreaterequest.uuid,
                 )
                 if user.is_staff or user.is_hpcadmin:
                     self.response_405()

@@ -1589,8 +1589,8 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
                 self.obj.description,
             )
             self.assertEqual(
-                response.context["form"]["name"].value(),
-                self.obj.name,
+                response.context["form"]["name_requested"].value(),
+                self.obj.name_requested,
             )
             self.assertEqual(
                 response.context["form"]["members"].value(),
@@ -1610,7 +1610,7 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
             "tier2_mirrored": 300,
             "tier2_unmirrored": 400,
             "expiration": self.obj.expiration,
-            "name": self.obj.name,
+            "name_requested": self.obj.name_requested,
             "description": self.obj.description,
             "members": [m.id for m in self.obj.members.all()],
         }
@@ -1643,8 +1643,8 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
                 self.obj.description,
             )
             self.assertEqual(
-                update["name"],
-                self.obj.name,
+                update["name_requested"],
+                self.obj.name_requested,
             )
             self.assertEqual(
                 update["members"],
@@ -1666,7 +1666,7 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
             "comment": "I made a comment!",
             "resources_requested": "",
             "expiration": "2050-01-01",
-            "name": self.obj.name,
+            "name_requested": self.obj.name_requested,
             "description": self.obj.description,
             "members": [m.id for m in self.obj.members.all()],
         }

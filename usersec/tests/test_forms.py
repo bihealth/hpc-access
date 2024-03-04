@@ -264,11 +264,11 @@ class TestHpcProjectCreateRequestForm(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["resources_requested"], ["This field is required."])
 
-    def test_form_invalid_name_missing(self):
-        data_invalid = {**self.data_valid, "name": ""}
+    def test_form_invalid_name_requested_missing(self):
+        data_invalid = {**self.data_valid, "name_requested": ""}
         form = HpcProjectCreateRequestForm(user=self.user, group=self.hpc_group, data=data_invalid)
         self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["name"], ["This field is required."])
+        self.assertEqual(form.errors["name_requested"], ["This field is required."])
 
     def test_form_invalid_members_missing(self):
         data_invalid = {**self.data_valid, "members": None}

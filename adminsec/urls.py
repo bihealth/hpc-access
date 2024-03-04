@@ -267,6 +267,12 @@ urlpatterns_api = [
         view=views_api.HpcGroupRetrieveUpdateApiView.as_view(),
         name="api-hpcgroup-retrieveupdate",
     ),
+    # API endpoints for HpcGroupCreateRequest
+    path(
+        "api/hpcgroupcreaterequest/<uuid:hpcgroupcreaterequest>/",
+        view=views_api.HpcGroupCreateRequestRetrieveUpdateApiView.as_view(),
+        name="api-hpcgroupcreaterequest-retrieveupdate",
+    ),
     # API endpoints for HpcProject
     path(
         "api/hpcproject/",
@@ -278,11 +284,11 @@ urlpatterns_api = [
         view=views_api.HpcProjectRetrieveUpdateApiView.as_view(),
         name="api-hpcproject-retrieveupdate",
     ),
-    # API endpoints for HpcGroupCreateRequest
+    # API endpoints for HpcProjectCreateRequest
     path(
-        "api/hpcgroupcreaterequest/<uuid:hpcgroupcreaterequest>/",
-        view=views_api.HpcGroupCreateRequestRetrieveUpdateApiView.as_view(),
-        name="api-hpcgroupcreaterequest-retrieveupdate",
+        "api/hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/",
+        view=views_api.HpcProjectCreateRequestRetrieveUpdateApiView.as_view(),
+        name="api-hpcprojectcreaterequest-retrieveupdate",
     ),
 ]
 

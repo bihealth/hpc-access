@@ -116,6 +116,9 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_approve_view_get(self):
+        self.hpc_group_create_request.name = "new_group"
+        self.hpc_group_create_request.folder = "new_folder"
+        self.hpc_group_create_request.save()
         url = reverse(
             "adminsec:hpcgroupcreaterequest-approve",
             kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
@@ -133,7 +136,7 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_group_create_request_approve_view_post(self):
-        self.hpc_group_create_request.group_name = "new_group"
+        self.hpc_group_create_request.name = "new_group"
         self.hpc_group_create_request.folder = "new_folder"
         self.hpc_group_create_request.save()
         url = reverse(
@@ -796,6 +799,9 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_project_create_request_approve_view_get(self):
+        self.hpc_project_create_request.name = "new_project"
+        self.hpc_project_create_request.folder = "new_folder"
+        self.hpc_project_create_request.save()
         url = reverse(
             "adminsec:hpcprojectcreaterequest-approve",
             kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
@@ -813,6 +819,9 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
     def test_hpc_project_create_request_approve_view_post(self):
+        self.hpc_project_create_request.name = "new_project"
+        self.hpc_project_create_request.folder = "new_folder"
+        self.hpc_project_create_request.save()
         url = reverse(
             "adminsec:hpcprojectcreaterequest-approve",
             kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},

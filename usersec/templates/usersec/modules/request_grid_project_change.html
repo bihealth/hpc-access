@@ -27,7 +27,7 @@
   <ul class="list-group list-group-flush overflow-auto" style="max-height: 150px">
     {% for obj in hpcprojectchangerequests %}
       <li class="list-group-item">
-        <a href="{{ obj|get_detail_url:user }}">{{ obj.project.name }}</a>
+        <a href="{{ obj|get_detail_url:user }}">{{ obj.project.name_requested }}</a>
         <span class="badge bg-{{ obj.status|colorize_request_status }}">
           {{ obj.display_status }}
         </span>

@@ -13,10 +13,12 @@ from django.views.generic import DeleteView, DetailView, TemplateView, UpdateVie
 from adminsec.constants import (
     DEFAULT_GROUP_DIRECTORY,
     DEFAULT_HOME_DIRECTORY,
+    DEFAULT_PROJECT_DIRECTORY,
     DEFAULT_USER_RESOURCES,
     HPC_USERNAME_SEPARATOR,
     LDAP_USERNAME_SEPARATOR,
     POSIX_AG_PREFIX,
+    POSIX_PROJECT_PREFIX,
 )
 from adminsec.email import (
     send_notification_manager_change_request_approved,
@@ -220,9 +222,9 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
-        context["hpc_group_name_suggestion"] = obj.group_name if obj.group_name else name
+        context["hpc_group_name_suggestion"] = obj.name if obj.name else name
         context["hpc_group_path_suggestion"] = (
-            obj.folder if obj.folder else DEFAULT_GROUP_DIRECTORY.format(group_name=name)
+            obj.folder if obj.folder else DEFAULT_GROUP_DIRECTORY.format(name=name)
         )
         context["admin"] = True
         return context
@@ -283,14 +285,13 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
 
-    @transaction.atomic
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
 
-        if not obj.group_name:
+        if not obj.name:
             messages.error(
                 self.request,
-                "Group name is empty. Please submit a group name before approving the request.",
+                "Name is empty. Please submit a name before approving the request.",
             )
             return HttpResponseRedirect(
                 reverse(
@@ -299,10 +300,10 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                 )
             )
 
-        if HpcGroup.objects.filter(name=obj.group_name).exists():
+        if HpcGroup.objects.filter(name=obj.name).exists():
             messages.error(
                 self.request,
-                f"Group with name '{obj.group_name}' already exists. Please choose another group name.",
+                f"Group with name '{obj.name}' already exists. Please choose another name.",
             )
             return HttpResponseRedirect(
                 reverse(
@@ -334,13 +335,18 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                     kwargs={"hpcgroupcreaterequest": obj.uuid},
                 )
             )
+        return super().get(request, *args, **kwargs)
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
 
         # Create HpcGroup object
         hpcgroup = HpcGroup.objects.create_with_version(
             resources_requested=obj.resources_requested,
             description=obj.description,
             creator=self.request.user,
-            name=obj.group_name,
+            name=obj.name,
             folder=obj.folder,
             expiration=obj.expiration,
         )
@@ -780,6 +786,12 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["hpc_project_name_suggestion"] = (
+            obj.name if obj.name else POSIX_PROJECT_PREFIX + obj.name_requested
+        )
+        context["hpc_project_path_suggestion"] = (
+            obj.folder if obj.folder else DEFAULT_PROJECT_DIRECTORY.format(name=obj.name_requested)
+        )
         context["admin"] = True
         return context
 
@@ -840,6 +852,59 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
     slug_url_kwarg = "hpcprojectcreaterequest"
     permission_required = "adminsec.is_hpcadmin"
 
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        if not obj.name:
+            messages.error(
+                self.request,
+                "Name is empty. Please submit a name before approving the request.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcprojectcreaterequest-detail",
+                    kwargs={"hpcprojectcreaterequest": obj.uuid},
+                )
+            )
+
+        if HpcProject.objects.filter(name=obj.name).exists():
+            messages.error(
+                self.request,
+                f"Project with name '{obj.name}' already exists. Please choose another name.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcprojectcreaterequest-detail",
+                    kwargs={"hpcprojectcreaterequest": obj.uuid},
+                )
+            )
+
+        if not obj.folder:
+            messages.error(
+                self.request,
+                "Folder is empty. Please submit a path before approving the request.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcprojectcreaterequest-detail",
+                    kwargs={"hpcprojectcreaterequest": obj.uuid},
+                )
+            )
+
+        if HpcProject.objects.filter(folder=obj.folder).exists():
+            messages.error(
+                self.request,
+                f"Folder with path '{obj.folder}' already exists. Please choose another path.",
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcprojectcreaterequest-detail",
+                    kwargs={"hpcprojectcreaterequest": obj.uuid},
+                )
+            )
+
+        return super().get(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
 
@@ -848,6 +913,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                 project = HpcProject.objects.create_with_version(
                     group=obj.group,
                     name=obj.name,
+                    folder=obj.folder,
                     description=obj.description,
                     resources_requested=obj.resources_requested,
                     creator=self.request.user,

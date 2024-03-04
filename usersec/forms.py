@@ -11,6 +11,7 @@ from adminsec.constants import (
     DEFAULT_GROUP_RESOURCES,
     DEFAULT_PROJECT_RESOURCES,
     DEFAULT_USER_RESOURCES,
+    RE_NAME_CORE,
 )
 from usersec.models import (
     HpcGroupChangeRequest,
@@ -273,7 +274,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
     class Meta:
         model = HpcProjectCreateRequest
         fields = [
-            "name",
+            "name_requested",
             "members",
             "description",
             "comment",
@@ -374,13 +375,14 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
         else:
             self.fields["delegate"].widget = forms.HiddenInput()
-            self.fields["name"].widget = forms.HiddenInput()
+            self.fields["name_requested"].widget = forms.HiddenInput()
             self.fields["description"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
 
         # Some cosmetics
-        self.fields["name"].widget.attrs["class"] = "form-control"
+        self.fields["name_requested"].widget.attrs["class"] = "form-control"
+        self.fields["name_requested"].label = "Name"
         self.fields["description"].widget.attrs["class"] = "form-control"
         self.fields["expiration"].widget.attrs["class"] = "form-control"
         self.fields["delegate"].widget.attrs["class"] = "form-control"
@@ -389,15 +391,14 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        name = cleaned_data.get("name")
-        re_name_check = "^[a-z][a-z0-9-]*[a-z0-9]$"
+        name = cleaned_data.get("name_requested")
 
         if not name:
             return
 
-        if not re.match(re_name_check, name):
+        if not re.match(RE_NAME_CORE, name):
             self.add_error(
-                "name",
+                "name_requested",
                 (
                     "The project name must be lowercase, alphanumeric including hyphens (-), not starting "
                     "with a number or a hyphen or ending with a hyphen."
@@ -406,7 +407,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             return
 
         if HpcProject.objects.filter(name=name).exists():
-            self.add_error("name", "A project with this name already exists.")
+            self.add_error("name_requested", "A project with this name already exists.")
             return
 
         return cleaned_data

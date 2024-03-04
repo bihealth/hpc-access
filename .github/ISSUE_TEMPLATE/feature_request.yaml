@@ -1,7 +1,6 @@
 name: Feature Request
 description: File a feature request
-title: "[feat] "
-labels: ["feature"]
+labels: ["enhancement"]
 assignees:
   - stolpeo
 body:
