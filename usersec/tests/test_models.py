@@ -1266,7 +1266,7 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_save_with_version_new(self):
         supplementaries = {
             "group": HpcGroupFactory(),
-            "name": "some-project",
+            "name_requested": "some-project",
         }
         self._test_save_with_version_new(**supplementaries)
 

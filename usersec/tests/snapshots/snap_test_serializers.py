@@ -12,7 +12,7 @@ snapshots["TestHpcGroupCreateRequestSerializer::testSerializeExisting 1"] = {
     "description": "some group create request",
     "expiration": "2050-01-01T00:00:00Z",
     "folder": None,
-    "group_name": None,
+    "name": None,
     "resources_requested": {"null": "null"},
     "uuid": "uuid_placeholder",
 }
@@ -40,6 +40,20 @@ snapshots["TestHpcGroupSerializer::testSerializeExisting 1"] = {
         "tier2_unmirrored": 0,
     },
     "status": "INITIAL",
+    "uuid": "uuid_placeholder",
+}
+
+snapshots["TestHpcProjectCreateRequestSerializer::testSerializeExisting 1"] = {
+    "current_version": 1,
+    "date_created": "2019-01-01T00:00:00Z",
+    "description": "some description",
+    "expiration": "2050-01-01T00:00:00Z",
+    "folder": None,
+    "group": "group_uuid_placeholder",
+    "members": [],
+    "name": None,
+    "name_requested": "name_requested_placeholder",
+    "resources_requested": {"null": "null"},
     "uuid": "uuid_placeholder",
 }
 

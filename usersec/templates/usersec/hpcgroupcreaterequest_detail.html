@@ -44,12 +44,12 @@
       </div>
       {% endif %}
       {% if admin %}
-      <div class="row" id="folder-group-name-warning">
+      <div class="row" id="folder-name-warning">
         <div class="col-12 alert alert-warning">
           Note that you explicitly need to set the POSIX group name and the folder path for the group before approval.
           <ul>
-            <li class="fw-bold" id="group-name-submitted">POSIX path not yet submitted</li>
-            <li class="fw-bold" id="folder-submitted">Folder path not yet submitted</li>
+            <li class="fw-bold" id="name-not-submitted">POSIX name not yet submitted</li>
+            <li class="fw-bold" id="folder-not-submitted">Folder path not yet submitted</li>
           </ul>
         </div>
       </div>
@@ -64,8 +64,8 @@
 
             {% if admin %}
             <dt class="col-sm-4">
-              POSIX Group Name
-              <span class="text-success" id="group-name-submitted-icon">
+              POSIX Name
+              <span class="text-success" id="name-submitted-icon">
                 <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
               </span>
             </dt>
@@ -74,14 +74,14 @@
                 <input
                       type="text"
                       class="form-control"
-                      id="set-group-name-text"
+                      id="set-name-text"
                       placeholder="{{ hpc_group_name_suggestion }}"
                       value="{{ hpc_group_name_suggestion }}"
                       aria-label="Set Group Name"
-                      aria-describedby="set-group-name-button set-group-name-server-response"
+                      aria-describedby="set-name-button set-name-server-response"
                       required>
-                <button class="btn btn-outline-secondary" type="button" id="set-group-name-button">Submit</button>
-                <div id="set-group-name-server-response"></div>
+                <button class="btn btn-outline-secondary" type="button" id="set-name-button">Submit</button>
+                <div id="set-name-server-response"></div>
               </div>
             </dd>
 
@@ -145,23 +145,27 @@
     function checkSubmissionStatus() {
       const csrftoken = getCookie('csrftoken');
       $("#folder-submitted-icon").hide();
-      $("#group-name-submitted-icon").hide();
+      $("#name-submitted-icon").hide();
+      $("#folder-name-warning").hide();
       $.ajax({
         url: "{% url 'adminsec:api-hpcgroupcreaterequest-retrieveupdate' object.uuid %}",
         method: "GET",
         headers: {'X-CSRFToken': csrftoken},
         mode: 'same-origin', // Do not send CSRF token to another domain.
         success: function(data) {
-          if (data.group_name && data.folder) {
-            $("#folder-group-name-warning").toggle();
+          if (data.name && data.folder) {
             $("#folder-submitted-icon").show();
-            $("#group-name-submitted-icon").show();
-          } else if (data.group_name) {
-            $("#group-name-submitted").toggle();
-            $("#group-name-submitted-icon").show();
-          } else if (data.folder) {
-            $("#folder-submitted").toggle();
-            $("#folder-submitted-icon").show();
+            $("#name-submitted-icon").show();
+          } else {
+            $("#folder-name-warning").show();
+            if (data.name) {
+              $("#name-not-submitted").hide();
+              $("#name-submitted-icon").show();
+            }
+            if (data.folder) {
+              $("#folder-not-submitted").hide();
+              $("#folder-submitted-icon").show();
+            }
           }
         },
         error: function(jqXHR, textStatus, errorThrown) {
@@ -172,8 +176,8 @@
 
     $(document).ready(function() {
       checkSubmissionStatus();
-      $("#set-group-name-button").click(function() {
-        const group_name = $("#set-group-name-text").val();
+      $("#set-name-button").click(function() {
+        const group_name = $("#set-name-text").val();
         const csrftoken = getCookie('csrftoken');
         $.ajax({
           url: "{% url 'adminsec:api-hpcgroupcreaterequest-retrieveupdate' object.uuid %}",
@@ -182,16 +186,16 @@
           mode: 'same-origin', // Do not send CSRF token to another domain.
           data: {
             csrfmiddlewaretoken: csrftoken,
-            group_name: group_name
+            name: name
           },
           success: function(data) {
-            $("#set-group-name-text").removeClass().addClass("form-control is-valid");
-            $("#set-group-name-server-response").text("Group name has been set to " + data.group_name).removeClass().addClass("valid-feedback");
+            $("#set-name-text").removeClass().addClass("form-control is-valid");
+            $("#set-name-server-response").text("Group name has been set to " + data.name).removeClass().addClass("valid-feedback");
             checkSubmissionStatus();
           },
           error: function(jqXHR, textStatus, errorThrown) {
-            $("#set-group-name-text").removeClass().addClass("form-control is-invalid");
-            $("#set-group-name-server-response").text(jqXHR.responseJSON.group_name).removeClass().addClass("invalid-feedback");
+            $("#set-name-text").removeClass().addClass("form-control is-invalid");
+            $("#set-name-server-response").text(jqXHR.responseJSON.name).removeClass().addClass("invalid-feedback");
           }
         });
       });

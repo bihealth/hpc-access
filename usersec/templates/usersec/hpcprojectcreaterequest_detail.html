@@ -21,22 +21,79 @@
       </h4>
     </div>
     <div class="card-body">
+      {% if admin %}
+      <div class="row" id="folder-name-warning">
+        <div class="col-12 alert alert-warning">
+          Note that you explicitly need to set the POSIX project name and the folder path for the project before approval.
+          <ul>
+            <li class="fw-bold" id="name-not-submitted">POSIX name not yet submitted</li>
+            <li class="fw-bold" id="folder-not-submitted">Folder path not yet submitted</li>
+          </ul>
+        </div>
+      </div>
+      {% endif %}
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-7">
           <dl class="row">
             {% include "usersec/modules/resources.html" with object=object %}
 
-            <dt class="col-sm-3">Requester</dt>
-            <dd class="col-sm-9">
-              <a href="{{ object.requester.hpcuser_user.first|get_detail_url:user }}">{{ object.requester.name }}</a>
-              <strong class="small text-muted">{{ object.requester.hpcuser_user.first.username }}</strong>
+            <dt class="col-sm-4">Requester</dt>
+            <dd class="col-sm-8">
+              {{ object.requester.name }}
+              <span class="small fw-light">({{ object.requester.hpcuser_user.first.username }})</span>
             </dd>
 
-            <dt class="col-sm-3">Name</dt>
-            <dd class="col-sm-9">{{ object.name }}</dd>
+            <dt class="col-sm-4">Requested Name</dt>
+            <dd class="col-sm-8">{{ object.name_requested }}</dd>
 
-            <dt class="col-sm-3">Delegate</dt>
-            <dd class="col-sm-9">
+            {% if admin %}
+            <dt class="col-sm-4">
+              POSIX Name
+              <span class="text-success" id="name-submitted-icon">
+                <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
+              </span>
+            </dt>
+            <dd class="col-sm-8">
+              <div class="input-group">
+                <input
+                      type="text"
+                      class="form-control"
+                      id="set-name-text"
+                      placeholder="{{ hpc_project_name_suggestion }}"
+                      value="{{ hpc_project_name_suggestion }}"
+                      aria-label="Set Project Name"
+                      aria-describedby="set-name-button set-name-server-response"
+                      required>
+                <button class="btn btn-outline-secondary" type="button" id="set-name-button">Submit</button>
+                <div id="set-name-server-response"></div>
+              </div>
+            </dd>
+
+            <dt class="col-sm-4">
+              Folder
+              <span class="text-success" id="folder-submitted-icon">
+                <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
+              </span>
+            </dt>
+            <dd class="col-sm-8">
+              <div class="input-group">
+                <input
+                      type="text"
+                      class="form-control"
+                      id="set-folder-text"
+                      placeholder="{{ hpc_project_path_suggestion }}"
+                      value="{{ hpc_project_path_suggestion }}"
+                      aria-label="Set Folder"
+                      aria-describedby="set-folder-button set-folder-server-response"
+                      required>
+                <button class="btn btn-outline-secondary" type="button" id="set-folder-button">Submit</button>
+                <div id="set-folder-server-response"></div>
+              </div>
+            </dd>
+            {% endif %}
+
+            <dt class="col-sm-4">Delegate</dt>
+            <dd class="col-sm-8">
               {% if object.delegate %}
                 <a href="{{ object.delegate|get_detail_url:user }}">{{ object.delegate.user.name }}</a> <strong class="small text-muted">{{ object.delegate.username }}</strong>
               {% else %}
@@ -44,31 +101,144 @@
               {% endif %}
             </dd>
 
-            <dt class="col-sm-3">Members</dt>
-            <dd class="col-sm-9">
+            <dt class="col-sm-4">Members</dt>
+            <dd class="col-sm-8">
               <ul class="list-unstyled">
                 {% for member in object.members.all %}
                   <li>
-                    <a href="{{ member|get_detail_url:user }}">{{ member.user.name }}</a> <strong class="small text-muted">{{ member.username }}</strong>
+                    {{ member.user.name }} <span class="fw-light">({{ member.username }})</span>
                   </li>
                 {% endfor %}
               </ul>
             </dd>
 
-            <dt class="col-sm-3">Group</dt>
-            <dd class="col-sm-9">
-              <a href="{{ object.group|get_detail_url:user }}">{{ object.group.name }}</a>
-              <small class="fst-italic text-muted">owned by</small> <a href="{{ object.group.owner|get_detail_url:user }}">{{ object.group.owner.user.name }}</a> <strong class="small text-muted">{{ object.group.owner.username }}</strong>
+            <dt class="col-sm-4">Associated Group</dt>
+            <dd class="col-sm-8">
+              {{ object.group.name }}
+              <dl class="row small">
+                <dt class="col-sm-3">Owner</dt>
+                <dd class="col-sm-9">
+                  {{ object.group.owner.user.name }} <span class="fw-light">({{ object.group.owner.username }})</span>
+                </dd>
+                {% if object.group.delegate %}
+                  <dt class="col-sm-3">Delegate</dt>
+                  <dd class="col-sm-9">
+                    {{ object.group.delegate.user.name }} <span class="fw-light">({{ object.group.delegate.username }})</span>
+                  </dd>
+                {% endif %}
+              </dl>
             </dd>
-            <dt class="col-sm-3">Expiration</dt>
-            <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
+            <dt class="col-sm-4">Expiration</dt>
+            <dd class="col-sm-8">{{ object.expiration|date:"Y-m-d" }}</dd>
           </dl>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-5">
           {% include "usersec/modules/comments.html" %}
         </div>
       </div>
     </div>
   </div>
-
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script type="text/javascript">
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function checkSubmissionStatus() {
+      const csrftoken = getCookie('csrftoken');
+      $("#folder-submitted-icon").hide();
+      $("#name-submitted-icon").hide();
+      $("#folder-name-warning").hide();
+      $.ajax({
+        url: "{% url 'adminsec:api-hpcprojectcreaterequest-retrieveupdate' object.uuid %}",
+        method: "GET",
+        headers: {'X-CSRFToken': csrftoken},
+        mode: 'same-origin', // Do not send CSRF token to another domain.
+        success: function(data) {
+          if (data.name && data.folder) {
+            $("#folder-submitted-icon").show();
+            $("#name-submitted-icon").show();
+          } else {
+            $("#folder-name-warning").show();
+            if (data.name) {
+              $("#name-not-submitted").hide();
+              $("#name-submitted-icon").show();
+            }
+            if (data.folder) {
+              $("#folder-not-submitted").hide();
+              $("#folder-submitted-icon").show();
+            }
+          }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.error(jqXHR);
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      checkSubmissionStatus();
+      $("#set-name-button").click(function() {
+        const name = $("#set-name-text").val();
+        const csrftoken = getCookie('csrftoken');
+        $.ajax({
+          url: "{% url 'adminsec:api-hpcprojectcreaterequest-retrieveupdate' object.uuid %}",
+          method: "PATCH",
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin', // Do not send CSRF token to another domain.
+          data: {
+            csrfmiddlewaretoken: csrftoken,
+            name: name
+          },
+          success: function(data) {
+            $("#set-name-text").removeClass().addClass("form-control is-valid");
+            $("#set-name-server-response").text("Project name has been set to " + data.name).removeClass().addClass("valid-feedback");
+            checkSubmissionStatus();
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            $("#set-name-text").removeClass().addClass("form-control is-invalid");
+            $("#set-name-server-response").text(jqXHR.responseJSON.name).removeClass().addClass("invalid-feedback");
+          }
+        });
+      });
+
+      $("#set-folder-button").click(function() {
+        const folder = $("#set-folder-text").val();
+        const csrftoken = getCookie('csrftoken');
+        $.ajax({
+          url: "{% url 'adminsec:api-hpcprojectcreaterequest-retrieveupdate' object.uuid %}",
+          method: "PATCH",
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin', // Do not send CSRF token to another domain.
+          data: {
+            csrfmiddlewaretoken: csrftoken,
+            folder: folder
+          },
+          success: function(data) {
+            $("#set-folder-text").removeClass().addClass("form-control is-valid");
+            $("#set-folder-server-response").text("Folder has been set to " + data.folder).removeClass().addClass("valid-feedback");
+            checkSubmissionStatus();
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            $("#set-folder-text").removeClass().addClass("form-control is-invalid");
+            $("#set-folder-server-response").text(jqXHR.responseJSON.folder).removeClass().addClass("invalid-feedback");
+          }
+        });
+      });
+    })
+  </script>
+{% endblock inline_javascript %}

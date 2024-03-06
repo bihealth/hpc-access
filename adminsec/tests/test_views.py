@@ -251,6 +251,9 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         self.obj = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
     def test_get(self):
+        self.obj.name = "hpc-ag-doe"
+        self.obj.folder = "/home/hpc-ag-doe"
+        self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.get(
                 reverse(
@@ -266,7 +269,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_USERNAME_SUFFIX="c",
     )
     def test_post(self):
-        self.obj.group_name = "hpc-ag-doe"
+        self.obj.name = "hpc-ag-doe"
         self.obj.folder = "/home/hpc-ag-doe"
         self.obj.save()
         with self.login(self.user_hpcadmin):
@@ -313,12 +316,12 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_EMAIL_DOMAINS="charite.de",
         INSTITUTE_USERNAME_SUFFIX="c",
     )
-    def test_post_missing_group_name(self):
+    def test_get_missing_name(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
 
         with self.login(self.user_hpcadmin):
-            response = self.client.post(
+            response = self.client.get(
                 reverse(
                     "adminsec:hpcgroupcreaterequest-approve",
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
@@ -337,7 +340,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(len(messages), 1)
             self.assertEqual(
                 str(messages[0]),
-                "Group name is empty. Please submit a group name before approving the request.",
+                "Name is empty. Please submit a name before approving the request.",
             )
 
             self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
@@ -347,15 +350,15 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_EMAIL_DOMAINS="charite.de",
         INSTITUTE_USERNAME_SUFFIX="c",
     )
-    def test_post_not_unique_group_name(self):
+    def test_get_not_unique_name(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
         existing_name = HpcGroup.objects.first().name
-        self.obj.group_name = existing_name
+        self.obj.name = existing_name
         self.obj.save()
 
         with self.login(self.user_hpcadmin):
-            response = self.client.post(
+            response = self.client.get(
                 reverse(
                     "adminsec:hpcgroupcreaterequest-approve",
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
@@ -374,7 +377,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(len(messages), 1)
             self.assertEqual(
                 str(messages[0]),
-                f"Group with name '{self.obj.group_name}' already exists. Please choose another group name.",
+                f"Group with name '{self.obj.name}' already exists. Please choose another name.",
             )
 
             self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
@@ -384,14 +387,14 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_EMAIL_DOMAINS="charite.de",
         INSTITUTE_USERNAME_SUFFIX="c",
     )
-    def test_post_missing_folder(self):
+    def test_get_missing_folder(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
-        self.obj.group_name = "hpc-ag-doe"
+        self.obj.name = "hpc-ag-doe"
         self.obj.save()
 
         with self.login(self.user_hpcadmin):
-            response = self.client.post(
+            response = self.client.get(
                 reverse(
                     "adminsec:hpcgroupcreaterequest-approve",
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
@@ -420,16 +423,16 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_EMAIL_DOMAINS="charite.de",
         INSTITUTE_USERNAME_SUFFIX="c",
     )
-    def test_post_not_unique_folder(self):
+    def test_get_not_unique_folder(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
         existing_folder = HpcGroup.objects.first().folder
-        self.obj.group_name = "hpc-ag-doe"
+        self.obj.name = "hpc-ag-doe"
         self.obj.folder = existing_folder
         self.obj.save()
 
         with self.login(self.user_hpcadmin):
-            response = self.client.post(
+            response = self.client.get(
                 reverse(
                     "adminsec:hpcgroupcreaterequest-approve",
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
@@ -1406,7 +1409,7 @@ class TestHpcProjectCreateRequestRevisionView(TestViewBase):
             "description": self.obj.description,
             "expiration": self.obj.expiration,
             "members": [m.id for m in self.obj.members.all()],
-            "name": self.obj.name,
+            "name_requested": self.obj.name_requested,
         }
 
         with self.login(self.user_hpcadmin):
@@ -1455,6 +1458,8 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             requester=self.user_owner,
             group=self.hpc_group,
             status=REQUEST_STATUS_ACTIVE,
+            name="new_project",
+            folder="new_project",
         )
         self.obj.members.add(self.hpc_member, self.hpc_delegate)
 

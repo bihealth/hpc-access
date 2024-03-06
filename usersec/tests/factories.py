@@ -96,7 +96,7 @@ HPCPROJECTCREATEREQUEST_FORM_DATA_VALID = {
     "tier2_mirrored": 300,
     "tier2_unmirrored": 400,
     "description": "some project description",
-    "name": "some-project",
+    "name_requested": "some-project",
     "expiration": "2022-01-01",
     "comment": "nothing",
     "members": None,  # fill out before usage
@@ -318,7 +318,7 @@ class HpcProjectCreateRequestFactory(HpcProjectRequestFactoryBase):
     group = factory.SubFactory(HpcGroupFactory)
     resources_requested = {"null": "null"}
     description = "some description"
-    name = factory.Sequence(lambda n: f"hpc-project100{n}")
+    name_requested = factory.Sequence(lambda n: f"hpc-project100{n}")
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
