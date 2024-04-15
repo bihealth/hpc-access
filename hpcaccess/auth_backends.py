@@ -73,16 +73,16 @@ def _ldap_auth_handler(user, ldap_user, **kwargs):
     last_name = ldap_user.attrs.get("sn")
 
     if phone:
-        user.phone = phone.value
+        user.phone = phone[0]
 
     if uid:
-        user.uid = uid.value
+        user.uid = uid[0]
 
     if first_name:
-        user.first_name = first_name.value
+        user.first_name = first_name[0]
 
     if last_name:
-        user.last_name = last_name.value
+        user.last_name = last_name[0]
 
     if hasattr(user, "ldap_username"):
         # Make domain in username uppercase
