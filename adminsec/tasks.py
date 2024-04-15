@@ -36,19 +36,19 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
                 disabled = bool(int(userinfo.userAccountControl.value) & 2)
 
             if last_name:
-                user.last_name = last_name.value.strip()
+                user.last_name = last_name[0].strip()
 
             if first_name:
-                user.first_name = first_name.value.strip()
+                user.first_name = first_name[0].strip()
 
             if mail:
-                user.email = mail.value
+                user.email = mail[0]
 
             if phone:
-                user.phone = phone.value
+                user.phone = phone[0]
 
             if uid:
-                user.uid = uid.value
+                user.uid = uid[0]
 
             user.name = " ".join([user.first_name, user.last_name])
             user.is_active = not disabled
