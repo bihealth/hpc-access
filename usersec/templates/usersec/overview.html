@@ -68,6 +68,18 @@
         <dt class="col-sm-2">Home Directory</dt>
         <dd class="col-sm-10">{{ object.home_directory|default:"<em class='text-muted'>None</em>" }}</dd>
 
+        <dt class="col-sm-2">Storage</dt>
+        <dd class="col-sm-2">
+          {{ object.resources_used|lookup:"tier1_home"|floatformat:"1" }} / {{ object.resources_requested|lookup:"tier1_home" }} TB
+        </dd>
+        <dd class="col-sm-8">
+          <div class="progress w-50">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_home" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_home" }}' aria-valuemin="0" aria-valuemax="100">
+              {{ object|storage_in_percent:"tier1_home" }}%
+            </div>
+          </div>
+        </dd>
+
         <dt class="col-sm-2">Login Shell</dt>
         <dd class="col-sm-10">{{ object.login_shell|default:"<em class='text-muted'>None</em>" }}</dd>
 

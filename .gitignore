@@ -320,3 +320,6 @@ static-local
 # Icons
 */static/iconify/*.json
 */static/iconify/json/*.json
+
+celerybeat-schedule.*
+ldap_ca_cert.pem

@@ -7,6 +7,22 @@ from typing import Dict, List, Optional
 from uuid import uuid4
 
 from hpc_access_cli.config import HpcaccessSettings, Settings
+from hpc_access_cli.constants import (
+    BASE_DN_CHARITE,
+    BASE_DN_GROUPS,
+    BASE_DN_MDC,
+    BASE_DN_PROJECTS,
+    BASE_PATH_TIER1,
+    BASE_PATH_TIER2,
+    HPC_ALUMNIS_GID,
+    HPC_ALUMNIS_GROUP,
+    HPC_USERS_GID,
+    HPC_USERS_GROUP,
+    POSIX_AG_PREFIX,
+    POSIX_PROJECT_PREFIX,
+    QUOTA_HOME_BYTES,
+    QUOTA_SCRATCH_BYTES,
+)
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
 from hpc_access_cli.models import (
@@ -24,6 +40,7 @@ from hpc_access_cli.models import (
     LdapUserOp,
     OperationsContainer,
     ResourceData,
+    ResourceDataUser,
     StateOperation,
     Status,
     SystemState,
@@ -33,29 +50,6 @@ from rich.console import Console
 
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)
-
-#: Base DN for work groups.
-BASE_DN_GROUPS = "ou=Teams,ou=Groups,dc=hpc,dc=bihealth,dc=org"
-#: Base DN for projects
-BASE_DN_PROJECTS = "ou=Projects,ou=Groups,dc=hpc,dc=bihealth,dc=org"
-#: Base DN for Charite users
-BASE_DN_CHARITE = "ou=Charite,ou=Users,dc=hpc,dc=bihealth,dc=org"
-#: Base DN for MDC users
-BASE_DN_MDC = "ou=MDC,ou=Users,dc=hpc,dc=bihealth,dc=org"
-
-#: Quota on user home (1G)
-QUOTA_HOME_BYTES = 1024 * 1024 * 1024
-#: Quota on scratch (100T)
-QUOTA_SCRATCH_BYTES = 100 * 1024 * 1024 * 1024 * 1024
-
-#: Group name for users without a group.
-HPC_ALUMNIS_GROUP = "hpc-alumnis"
-#: GID for users without a group.
-HPC_ALUMNIS_GID = 1030001
-#: Group name for hpc-users (active+has home)
-HPC_USERS_GROUP = "hpc-users"
-#: GID for hpc-users
-HPC_USERS_GID = 1005269
 
 
 def user_dn(user: HpcUser) -> str:
@@ -79,7 +73,22 @@ def gather_hpcaccess_state(settings: HpcaccessSettings) -> HpcaccessState:
     console_err.log("  # of groups:", len(result.hpc_groups))
     console_err.log("  # of projects:", len(result.hpc_projects))
     console_err.log("... have hpc-access data now.")
+    rest_client.close()
     return result
+
+
+def deploy_hpcaccess_state(settings: HpcaccessSettings, state: HpcaccessState) -> None:
+    """Deploy the state."""
+    console_err.log("Deploying hpc-access users, groups, and projects...")
+    rest_client = HpcaccessClient(settings)
+    for u in state.hpc_users.values():
+        rest_client.update_user_resources_used(u)
+    for g in state.hpc_groups.values():
+        rest_client.update_group_resources_used(g)
+    for p in state.hpc_projects.values():
+        rest_client.update_project_resources_used(p)
+    rest_client.close()
+    console_err.log("... deployed hpc-access data now.")
 
 
 class TargetStateBuilder:
@@ -144,8 +153,8 @@ class TargetStateBuilder:
             else:
                 group_name = HPC_ALUMNIS_GROUP
                 group_gid = HPC_ALUMNIS_GID
-            result[f"/data/cephfs-1/home/users/{user.username}"] = FsDirectory(
-                path=f"/data/cephfs-1/home/users/{user.username}",
+            result[f"{BASE_PATH_TIER1}/home/users/{user.username}"] = FsDirectory(
+                path=f"{BASE_PATH_TIER1}/home/users/{user.username}",
                 owner_name=user.username,
                 owner_uid=user.uid,
                 group_name=group_name,
@@ -165,6 +174,11 @@ class TargetStateBuilder:
                 )
                 continue
             owner = hpcaccess_state.hpc_users[group.owner]
+            group_name = (
+                group.name[len(POSIX_AG_PREFIX) :]
+                if group.name.startswith(POSIX_AG_PREFIX)
+                else group.name
+            )
             # Tier 1
             quota_work = (group.resources_requested or ResourceData).tier1_work
             if not quota_work:
@@ -177,11 +191,11 @@ class TargetStateBuilder:
                 ("scratch", quota_scratch * 1024 * 1024 * 1024 * 1024),
                 ("work", quota_work * 1024 * 1024 * 1024 * 1024),
             ):
-                result[f"/data/cephfs-1/{volume}/groups/{group.name}"] = FsDirectory(
-                    path=f"/data/cephfs-1/{volume}/groups/{group.name}",
+                result[f"{BASE_PATH_TIER1}/{volume}/groups/ag-{group_name}"] = FsDirectory(
+                    path=f"{BASE_PATH_TIER1}/{volume}/groups/ag-{group_name}",
                     owner_name=owner.username,
                     owner_uid=owner.uid,
-                    group_name=group.name,
+                    group_name=group_name,
                     group_gid=group.gid,
                     perms="drwxrwS---",
                     rbytes=None,
@@ -199,11 +213,11 @@ class TargetStateBuilder:
                     raise ValueError("Invalid variant")
                 if not quota:
                     continue
-                result[f"/data/cephfs-2/{variant}/groups/{group.name}"] = FsDirectory(
-                    path=f"/data/cephfs-2/{variant}/groups/{group.name}",
+                result[f"{BASE_PATH_TIER2}/{variant}/groups/ag-{group_name}"] = FsDirectory(
+                    path=f"{BASE_PATH_TIER2}/{variant}/groups/ag-{group_name}",
                     owner_name=owner.username,
                     owner_uid=owner.uid,
-                    group_name=group.name,
+                    group_name=group_name,
                     group_gid=group.gid,
                     perms="drwxrwS---",
                     rbytes=None,
@@ -224,6 +238,11 @@ class TargetStateBuilder:
                 continue
             owning_group = hpcaccess_state.hpc_groups[project.group]
             owner = hpcaccess_state.hpc_users[owning_group.owner]
+            project_name = (
+                group.name[len(POSIX_PROJECT_PREFIX) :]
+                if group.name.startswith(POSIX_PROJECT_PREFIX)
+                else group.name
+            )
             # Tier 1
             quota_work = (project.resources_requested or ResourceData).tier1_work
             if not quota_work:
@@ -236,11 +255,11 @@ class TargetStateBuilder:
                 ("scratch", quota_scratch * 1024 * 1024 * 1024 * 1024),
                 ("work", quota_work * 1024 * 1024 * 1024 * 1024),
             ):
-                result[f"/data/cephfs-1/{volume}/projects/{project.name}"] = FsDirectory(
-                    path=f"/data/cephfs-1/{volume}/projects/{project.name}",
+                result[f"{BASE_PATH_TIER1}/{volume}/projects/{project_name}"] = FsDirectory(
+                    path=f"{BASE_PATH_TIER1}/{volume}/projects/{project_name}",
                     owner_name=owner.username,
                     owner_uid=owner.uid,
-                    group_name=f"hpc-prj-{project.name}",
+                    group_name=project_name,
                     group_gid=project.gid,
                     perms="drwxrwS---",
                     rbytes=None,
@@ -258,11 +277,11 @@ class TargetStateBuilder:
                     raise ValueError("Invalid variant")
                 if not quota:
                     continue
-                result[f"/data/cephfs-2/{variant}/projects/{project.name}"] = FsDirectory(
-                    path=f"/data/cephfs-2/{variant}/projects/{project.name}",
+                result[f"{BASE_PATH_TIER2}/{variant}/projects/{project_name}"] = FsDirectory(
+                    path=f"{BASE_PATH_TIER2}/{variant}/projects/{project_name}",
                     owner_name=owner.username,
                     owner_uid=owner.uid,
-                    group_name=f"hpc-prj-{project.name}",
+                    group_name=project_name,
                     group_gid=project.gid,
                     perms="drwxrwS---",
                     rbytes=None,
@@ -298,7 +317,7 @@ class TargetStateBuilder:
                 gecos=gecos,
                 uid_number=user.uid,
                 gid_number=group_gid,
-                home_directory=f"/data/cephfs-1/home/users/{user.username}",  # user.home_directory,
+                home_directory=f"{BASE_PATH_TIER1}/home/users/{user.username}",  # user.home_directory,
                 login_shell="/usr/bin/bash",  # user.login_shell,
                 # SSH keys are managed via upstream LDAP.
                 ssh_public_key=[],
@@ -314,10 +333,10 @@ class TargetStateBuilder:
                 # assign new group Unix GID if necessary
                 group.gid = self.next_gid
                 self.next_gid += 1
-            group_dn = f"cn=hpc-ag-{group.name},{BASE_DN_GROUPS}"
+            group_dn = f"cn={POSIX_AG_PREFIX}{group.name},{BASE_DN_GROUPS}"
             owner = state.hpc_users[group.owner]
             delegate = state.hpc_users[group.delegate] if group.delegate else None
-            group_name = f"hpc-ag-{group.name}"
+            group_name = f"{POSIX_AG_PREFIX}{group.name}"
             result[group_name] = LdapGroup(
                 dn=group_dn,
                 cn=group_name,
@@ -333,7 +352,7 @@ class TargetStateBuilder:
                 # assign new project Unix GID if necessary
                 project.gid = self.next_gid
                 self.next_gid += 1
-            group_dn = f"cn=hpc-prj-{project.name},{BASE_DN_PROJECTS}"
+            group_dn = f"cn={POSIX_PROJECT_PREFIX}{project.name},{BASE_DN_PROJECTS}"
             if project.group:
                 owning_group = state.hpc_groups[project.group]
                 owner = state.hpc_users[owning_group.owner]
@@ -341,7 +360,7 @@ class TargetStateBuilder:
             else:
                 owner_dn = None
             delegate = state.hpc_users[project.delegate] if project.delegate else None
-            project_name = f"hpc-prj-{project.name}"
+            project_name = f"{POSIX_PROJECT_PREFIX}{project.name}"
             result[project_name] = LdapGroup(
                 dn=group_dn,
                 cn=project_name,
@@ -387,7 +406,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
     group_uuids = {
         g.cn: uuid4()
         for g in system_state.ldap_groups.values()
-        if g.cn.startswith("hpc-ag-") or g.cn.startswith("hpc-prj-")
+        if g.cn.startswith(POSIX_AG_PREFIX) or g.cn.startswith(POSIX_PROJECT_PREFIX)
     }
     group_by_gid = {g.gid_number: g for g in system_state.ldap_groups.values()}
     group_by_owner_dn: Dict[str, LdapGroup] = {}
@@ -416,17 +435,11 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             last_name=u.sn,
             email=u.mail,
             phone_number=u.gecos.office_phone if u.gecos else None,
-            resources_requested=ResourceData(
-                tier1_work=0,
-                tier1_scratch=0,
-                tier2_mirrored=0,
-                tier2_unmirrored=0,
+            resources_requested=ResourceDataUser(
+                tier1_home=0,
             ),
-            resources_used=ResourceData(
-                tier1_work=0,
-                tier1_scratch=0,
-                tier2_mirrored=0,
-                tier2_unmirrored=0,
+            resources_used=ResourceDataUser(
+                tier1_home=0,
             ),
             status=status,
             uid=u.uid_number,
@@ -439,12 +452,13 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
 
     def build_hpcgroup(g: LdapGroup) -> Optional[HpcGroup]:
         expiration = datetime.datetime.now() + datetime.timedelta(days=365)
+        name = g.cn[len(POSIX_AG_PREFIX) :] if g.cn.startswith(POSIX_AG_PREFIX) else g.cn
         if not g.owner_dn:
             console_err.log(f"no owner DN for {g.cn}, skipping")
             return
         return HpcGroup(
             uuid=group_uuids[g.cn],
-            name=g.cn.replace("hpc-ag-", ""),
+            name=name,
             description=g.description,
             owner=user_uuids[user_by_dn[g.owner_dn].uid],
             delegate=user_uuids[user_by_dn[g.delegate_dns[0]].uid] if g.delegate_dns else None,
@@ -462,13 +476,14 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             ),
             status=Status.ACTIVE,
             gid=g.gid_number,
-            folder=f"/data/cephfs-1/groups/{g.cn}",
+            folder=f"{BASE_PATH_TIER1}/groups/{name}",
             expiration=expiration,
             current_version=1,
         )
 
     def build_hpcproject(p: LdapGroup) -> Optional[HpcProject]:
         expiration = datetime.datetime.now() + datetime.timedelta(days=365)
+        name = p.cn[len(POSIX_PROJECT_PREFIX) :] if p.cn.startswith(POSIX_PROJECT_PREFIX) else p.cn
         if not p.owner_dn:
             console_err.log(f"no owner DN for {p.cn}, skipping")
             return
@@ -484,7 +499,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             group = group_uuids[group_by_gid[gid_number].cn]
         return HpcProject(
             uuid=group_uuids[p.cn],
-            name=p.cn.replace("hpc-prj-", ""),
+            name=name,
             description=g.description,
             group=group,
             delegate=user_uuids[user_by_dn[p.delegate_dns[0]].uid] if p.delegate_dns else None,
@@ -502,7 +517,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             ),
             status=Status.ACTIVE,
             gid=p.gid_number,
-            folder=f"/data/cephfs-1/projects/{p.cn}",
+            folder=f"{BASE_PATH_TIER1}/projects/{name}",
             expiration=expiration,
             current_version=1,
             members=members,
@@ -515,14 +530,14 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         hpc_users[hpc_user.uuid] = hpc_user
     hpc_groups = {}
     for g in system_state.ldap_groups.values():
-        if not g.cn.startswith("hpc-ag-"):
+        if not g.cn.startswith(POSIX_AG_PREFIX):
             continue
         hpc_group = build_hpcgroup(g)
         if hpc_group:
             hpc_groups[hpc_group.uuid] = hpc_group
     hpc_projects = {}
     for p in system_state.ldap_groups.values():
-        if not p.cn.startswith("hpc-prj-"):
+        if not p.cn.startswith(POSIX_PROJECT_PREFIX):
             continue
         hpc_project = build_hpcproject(p)
         if hpc_project:

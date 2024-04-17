@@ -17,8 +17,6 @@ from adminsec.constants import (
     DEFAULT_USER_RESOURCES,
     HPC_USERNAME_SEPARATOR,
     LDAP_USERNAME_SEPARATOR,
-    POSIX_AG_PREFIX,
-    POSIX_PROJECT_PREFIX,
 )
 from adminsec.email import (
     send_notification_manager_change_request_approved,
@@ -214,7 +212,7 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         obj = self.get_object()
-        name = f"{POSIX_AG_PREFIX}{convert_to_posix(obj.requester.last_name.lower())}"
+        name = convert_to_posix(obj.requester.last_name.lower())
         context["is_decided"] = obj.is_decided()
         context["is_denied"] = obj.is_denied()
         context["is_retracted"] = obj.is_retracted()
@@ -786,9 +784,7 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
-        context["hpc_project_name_suggestion"] = (
-            obj.name if obj.name else POSIX_PROJECT_PREFIX + obj.name_requested
-        )
+        context["hpc_project_name_suggestion"] = obj.name if obj.name else obj.name_requested
         context["hpc_project_path_suggestion"] = (
             obj.folder if obj.folder else DEFAULT_PROJECT_DIRECTORY.format(name=obj.name_requested)
         )

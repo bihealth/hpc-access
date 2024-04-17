@@ -103,16 +103,10 @@ class Command(BaseCommand):
                         uuid=user_uuid,
                         user=user,
                         resources_requested={
-                            "tier1_scratch": user_data.resources_requested.tier1_scratch,
-                            "tier1_work": user_data.resources_requested.tier1_scratch,
-                            "tier2_mirrored": user_data.resources_requested.tier1_scratch,
-                            "tier2_unmirrored": user_data.resources_requested.tier1_scratch,
+                            "tier1_home": user_data.resources_requested.tier1_home,
                         },
                         resources_used={
-                            "tier1_scratch": user_data.resources_used.tier1_scratch,
-                            "tier1_work": user_data.resources_used.tier1_scratch,
-                            "tier2_mirrored": user_data.resources_used.tier1_scratch,
-                            "tier2_unmirrored": user_data.resources_used.tier1_scratch,
+                            "tier1_home": user_data.resources_used.tier1_home,
                         },
                         creator=worker_user,
                         status=user_data.status.name,
