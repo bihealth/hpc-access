@@ -15,7 +15,7 @@ django-test-plus==2.2.0  # https://github.com/revsys/django-test-plus/
 
 # Documentation
 # ------------------------------------------------------------------------------
-sphinx==4.5.0  # https://github.com/sphinx-doc/sphinx
+sphinx==7.3.6  # https://github.com/sphinx-doc/sphinx
 sphinx-autobuild==2021.3.14 # https://github.com/GaretJax/sphinx-autobuild
 
 # Code quality
