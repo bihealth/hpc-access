@@ -6,6 +6,8 @@ import sys
 from typing import Dict, List, Optional
 from uuid import uuid4
 
+from rich.console import Console
+
 from hpc_access_cli.config import HpcaccessSettings, Settings
 from hpc_access_cli.constants import (
     BASE_DN_CHARITE,
@@ -17,11 +19,9 @@ from hpc_access_cli.constants import (
     HPC_ALUMNIS_GID,
     HPC_ALUMNIS_GROUP,
     HPC_USERS_GID,
-    HPC_USERS_GROUP,
     POSIX_AG_PREFIX,
     POSIX_PROJECT_PREFIX,
     QUOTA_HOME_BYTES,
-    QUOTA_SCRATCH_BYTES,
 )
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
@@ -46,7 +46,6 @@ from hpc_access_cli.models import (
     SystemState,
 )
 from hpc_access_cli.rest import HpcaccessClient
-from rich.console import Console
 
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)
@@ -317,8 +316,10 @@ class TargetStateBuilder:
                 gecos=gecos,
                 uid_number=user.uid,
                 gid_number=group_gid,
-                home_directory=f"{BASE_PATH_TIER1}/home/users/{user.username}",  # user.home_directory,
-                login_shell="/usr/bin/bash",  # user.login_shell,
+                # user.home_directory
+                home_directory=f"{BASE_PATH_TIER1}/home/users/{user.username}",
+                # user.login_shell
+                login_shell="/usr/bin/bash",
                 # SSH keys are managed via upstream LDAP.
                 ssh_public_key=[],
             )

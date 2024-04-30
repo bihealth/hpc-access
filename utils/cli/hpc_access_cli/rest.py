@@ -2,6 +2,8 @@
 
 from typing import List
 
+import httpx
+
 from hpc_access_cli.config import HpcaccessSettings
 from hpc_access_cli.models import (
     HpcGroup,
@@ -10,7 +12,6 @@ from hpc_access_cli.models import (
     ResourceData,
     ResourceDataUser,
 )
-import httpx
 
 
 class HpcaccessClient:

@@ -2,15 +2,16 @@
 
 import errno
 import os
+import sys
 from pathlib import Path
 from subprocess import check_call
-import sys
 from typing import Dict, List
+
+import xattr
+from rich.console import Console
 
 from hpc_access_cli.constants import BASE_PATH_TIER1, BASE_PATH_TIER2
 from hpc_access_cli.models import FsDirectory, FsDirectoryOp, StateOperation
-from rich.console import Console
-import xattr
 
 #: The rich console to use for logging.
 console_err = Console(file=sys.stderr)

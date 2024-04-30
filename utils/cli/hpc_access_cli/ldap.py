@@ -3,6 +3,10 @@
 import sys
 from typing import Any, Dict, List, Optional
 
+import humps
+import ldap3
+from rich.console import Console
+
 from hpc_access_cli.config import LdapSettings
 from hpc_access_cli.models import (
     LOGIN_SHELL_DISABLED,
@@ -13,9 +17,6 @@ from hpc_access_cli.models import (
     LdapUserOp,
     StateOperation,
 )
-import humps
-import ldap3
-from rich.console import Console
 
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)

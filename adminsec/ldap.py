@@ -1,8 +1,8 @@
 import logging as _logging
 
+import ldap3
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-import ldap3
 
 logger = _logging.getLogger("ldap_connector_logger")
 
@@ -41,7 +41,7 @@ class LdapConnector:
                 server1,
                 user=settings.AUTH_LDAP_BIND_DN,
                 password=settings.AUTH_LDAP_BIND_PASSWORD,
-                **test_mode
+                **test_mode,
             )
 
             if self.test_mode:
@@ -62,7 +62,7 @@ class LdapConnector:
                 server2,
                 user=settings.AUTH_LDAP2_BIND_DN,
                 password=settings.AUTH_LDAP2_BIND_PASSWORD,
-                **test_mode
+                **test_mode,
             )
 
             if self.test_mode:
@@ -147,10 +147,10 @@ class LdapConnector:
 
         try:
             username, domain = username.split("@")
-        except ValueError:
+        except ValueError as err:
             msg = "Username must be in the form username@DOMAIN (violator: '%s')" % username
             logger.error(msg)
-            raise ValueError(msg)
+            raise ValueError(msg) from err
 
         if settings.ENABLE_LDAP and domain == settings.AUTH_LDAP_USERNAME_DOMAIN:
             connection = self.connection1

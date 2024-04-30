@@ -1,10 +1,10 @@
-from datetime import datetime
 import json
+from datetime import datetime
 
+import factory
 from django.conf import settings
 from django.forms import model_to_dict
 from django.utils.timezone import utc
-import factory
 
 from hpcaccess.users.tests.factories import UserFactory
 from usersec.models import (

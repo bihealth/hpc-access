@@ -3,6 +3,11 @@ import re
 import sys
 from typing import List
 
+import mechanize
+import typer
+from rich.console import Console
+from typing_extensions import Annotated
+
 from hpc_access_cli.config import load_settings
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
@@ -17,10 +22,6 @@ from hpc_access_cli.states import (
     gather_hpcaccess_state,
     gather_system_state,
 )
-import mechanize
-from rich.console import Console
-import typer
-from typing_extensions import Annotated
 
 #: The typer application object to use.
 app = typer.Typer()
@@ -69,7 +70,7 @@ def mailman_sync(
 def dump_data(
     config_path: Annotated[
         str, typer.Option(..., help="path to configuration file")
-    ] = "/etc/hpc-access-cli/config.json"
+    ] = "/etc/hpc-access-cli/config.json",
 ):
     """dump system state as hpc-access state"""
     settings = load_settings(config_path)
@@ -87,15 +88,15 @@ def sync_data(
     ldap_user_ops: Annotated[
         List[StateOperation],
         typer.Option(..., help="user operations to perform (default: all)"),
-    ] = [],
+    ] = list,
     ldap_group_ops: Annotated[
         List[StateOperation],
         typer.Option(..., help="group operations to perform (default: all)"),
-    ] = [],
+    ] = list,
     fs_ops: Annotated[
         List[StateOperation],
         typer.Option(..., help="file system operations to perform (default: all)"),
-    ] = [],
+    ] = list,
     dry_run: Annotated[bool, typer.Option(..., help="perform a dry run (no changes)")] = True,
 ):
     """sync hpc-access state to HPC LDAP"""
@@ -196,7 +197,8 @@ def sync_storage_usage(
         entity = hpcaccess.get(entity, {}).get(folder_name)
         if not entity:
             console_err.log(
-                f"CAN'T UPDATE (information not in hpc-access DB): {matches.group('entity')}/{folder_name}",
+                "CAN'T UPDATE (information not in hpc-access DB): "
+                f"{matches.group('entity')}/{folder_name}"
             )
             continue
         tier = CEPHFS_TIER_MAPPING.get(

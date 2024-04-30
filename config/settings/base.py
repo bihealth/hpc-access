@@ -4,8 +4,8 @@ Base settings to build other settings files upon.
 
 from pathlib import Path
 
-from dotenv import load_dotenv
 import environ
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -314,8 +314,8 @@ LDAP_ALT_DOMAINS = env.list("LDAP_ALT_DOMAINS", None, [])
 if ENABLE_LDAP:
     import itertools
 
-    from django_auth_ldap.config import LDAPSearch
     import ldap
+    from django_auth_ldap.config import LDAPSearch
 
     ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 

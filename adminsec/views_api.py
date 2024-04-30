@@ -182,9 +182,10 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
                 raise ValidationError(
                     {
                         "name": (
-                            "The project name must be lowercase, alphanumeric including hyphens (-), "
-                            "not starting with a number or a hyphen or ending with a hyphen. "
-                            f"(regex: {RE_PROJECT_NAME_CHECK})"
+                            "The project name must be lowercase, alphanumeric "
+                            "including hyphens (-), not starting with a number "
+                            "or a hyphen or ending with a hyphen. (regex: "
+                            f"{RE_PROJECT_NAME_CHECK})"
                         )
                     }
                 )
