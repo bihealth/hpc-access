@@ -35,7 +35,7 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row" style="max-width: 50%;">
-          {% include "usersec/modules/resources.html" with object=object %}
+          {% include "usersec/modules/resources_requested.html" with object=object %}
 
           <dt class="col-sm-6">Requester</dt>
           <dd class="col-sm-6">{{ object.requester.username }}</dd>

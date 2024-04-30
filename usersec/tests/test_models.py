@@ -255,9 +255,9 @@ class VersionTesterMixin:
         self.assertEqual(self.model.objects.count(), 1)
         self.assertEqual(self.version_model.objects.count(), 1)
 
-        version_obj = self.version_model.objects.first()
+        obj.refresh_from_db()
+        version_obj = self.version_model.objects.get(belongs_to=obj)
 
-        self.assertEqual(obj, version_obj.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_create_with_version_two(self):
@@ -267,13 +267,13 @@ class VersionTesterMixin:
         self.assertEqual(self.model.objects.count(), 2)
         self.assertEqual(self.version_model.objects.count(), 2)
 
-        version_obj1 = self.version_model.objects.first()
-        version_obj2 = self.version_model.objects.last()
+        version_obj1 = self.version_model.objects.get(belongs_to=obj1)
+        version_obj2 = self.version_model.objects.get(belongs_to=obj2)
 
-        self.assertEqual(obj1, version_obj1.belongs_to)
+        obj1.refresh_from_db()
+        obj2.refresh_from_db()
+
         self.assertEqual(hpc_obj_to_dict(obj1), hpc_version_obj_to_dict(version_obj1))
-
-        self.assertEqual(obj2, version_obj2.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj2), hpc_version_obj_to_dict(version_obj2))
 
     def __assert_save_or_update_base(self, **update):
@@ -322,13 +322,13 @@ class VersionTesterMixin:
                 setattr(obj, k, v)
 
         obj.save_with_version()
+        obj.refresh_from_db()
 
         self.assertEqual(self.model.objects.count(), 1)
         self.assertEqual(self.version_model.objects.count(), 1)
 
-        version_obj = self.version_model.objects.first()
+        version_obj = self.version_model.objects.get(belongs_to=obj)
 
-        self.assertEqual(obj, version_obj.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_update_with_version(self, **update):

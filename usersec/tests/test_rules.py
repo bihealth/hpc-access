@@ -1,6 +1,6 @@
+import rules
 from django.conf import settings
 from django.urls import reverse
-import rules
 from test_plus.test import TestCase
 
 from usersec.models import (

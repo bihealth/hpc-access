@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0022_hpcgroupcreaterequest_folder_and_more"),
     ]

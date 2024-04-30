@@ -380,16 +380,16 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
     current_version = models.IntegerField(help_text="Currently active version of the user object")
 
     def __repr__(self):
-        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},current_version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.user.username if self.user else None,
-            self.username,
-            self.user.uid if self.user else None,
-            self.primary_group.name,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.current_version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"user={self.user.username if self.user else None},"
+            f"username={self.username},"
+            f"uid={self.user.uid if self.user else None},"
+            f"primary_group={self.primary_group.name},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"current_version={self.current_version})"
         )
 
     def __str__(self):
@@ -420,16 +420,16 @@ class HpcUserVersion(HpcUserAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.user.username if self.user else None,
-            self.username,
-            self.uid,
-            self.primary_group.name,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"user={self.user.username if self.user else None},"
+            f"username={self.username},"
+            f"uid={self.uid},"
+            f"primary_group={self.primary_group.name},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -474,7 +474,9 @@ class HpcGroupAbstract(HpcObjectAbstract):
     #: Description of what the group is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations the group performs on the cluster",
+        help_text=(
+            "Concise description of what kind of computations the group performs on the cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -522,16 +524,16 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
     current_version = models.IntegerField(help_text="Currently active version of the group object")
 
     def __repr__(self):
-        return "{}(id={},name={},owner={},delegate={},gid={},status={},creator={},current_version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.current_version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"owner={self.owner.username},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"current_version={self.current_version})"
         )
 
     def __str__(self):
@@ -575,17 +577,17 @@ class HpcGroupVersion(HpcGroupAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},name={},owner={},delegate={},gid={},status={},members={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.hpcuser.count(),
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"owner={self.owner.username},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"members={self.hpcuser.count()},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -634,7 +636,10 @@ class HpcProjectAbstract(HpcObjectAbstract):
     #: Description of what the project is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -741,17 +746,17 @@ class HpcProjectVersion(HpcProjectAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.group.name,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.members.count(),
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"group={self.group.name},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"members={self.members.count()},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -895,7 +900,9 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     #: Description of what the group is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations the group performs on the cluster",
+        help_text=(
+            "Concise description of what kind of computations the group performs on the cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -972,7 +979,10 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
     #: Description, optional.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -1322,7 +1332,10 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
     #: Description of the project.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster",
+        ),
         null=True,
         blank=True,
     )

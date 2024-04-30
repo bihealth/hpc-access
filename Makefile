@@ -8,6 +8,13 @@ arg =
 serve:
 	$(manage) runserver
 
+
+.PHONY: serve-public
+serve-public:
+	$(manage) runserver 0.0.0.0:8000
+
+
+.PHONY: celery
 celery:
 	celery -A config.celery_app worker -l info --beat
 

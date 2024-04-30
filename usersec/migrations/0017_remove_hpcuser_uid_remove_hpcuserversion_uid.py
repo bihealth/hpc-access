@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0016_alter_hpcproject_group_alter_hpcprojectversion_group"),
     ]

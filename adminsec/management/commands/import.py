@@ -80,7 +80,8 @@ class Command(BaseCommand):
                         hpcgroup = HpcGroup.objects.filter(uuid=user_data.primary_group)
                         if not hpcgroup:
                             self.stderr.write(
-                                f"Primary group {user_data.primary_group} of user {user_data.username} not found"
+                                f"Primary group {user_data.primary_group} of user "
+                                f"{user_data.username} not found"
                             )
                             continue
                         hpcgroup = hpcgroup.first()
@@ -103,16 +104,10 @@ class Command(BaseCommand):
                         uuid=user_uuid,
                         user=user,
                         resources_requested={
-                            "tier1_scratch": user_data.resources_requested.tier1_scratch,
-                            "tier1_work": user_data.resources_requested.tier1_scratch,
-                            "tier2_mirrored": user_data.resources_requested.tier1_scratch,
-                            "tier2_unmirrored": user_data.resources_requested.tier1_scratch,
+                            "tier1_home": user_data.resources_requested.tier1_home,
                         },
                         resources_used={
-                            "tier1_scratch": user_data.resources_used.tier1_scratch,
-                            "tier1_work": user_data.resources_used.tier1_scratch,
-                            "tier2_mirrored": user_data.resources_used.tier1_scratch,
-                            "tier2_unmirrored": user_data.resources_used.tier1_scratch,
+                            "tier1_home": user_data.resources_used.tier1_home,
                         },
                         creator=worker_user,
                         status=user_data.status.name,
@@ -141,7 +136,8 @@ class Command(BaseCommand):
                         delegate = HpcUser.objects.filter(uuid=group_data.delegate)
                         if not delegate:
                             self.stderr.write(
-                                f"Delegate {group_data.delegate} of group {group_data.name} not found"
+                                f"Delegate {group_data.delegate} of group "
+                                f"{group_data.name} not found"
                             )
                             continue
                         hpcgroup.delegate = delegate.first()
@@ -151,7 +147,8 @@ class Command(BaseCommand):
                     hpcgroup = HpcGroup.objects.filter(uuid=project_data.group)
                     if not hpcgroup:
                         self.stderr.write(
-                            f"Owning group {project_data.group} of project {project_data.name} not found"
+                            f"Owning group {project_data.group} of project "
+                            f"{project_data.name} not found"
                         )
                         continue
                     hpcgroup = hpcgroup.first()

@@ -2,14 +2,16 @@
 
 import errno
 import os
+import sys
 from pathlib import Path
 from subprocess import check_call
-import sys
 from typing import Dict, List
 
-from hpc_access_cli.models import FsDirectory, FsDirectoryOp, StateOperation
-from rich.console import Console
 import xattr
+from rich.console import Console
+
+from hpc_access_cli.constants import BASE_PATH_TIER1, BASE_PATH_TIER2
+from hpc_access_cli.models import FsDirectory, FsDirectoryOp, StateOperation
 
 #: The rich console to use for logging.
 console_err = Console(file=sys.stderr)
@@ -58,16 +60,19 @@ class FsResourceManager:
     """
 
     def __init__(self, *, prefix: str = ""):
-        self.path_tier1 = f"{prefix}/data/cephfs-1"
-        self.path_tier2_mirrored = f"{prefix}/data/cephfs-2/mirrored"
-        self.path_tier2_unmirrored = f"{prefix}/data/cephfs-2/unmirrored"
+        self.path_tier1_home = f"{prefix}{BASE_PATH_TIER1}/home"
+        self.path_tier1_work = f"{prefix}{BASE_PATH_TIER1}/work"
+        self.path_tier1_scratch = f"{prefix}{BASE_PATH_TIER1}/scratch"
+        self.path_tier2_mirrored = f"{prefix}{BASE_PATH_TIER2}/mirrored"
+        self.path_tier2_unmirrored = f"{prefix}{BASE_PATH_TIER2}/unmirrored"
 
     def load_directories(self) -> List[FsDirectory]:
         """Load the directories and their sizes."""
         result = []
-        for path_obj in Path(self.path_tier1).glob("*/*/*"):
-            if path_obj.is_dir():
-                result.append(FsDirectory.from_path(str(path_obj)))
+        for path in (self.path_tier1_home, self.path_tier1_work, self.path_tier1_scratch):
+            for path_obj in Path(path).glob("*/*"):
+                if path_obj.is_dir():
+                    result.append(FsDirectory.from_path(str(path_obj)))
         for path in (self.path_tier2_mirrored, self.path_tier2_unmirrored):
             for path_obj in Path(path).glob("*/*"):
                 if path_obj.is_dir():

@@ -1,11 +1,11 @@
 import re
 
+import rules
 from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
-import rules
 
 from adminsec.constants import (
     DEFAULT_GROUP_RESOURCES,
@@ -52,8 +52,8 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is fixed to end of the current year with one month grace period. "
-                "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace "
+                "period. It can be extended on request."
             )
 
         else:
@@ -68,8 +68,9 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
         self.fields["comment"].help_text = (
-            "For the initial group creation request provide some 'proof' that you are a group leader such as linking "
-            "to your group website at Charite or MDC. This field is for communication between you and the HPC team."
+            "For the initial group creation request provide some 'proof' that you are a group "
+            "leader such as linking to your group website at Charite or MDC. This field is for "
+            "communication between you and the HPC team."
         )
 
 
@@ -106,15 +107,16 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is set to end of the current year with one month grace period."
+                "Default expiration date is set to end of the current year with one month grace "
+                "period."
             )
 
             # Add fields for storage. Will be merged into resources_requested field.
             self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
@@ -124,8 +126,8 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             self.fields["tier1_work"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
@@ -135,9 +137,10 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is not mirrored and should be used for data that can be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is not mirrored and should be used for data "
+                    "that can be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
@@ -147,9 +150,10 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
             self.fields["tier2_mirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is mirrored and should be used for data that "
+                    "cannot be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )
@@ -194,8 +198,8 @@ class HpcUserCreateRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is fixed to end of the current year with one month grace period. "
-                "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace "
+                "period. It can be extended on request."
             )
 
         else:
@@ -255,9 +259,9 @@ class HpcUserChangeRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is fixed to end of the current year with one month grace period. "
+                "Default expiration date is fixed to end of the current year with one month grace "
+                "period. "
             )
-
         else:
             self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
@@ -295,7 +299,8 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             help_text="The delegate is responsible for the project and can manage its members.",
             widget=forms.TextInput(
                 attrs={
-                    "placeholder": "You can select a delegate from the members once the project is set up."
+                    "placeholder": "You can select a delegate from the members once the project is "
+                    "set up."
                 }
             ),
             disabled=True,
@@ -310,8 +315,8 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is fixed to end of the current year with one month grace period. "
-                "It can be extended on request."
+                "Default expiration date is fixed to end of the current year with one month grace "
+                "period. It can be extended on request."
             )
 
             # Exclude users from member selection that have no User associated
@@ -330,8 +335,8 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
@@ -341,8 +346,8 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["tier1_work"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
@@ -352,9 +357,10 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is not mirrored and should be used for data that can be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is not mirrored and should be used for data "
+                    "that can be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
@@ -364,9 +370,10 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.fields["tier2_mirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is mirrored and should be used for data that "
+                    "cannot be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )
@@ -400,8 +407,8 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
             self.add_error(
                 "name_requested",
                 (
-                    "The project name must be lowercase, alphanumeric including hyphens (-), not starting "
-                    "with a number or a hyphen or ending with a hyphen."
+                    "The project name must be lowercase, alphanumeric including hyphens (-), not "
+                    "starting with a number or a hyphen or ending with a hyphen."
                 ),
             )
             return
@@ -453,9 +460,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                 year=timezone.now().year + 1, month=1, day=31
             )
             self.fields["expiration"].help_text = (
-                "Default expiration date is fixed to end of the current year with one month grace period."
+                "Default expiration date is fixed to end of the current year with one month grace "
+                "period."
             )
-
             # Exclude users from member selection that have no User associated
             self.fields["members_dropdown"] = forms.ModelChoiceField(
                 queryset=self.fields["members"]
@@ -472,8 +479,8 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
@@ -483,8 +490,8 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["tier1_work"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of work storage on the fast primary ('tier 1') storage that can be used "
-                    "with parallel access for computation."
+                    "Amount of work storage on the fast primary ('tier 1') storage that can be "
+                    "used with parallel access for computation."
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
@@ -494,9 +501,10 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["tier2_unmirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is not mirrored and should be used for data that can be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is not mirrored and should be used for data "
+                    "that can be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
@@ -506,9 +514,10 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
             self.fields["tier2_mirrored"] = forms.IntegerField(
                 required=True,
                 help_text=(
-                    "Amount of storage on the slower ('tier 2') storage that is meant for long-term storage. "
-                    "This storage is mirrored and should be used for data that cannot be reconstructed from "
-                    "other sources. Alternatively, you can use your group storage at Charite or MDC."
+                    "Amount of storage on the slower ('tier 2') storage that is meant for "
+                    "long-term storage. This storage is mirrored and should be used for data that "
+                    "cannot be reconstructed from other sources. Alternatively, you can use your "
+                    "group storage at Charite or MDC."
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )

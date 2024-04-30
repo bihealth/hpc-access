@@ -251,8 +251,8 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         self.obj = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
 
     def test_get(self):
-        self.obj.name = "hpc-ag-doe"
-        self.obj.folder = "/home/hpc-ag-doe"
+        self.obj.name = "doe"
+        self.obj.folder = "/home/ag-doe"
         self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -269,8 +269,8 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         INSTITUTE_USERNAME_SUFFIX="c",
     )
     def test_post(self):
-        self.obj.name = "hpc-ag-doe"
-        self.obj.folder = "/home/hpc-ag-doe"
+        self.obj.name = "doe"
+        self.obj.folder = "/home/ag-doe"
         self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.post(
@@ -307,8 +307,8 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
-            self.assertEqual(hpcgroup.name, "hpc-ag-doe")
-            self.assertEqual(hpcgroup.folder, "/home/hpc-ag-doe")
+            self.assertEqual(hpcgroup.name, "doe")
+            self.assertEqual(hpcgroup.folder, "/home/ag-doe")
             self.assertEqual(hpcgroup_version.owner, hpcuser)
             self.assertEqual(len(mail.outbox), 2)
 
@@ -390,7 +390,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
     def test_get_missing_folder(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
-        self.obj.name = "hpc-ag-doe"
+        self.obj.name = "doe"
         self.obj.save()
 
         with self.login(self.user_hpcadmin):
@@ -427,7 +427,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
         existing_folder = HpcGroup.objects.first().folder
-        self.obj.name = "hpc-ag-doe"
+        self.obj.name = "doe"
         self.obj.folder = existing_folder
         self.obj.save()
 

@@ -11,13 +11,13 @@ from rest_framework.generics import (
 from rest_framework.permissions import IsAdminUser
 
 from adminsec.constants import (
-    POSIX_AG_PREFIX,
-    POSIX_PROJECT_PREFIX,
-    RE_FOLDER_CHECK,
+    RE_GROUP_FOLDER_CHECK,
     RE_GROUP_NAME_CHECK,
+    RE_PROJECT_FOLDER_CHECK,
     RE_PROJECT_NAME_CHECK,
 )
 from adminsec.permissions_api import IsHpcAdminUser
+from hpcaccess.utils.rest_framework import CursorPagination
 from usersec.models import (
     HpcGroup,
     HpcGroupCreateRequest,
@@ -34,12 +34,17 @@ from usersec.serializers import (
 )
 
 
+class HpcUserListPagination(CursorPagination):
+    ordering = "username"
+
+
 class HpcUserListApiView(ListAPIView):
     """API view for listing all users."""
 
-    queryset = HpcUser.objects.all()
+    queryset = HpcUser.objects.all().order_by("username")
     serializer_class = HpcUserSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcUserListPagination
 
 
 class HpcUserRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -54,12 +59,17 @@ class HpcUserRetrieveUpdateApiView(RetrieveUpdateAPIView):
         return get_object_or_404(HpcUser, uuid=self.kwargs["hpcuser"])
 
 
+class HpcGroupListPagination(CursorPagination):
+    ordering = "name"
+
+
 class HpcGroupListApiView(ListAPIView):
     """API view for listing all groups."""
 
     queryset = HpcGroup.objects.all()
     serializer_class = HpcGroupSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcGroupListPagination
 
 
 class HpcGroupRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -74,12 +84,17 @@ class HpcGroupRetrieveUpdateApiView(RetrieveUpdateAPIView):
         return get_object_or_404(HpcGroup, uuid=self.kwargs["hpcgroup"])
 
 
+class HpcProjectListPagination(CursorPagination):
+    ordering = "name"
+
+
 class HpcProjectListApiView(ListAPIView):
     """API view for listing all groups."""
 
     queryset = HpcProject.objects.all()
     serializer_class = HpcProjectSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcProjectListPagination
 
 
 class HpcProjectRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -115,9 +130,9 @@ class HpcGroupCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
                 raise ValidationError(
                     {
                         "name": (
-                            f"The group name must start with `{POSIX_AG_PREFIX}`, be lowercase, "
-                            "alphanumeric including hyphens (-), not starting with a number or "
-                            f"a hyphen or ending with a hyphen. (regex: {RE_GROUP_NAME_CHECK})"
+                            "The group name must be lowercase, alphanumeric including hyphens (-), "
+                            "not starting with a number or a hyphen or ending with a hyphen. "
+                            f"(regex: {RE_GROUP_NAME_CHECK})"
                         )
                     }
                 )
@@ -126,14 +141,14 @@ class HpcGroupCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
                 raise ValidationError({"name": f"Group with name `{name}` already exists."})
 
         if folder is not None:
-            if not re.match(RE_FOLDER_CHECK, folder):
+            if not re.match(RE_GROUP_FOLDER_CHECK, folder):
                 raise ValidationError(
                     {
                         "folder": (
                             "The path must be a valid UNIX path starting with a slash, "
                             "only alphanumeric and hpyhen and underscore are allowed and "
                             "the last folder name must follow the group name rules. "
-                            f"(regex: {RE_FOLDER_CHECK})"
+                            f"(regex: {RE_GROUP_FOLDER_CHECK})"
                         )
                     }
                 )
@@ -167,9 +182,10 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
                 raise ValidationError(
                     {
                         "name": (
-                            f"The project name must start with `{POSIX_PROJECT_PREFIX}`, be lowercase, "
-                            "alphanumeric including hyphens (-), not starting with a number or "
-                            f"a hyphen or ending with a hyphen. (regex: {RE_PROJECT_NAME_CHECK})"
+                            "The project name must be lowercase, alphanumeric "
+                            "including hyphens (-), not starting with a number "
+                            "or a hyphen or ending with a hyphen. (regex: "
+                            f"{RE_PROJECT_NAME_CHECK})"
                         )
                     }
                 )
@@ -178,14 +194,14 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
                 raise ValidationError({"name": f"Project with name `{name}` already exists."})
 
         if folder is not None:
-            if not re.match(RE_FOLDER_CHECK, folder):
+            if not re.match(RE_PROJECT_FOLDER_CHECK, folder):
                 raise ValidationError(
                     {
                         "folder": (
                             "The path must be a valid UNIX path starting with a slash, "
                             "only alphanumeric and hpyhen and underscore are allowed and "
                             "the last folder name must follow the project name rules. "
-                            f"(regex: {RE_FOLDER_CHECK})"
+                            f"(regex: {RE_PROJECT_FOLDER_CHECK})"
                         )
                     }
                 )

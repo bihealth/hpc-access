@@ -204,6 +204,13 @@ class ResourceData(BaseModel):
     tier2_unmirrored: float = 0.0
 
 
+class ResourceDataUser(BaseModel):
+    """A resource request/usage for a user."""
+
+    #: Storage on tier 1 in GB (home).
+    tier1_home: float = 0.0
+
+
 @enum.unique
 class Status(enum.Enum):
     """Status of a hpc user, group, or project."""
@@ -234,9 +241,9 @@ class HpcUser(BaseModel):
     #: The office phone number of the user.
     phone_number: Optional[str]
     #: The requested resources.
-    resources_requested: Optional[ResourceData]
+    resources_requested: Optional[ResourceDataUser]
     #: The used resources.
-    resources_used: Optional[ResourceData]
+    resources_used: Optional[ResourceDataUser]
     #: The status of the record.
     status: Status
     #: The POSIX UID of the user.

@@ -1,3 +1,4 @@
+import rules
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,7 +11,6 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
-import rules
 from rules.contrib.views import PermissionRequiredMixin
 
 from adminsec.constants import DEFAULT_HOME_DIRECTORY
@@ -128,12 +128,11 @@ class HomeView(LoginRequiredMixin, View):
             )
 
         elif rules.test_rule("usersec.has_pending_group_request", request.user):
+            request_uuid = request.user.hpcgroupcreaterequest_requester.first().uuid
             return redirect(
                 reverse(
                     "usersec:hpcgroupcreaterequest-detail",
-                    kwargs={
-                        "hpcgroupcreaterequest": request.user.hpcgroupcreaterequest_requester.first().uuid
-                    },
+                    kwargs={"hpcgroupcreaterequest": request_uuid},
                 )
             )
 
@@ -408,7 +407,8 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcusercreaterequest_form.html"
     slug_field = "uuid"
@@ -622,7 +622,8 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcgroupchangerequest_form.html"
     slug_field = "uuid"
@@ -839,7 +840,8 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcUser
     template_name = "usersec/hpcuserchangerequest_form.html"
     slug_field = "uuid"
@@ -1044,7 +1046,8 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcprojectcreaterequest_form.html"
     slug_field = "uuid"
@@ -1271,7 +1274,8 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcProject
     template_name = "usersec/hpcprojectchangerequest_form.html"
     slug_field = "uuid"
