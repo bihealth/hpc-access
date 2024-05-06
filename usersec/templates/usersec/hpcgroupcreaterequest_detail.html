@@ -74,36 +74,79 @@
                 <input
                       type="text"
                       class="form-control"
-                      id="set-name-text"
+                      id="set-name-value"
                       placeholder="{{ hpc_group_name_suggestion }}"
                       value="{{ hpc_group_name_suggestion }}"
                       aria-label="Set Group Name"
-                      aria-describedby="set-name-button set-name-server-response"
+                      aria-describedby="set-values-button set-name-response"
                       required>
-                <button class="btn btn-outline-secondary" type="button" id="set-name-button">Submit</button>
-                <div id="set-name-server-response"></div>
+                <div id="set-name-response"></div>
               </div>
             </dd>
 
             <dt class="col-sm-4">
-              Folder
+              Folders
               <span class="text-success" id="folder-submitted-icon">
                 <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
               </span>
             </dt>
             <dd class="col-sm-8">
+              <h6><strong>Tier 1</strong></h6>
               <div class="input-group">
+                <span class="input-group-text">Work</span>
                 <input
                       type="text"
                       class="form-control"
-                      id="set-folder-text"
-                      placeholder="{{ hpc_group_path_suggestion }}"
-                      value="{{ hpc_group_path_suggestion }}"
+                      id="set-folder-tier1_work-value"
+                      placeholder="{{ hpc_group_path_suggestion_tier1_work }}"
+                      value="{{ hpc_group_path_suggestion_tier1_work }}"
                       aria-label="Set Folder"
-                      aria-describedby="set-folder-button set-folder-server-response"
+                      aria-describedby="set-values-button set-folder-tier1_work-response"
                       required>
-                <button class="btn btn-outline-secondary" type="button" id="set-folder-button">Submit</button>
-                <div id="set-folder-server-response"></div>
+                <div id="set-folder-tier1_work-response"></div>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text">Scratch</span>
+                <input
+                      type="text"
+                      class="form-control"
+                      id="set-folder-tier1_scratch-value"
+                      placeholder="{{ hpc_group_path_suggestion_tier1_scratch }}"
+                      value="{{ hpc_group_path_suggestion_tier1_scratch }}"
+                      aria-label="Set Folder"
+                      aria-describedby="set-values-button set-folder-tier1_scratch-response"
+                      required>
+                <div id="set-folder-tier1_scratch-response"></div>
+              </div>
+              <h6 class="mt-3"><strong>Tier 2</strong></h6>
+              <div class="input-group">
+                <span class="input-group-text">Unmirrored</span>
+                <input
+                      type="text"
+                      class="form-control"
+                      id="set-folder-tier2_unmirrored-value"
+                      placeholder="{{ hpc_group_path_suggestion_tier2_unmirrored }}"
+                      value="{{ hpc_group_path_suggestion_tier2_unmirrored }}"
+                      aria-label="Set Folder"
+                      aria-describedby="set-values-button set-folder-tier2_unmirrored-response"
+                      required>
+                <div id="set-folder-tier2_unmirrored-response"></div>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text">Mirrored</span>
+                <input
+                      type="text"
+                      class="form-control"
+                      id="set-folder-tier2_mirrored-value"
+                      placeholder="{{ hpc_group_path_suggestion_tier2_mirrored }}"
+                      value="{{ hpc_group_path_suggestion_tier2_mirrored }}"
+                      aria-label="Set Folder"
+                      aria-describedby="set-values-button set-folder-tier2_mirrored-response"
+                      required>
+                <div id="set-folder-tier2_mirrored-response"></div>
+              </div>
+              <div>
+                <button class="btn btn-outline-secondary" type="button" id="set-values-button">Submit</button>
               </div>
             </dd>
             {% endif %}
@@ -153,7 +196,8 @@
         headers: {'X-CSRFToken': csrftoken},
         mode: 'same-origin', // Do not send CSRF token to another domain.
         success: function(data) {
-          if (data.name && data.folder) {
+          folders_set = data.folders['tier1_work'] && data.folders['tier1_scratch'] && data.folders['tier2_unmirrored'] && data.folders['tier2_mirrored']
+          if (data.name && folders_set) {
             $("#folder-submitted-icon").show();
             $("#name-submitted-icon").show();
           } else {
@@ -176,50 +220,41 @@
 
     $(document).ready(function() {
       checkSubmissionStatus();
-      $("#set-name-button").click(function() {
-        const group_name = $("#set-name-text").val();
-        const csrftoken = getCookie('csrftoken');
-        $.ajax({
-          url: "{% url 'adminsec:api-hpcgroupcreaterequest-retrieveupdate' object.uuid %}",
-          method: "PATCH",
-          headers: {'X-CSRFToken': csrftoken},
-          mode: 'same-origin', // Do not send CSRF token to another domain.
-          data: {
-            csrfmiddlewaretoken: csrftoken,
-            name: name
-          },
-          success: function(data) {
-            $("#set-name-text").removeClass().addClass("form-control is-valid");
-            $("#set-name-server-response").text("Group name has been set to " + data.name).removeClass().addClass("valid-feedback");
-            checkSubmissionStatus();
-          },
-          error: function(jqXHR, textStatus, errorThrown) {
-            $("#set-name-text").removeClass().addClass("form-control is-invalid");
-            $("#set-name-server-response").text(jqXHR.responseJSON.name).removeClass().addClass("invalid-feedback");
-          }
-        });
-      });
 
-      $("#set-folder-button").click(function() {
-        const folder = $("#set-folder-text").val();
+      $("#set-values-button").click(function() {
         const csrftoken = getCookie('csrftoken');
+        data = {
+            csrfmiddlewaretoken: csrftoken,
+            name: $("#set-name-value").val(),
+            folders: {
+              tier1_work: $("#set-folder-tier1_work-value").val(),
+              tier1_scratch: $("#set-folder-tier1_scratch-value").val(),
+              tier2_unmirrored: $("#set-folder-tier2_unmirrored-value").val(),
+              tier2_mirrored: $("#set-folder-tier2_mirrored-value").val()
+            }
+          }
         $.ajax({
           url: "{% url 'adminsec:api-hpcgroupcreaterequest-retrieveupdate' object.uuid %}",
           method: "PATCH",
-          headers: {'X-CSRFToken': csrftoken},
+          headers: {'X-CSRFToken': csrftoken, "Content-Type": "application/json"},
           mode: 'same-origin', // Do not send CSRF token to another domain.
-          data: {
-            csrfmiddlewaretoken: csrftoken,
-            folder: folder
-          },
+          data: JSON.stringify(data),
           success: function(data) {
-            $("#set-folder-text").removeClass().addClass("form-control is-valid");
-            $("#set-folder-server-response").text("Folder has been set to " + data.folder).removeClass().addClass("valid-feedback");
+            $("#set-name-value").removeClass().addClass("form-control is-valid");
+            $("#set-name-response").text("Group name has been set to " + data.name).removeClass().addClass("valid-feedback");
+            for (const key in data.folders) {
+              $(`#set-folder-${key}-value`).removeClass().addClass("form-control is-valid");
+              $(`#set-folder-${key}-response`).text(`Folder has been set to ${data.folders[key]}`).removeClass().addClass("valid-feedback");
+            }
             checkSubmissionStatus();
           },
           error: function(jqXHR, textStatus, errorThrown) {
-            $("#set-folder-text").removeClass().addClass("form-control is-invalid");
-            $("#set-folder-server-response").text(jqXHR.responseJSON.folder).removeClass().addClass("invalid-feedback");
+            $("#set-name-value").removeClass().addClass("form-control is-invalid");
+            $("#set-name-response").text(jqXHR.responseJSON.name).removeClass().addClass("invalid-feedback");
+            for (const key in jqXHR.responseJSON) {
+              $(`#set-folder-${key}-value`).removeClass().addClass("form-control is-invalid");
+              $(`#set-folder-${key}-response`).text(jqXHR.responseJSON[key]).removeClass().addClass("invalid-feedback");
+            }
           }
         });
       });

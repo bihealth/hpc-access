@@ -45,14 +45,9 @@
           {% endif %}
         </dd>
 
-        <dt class="col-sm-3">Folder</dt>
-        <dd class="col-sm-9">
-          {{ object.primary_group.folder|default:"<em class='text-muted'>None</em>"}}
-        </dd>
-
         <dt class="col-sm-3">Expires</dt>
         <dd class="col-sm-9">
-          {{ object.primary_group.expiration|date:"Y/m/d" }}
+          {{ object.primary_group.expiration|date:"Y-m-d" }}
         </dd>
       </dl>
     </div>

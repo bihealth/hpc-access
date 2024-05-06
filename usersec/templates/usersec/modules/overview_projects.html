@@ -118,14 +118,9 @@
                 {% endif %}
               </dd>
 
-              <dt class="col-sm-3">Folder</dt>
-              <dd class="col-sm-9">
-                {{ project.folder|default:"<em class='text-muted'>None</em>"}}
-              </dd>
-
               <dt class="col-sm-3">Expires</dt>
               <dd class="col-sm-9 mb-0">
-                {{ project.expiration|date:"Y/m/d" }}
+                {{ project.expiration|date:"Y-m-d" }}
               </dd>
             </dl>
 

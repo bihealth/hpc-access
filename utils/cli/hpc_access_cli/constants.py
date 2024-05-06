@@ -30,3 +30,29 @@ HPC_ALUMNIS_GID = 1030001
 HPC_USERS_GROUP = "hpc-users"
 #: GID for hpc-users
 HPC_USERS_GID = 1005269
+
+ENTITY_USERS = "users"
+ENTITY_GROUPS = "groups"
+ENTITY_PROJECTS = "projects"
+ENTITIES = (
+    ENTITY_USERS,
+    ENTITY_GROUPS,
+    ENTITY_PROJECTS,
+)
+
+CEPHFS_TIER_MAPPING = {
+    ("cephfs-1", "home", ENTITY_USERS): "tier1_home",
+    ("cephfs-1", "work", ENTITY_PROJECTS): "tier1_work",
+    ("cephfs-1", "work", ENTITY_GROUPS): "tier1_work",
+    ("cephfs-1", "scratch", ENTITY_PROJECTS): "tier1_scratch",
+    ("cephfs-1", "scratch", ENTITY_GROUPS): "tier1_scratch",
+    ("cephfs-2", "unmirrored", ENTITY_PROJECTS): "tier2_unmirrored",
+    ("cephfs-2", "unmirrored", ENTITY_GROUPS): "tier2_unmirrored",
+    ("cephfs-2", "mirrored", ENTITY_PROJECTS): "tier2_mirrored",
+    ("cephfs-2", "mirrored", ENTITY_GROUPS): "tier2_mirrored",
+}
+PREFIX_MAPPING = {
+    "projects": POSIX_PROJECT_PREFIX,
+    "groups": POSIX_AG_PREFIX,
+}
+RE_PATH = r"/(?P<tier>cephfs-[12])/(?P<subdir>[^/]+)/(?P<entity>[^/]+)/(?P<name>[^/]+)"
