@@ -121,7 +121,7 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
     name = serializers.CharField(read_only=True)
-    folder = serializers.CharField()
+    folders = serializers.JSONField()
     expiration = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -134,7 +134,7 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
             "description",
             "gid",
             "name",
-            "folder",
+            "folders",
             "expiration",
         ]
 
@@ -175,7 +175,7 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
     name = serializers.CharField(read_only=True)
-    folder = serializers.CharField()
+    folders = serializers.JSONField()
     expiration = serializers.DateTimeField(read_only=True)
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
 
@@ -189,7 +189,7 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
             "description",
             "gid",
             "name",
-            "folder",
+            "folders",
             "expiration",
             "members",
         ]
@@ -252,7 +252,7 @@ class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
     resources_requested = serializers.JSONField(read_only=True)
     description = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
-    folder = serializers.CharField()
+    folders = serializers.JSONField()
     name = serializers.CharField()
 
     class Meta:
@@ -261,7 +261,7 @@ class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
             "description",
             "expiration",
             "name",
-            "folder",
+            "folders",
         ]
 
 
@@ -315,7 +315,7 @@ class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
     name_requested = serializers.CharField(read_only=True)
     name = serializers.CharField()
-    folder = serializers.CharField()
+    folders = serializers.JSONField()
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
@@ -326,7 +326,7 @@ class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
             "members",
             "name",
             "name_requested",
-            "folder",
+            "folders",
         ]
 
 

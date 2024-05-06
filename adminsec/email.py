@@ -398,7 +398,7 @@ def send_notification_manager_group_created(request, group):
     message = NOTIFICATION_MANAGER_GROUP_CREATED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         manual_link=MANUAL_LINK_PIS,
-        group_folder=group.folder,
+        group_folder=group.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -422,7 +422,7 @@ def send_notification_manager_project_created(request, project):
     message = NOTIFICATION_MANAGER_PROJECT_CREATED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         manual_link=MANUAL_LINK_PIS,
-        project_folder=project.folder,
+        project_folder=project.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -567,7 +567,7 @@ def send_notification_user_welcome_mail(user):
     message = NOTIFICATION_USER_WELCOME_MAIL.format(
         greeting=USER_GREETING.format(user=user.user.name),
         username=user.username,
-        group_folder=user.primary_group.folder,
+        group_folder=user.primary_group.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [user.user.email])

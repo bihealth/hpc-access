@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 from typing import List
 
@@ -9,16 +8,16 @@ from rich.console import Console
 from typing_extensions import Annotated
 
 from hpc_access_cli.config import load_settings
+from hpc_access_cli.constants import ENTITIES, ENTITY_USERS
 from hpc_access_cli.fs import FsResourceManager
 from hpc_access_cli.ldap import LdapConnection
 from hpc_access_cli.models import StateOperation
 from hpc_access_cli.states import (
-    POSIX_AG_PREFIX,
-    POSIX_PROJECT_PREFIX,
     TargetStateBuilder,
     TargetStateComparison,
     convert_to_hpcaccess_state,
     deploy_hpcaccess_state,
+    fs_validation,
     gather_hpcaccess_state,
     gather_system_state,
 )
@@ -128,20 +127,6 @@ def sync_data(
         fs_mgr.apply_fs_op(fs_op, dry_run)
 
 
-RE_PATH = r"/(?P<tier>cephfs-[12])/(?P<subdir>[^/]+)/(?P<entity>[^/]+)/(?P<name>[^/]+)"
-CEPHFS_TIER_MAPPING = {
-    ("cephfs-1", "home", "users"): "tier1_home",
-    ("cephfs-1", "work", "projects"): "tier1_work",
-    ("cephfs-1", "work", "groups"): "tier1_work",
-    ("cephfs-1", "scratch", "projects"): "tier1_scratch",
-    ("cephfs-1", "scratch", "groups"): "tier1_scratch",
-    ("cephfs-2", "unmirrored", "projects"): "tier2_unmirrored",
-    ("cephfs-2", "unmirrored", "groups"): "tier2_unmirrored",
-    ("cephfs-2", "mirrored", "projects"): "tier2_mirrored",
-    ("cephfs-2", "mirrored", "groups"): "tier2_mirrored",
-}
-
-
 @app.command("storage-usage-sync")
 def sync_storage_usage(
     config_path: Annotated[
@@ -153,66 +138,29 @@ def sync_storage_usage(
     settings = load_settings(config_path)
     src_state = gather_system_state(settings)
     dst_state = gather_hpcaccess_state(settings.hpc_access)
-    hpcaccess = {
-        "groups": {},
-        "projects": {},
-        "users": {},
-    }
+    hpcaccess = {e: dict() for e in ENTITIES}
 
     for entity in hpcaccess.keys():
         for d in getattr(dst_state, "hpc_%s" % entity).values():
             d.resources_used = {}
-            name = d.username if entity == "users" else d.name
+            name = d.username if entity == ENTITY_USERS else d.name
             hpcaccess[entity][name] = d
 
-    for data in src_state.fs_directories.values():
-        matches = re.search(RE_PATH, data.path)
-        if not matches or matches.group("entity") not in ("users", "projects", "groups"):
-            console_err.log("entity doesn't match:", matches.group("entity"))
+    for fs_data in src_state.fs_directories.values():
+        try:
+            entity, name, resource = fs_validation(fs_data)
+        except ValueError as e:
+            console_err.log(f"WARNING: {e}")
             continue
-        folder_name = matches.group("name")
-        entity = matches.group("entity")
-        if entity == "users":
-            owner_name = data.owner_name
-            if not owner_name or owner_name == "unknown":
-                owner_name = folder_name
-            elif not owner_name == folder_name:
-                console_err.log(f"MISMATCH: {owner_name} {data.path}")
-                continue
-        elif entity == "projects":
-            group_name = data.group_name
-            if not group_name or group_name == "unknown":
-                group_name = f"{POSIX_PROJECT_PREFIX}{folder_name}"
-            elif not group_name == f"{POSIX_PROJECT_PREFIX}{folder_name}":
-                console_err.log(f"MISMATCH: {group_name} {data.path}")
-                continue
-        elif entity == "groups":
-            group_name = data.group_name
-            folder_name = folder_name[3:] if folder_name.startswith("ag-") else folder_name
-            if not group_name or group_name == "unknown":
-                group_name = f"{POSIX_AG_PREFIX}{folder_name}"
-            elif not group_name == f"{POSIX_AG_PREFIX}{folder_name}":
-                console_err.log(f"MISMATCH: {group_name} {data.path}")
-                continue
-        entity = hpcaccess.get(entity, {}).get(folder_name)
-        if not entity:
-            console_err.log(
-                "CAN'T UPDATE (information not in hpc-access DB): "
-                f"{matches.group('entity')}/{folder_name}"
-            )
+
+        if not hpcaccess.get(entity, {}).get(name):
+            console_err.log(f"WARNING: folder not present in hpc-access: {entity}/{name}")
             continue
-        tier = CEPHFS_TIER_MAPPING.get(
-            (matches.group("tier"), matches.group("subdir"), matches.group("entity"))
-        )
-        if not tier:
-            console_err.log(
-                f"path {data.path} not in {['/'.join(k) for k in CEPHFS_TIER_MAPPING.keys()]}"
-            )
-            continue
-        d = getattr(dst_state, "hpc_%s" % matches.group("entity"))
-        d[hpcaccess[matches.group("entity")][folder_name].uuid].resources_used[tier] = (
-            data.rbytes / 1024**4
-        )
+
+        # The following lines update the entries in dst_state (!)
+        d = getattr(dst_state, f"hpc_{entity}")
+        p = 4 - int(entity == ENTITY_USERS)
+        d[hpcaccess[entity][name].uuid].resources_used[resource] = fs_data.rbytes / 1024**p
 
     if not dry_run:
         deploy_hpcaccess_state(settings.hpc_access, dst_state)

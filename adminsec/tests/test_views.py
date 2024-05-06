@@ -252,7 +252,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
     def test_get(self):
         self.obj.name = "doe"
-        self.obj.folder = "/home/ag-doe"
+        self.obj.folders = {"null": "/home/doe"}
         self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -270,7 +270,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
     )
     def test_post(self):
         self.obj.name = "doe"
-        self.obj.folder = "/home/ag-doe"
+        self.obj.folders = {"tier1": "/home/doe"}
         self.obj.save()
         with self.login(self.user_hpcadmin):
             response = self.client.post(
@@ -308,7 +308,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(hpcuser.primary_group, hpcgroup)
             self.assertEqual(hpcgroup.owner.user, self.user)
             self.assertEqual(hpcgroup.name, "doe")
-            self.assertEqual(hpcgroup.folder, "/home/ag-doe")
+            self.assertEqual(hpcgroup.folders, {"tier1": "/home/doe"})
             self.assertEqual(hpcgroup_version.owner, hpcuser)
             self.assertEqual(len(mail.outbox), 2)
 
@@ -319,6 +319,8 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
     def test_get_missing_name(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
+        self.obj.folders = {"tier1": "/path/group"}
+        self.obj.save()
 
         with self.login(self.user_hpcadmin):
             response = self.client.get(
@@ -354,6 +356,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
         existing_name = HpcGroup.objects.first().name
+        self.obj.folders = {"tier1": "/path/group"}
         self.obj.name = existing_name
         self.obj.save()
 
@@ -413,7 +416,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(len(messages), 1)
             self.assertEqual(
                 str(messages[0]),
-                "Folder is empty. Please submit a path before approving the request.",
+                "Folders are empty. Please submit paths before approving the request.",
             )
 
             self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
@@ -426,9 +429,9 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
     def test_get_not_unique_folder(self):
         hpcgroups_precount = HpcGroup.objects.count()
         hpcusers_precount = HpcUser.objects.count()
-        existing_folder = HpcGroup.objects.first().folder
+        existing_folders = HpcGroup.objects.first().folders
         self.obj.name = "doe"
-        self.obj.folder = existing_folder
+        self.obj.folders = existing_folders
         self.obj.save()
 
         with self.login(self.user_hpcadmin):
@@ -448,10 +451,16 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             )
 
             messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
+            self.assertEqual(len(messages), 4)
             self.assertEqual(
-                str(messages[0]),
-                f"Folder with path '{self.obj.folder}' already exists. Please choose another path.",
+                [str(m) for m in messages],
+                [
+                    (
+                        f"Folder with path '{self.obj.folders[n]}' "
+                        "already exists. Please choose another path."
+                    )
+                    for n in ["tier1_work", "tier1_scratch", "tier2_mirrored", "tier2_unmirrored"]
+                ],
             )
 
             self.assertEqual(HpcGroup.objects.count(), hpcgroups_precount)
@@ -1459,7 +1468,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             group=self.hpc_group,
             status=REQUEST_STATUS_ACTIVE,
             name="new_project",
-            folder="new_project",
+            folders={"tier1": "/path/new_project"},
         )
         self.obj.members.add(self.hpc_member, self.hpc_delegate)
 

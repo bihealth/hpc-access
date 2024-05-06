@@ -504,8 +504,8 @@ class HpcGroupAbstract(HpcObjectAbstract):
     #: POSIX name of the group on the cluster.
     name = models.CharField(max_length=64, help_text="Name of the group on the cluster")
 
-    #: Folder ot the group on the cluster.
-    folder = models.CharField(max_length=64, help_text="Path to the group folder on the cluster")
+    #: Folders of the group on the cluster.
+    folders = models.JSONField(help_text="Paths to the folders of the group on the cluster")
 
     #: Expiration date of the group
     expiration = models.DateTimeField(help_text="Expiration date of the group")
@@ -667,8 +667,8 @@ class HpcProjectAbstract(HpcObjectAbstract):
     #: POSIX name of the project on the cluster.
     name = models.CharField(max_length=64, help_text="Name of the project on the cluster")
 
-    #: Folder ot the project on the cluster.
-    folder = models.CharField(max_length=64, help_text="Path to the project folder on the cluster")
+    #: Folders of the project on the cluster.
+    folders = models.JSONField(help_text="Paths to the folders of the project on the cluster")
 
     #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
@@ -892,9 +892,9 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
         max_length=64, help_text="POSIX name of the group on the cluster", null=True, blank=True
     )
 
-    #: Folder ot the group on the cluster.
-    folder = models.CharField(
-        max_length=64, help_text="Path to the group folder on the cluster", null=True, blank=True
+    #: Folders of the group on the cluster.
+    folders = models.JSONField(
+        help_text="Paths to the folders of the project on the cluster", null=True, blank=True
     )
 
     #: Description of what the group is working on.
@@ -1324,9 +1324,9 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         max_length=64, help_text="POSIX name of the project on the cluster", null=True, blank=True
     )
 
-    #: Folder ot the project on the cluster.
-    folder = models.CharField(
-        max_length=64, help_text="Path to the project folder on the cluster", null=True, blank=True
+    #: Folders ot the project on the cluster.
+    folders = models.JSONField(
+        help_text="Paths to the folders of the project on the cluster", null=True, blank=True
     )
 
     #: Description of the project.
