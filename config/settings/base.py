@@ -408,6 +408,8 @@ SEND_EMAIL = env.bool("SEND_EMAIL", False)
 EMAIL_HOST = env.str("EMAIL_HOST", "localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", 25)
 EMAIL_SENDER = env.str("EMAIL_SENDER", "root@admin")
+SEND_QUOTA_EMAILS = env.bool("SEND_QUOTA_EMAILS", False)
+QUOTA_WARNING_THRESHOLD = env.int("QUOTA_WARNING_THRESHOLD", 80)
 
 
 # Celery

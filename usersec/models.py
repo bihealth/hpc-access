@@ -1,5 +1,7 @@
 import uuid as uuid_object
+from enum import Enum, unique
 
+from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
 from factory.django import get_model
@@ -268,6 +270,61 @@ class RequestManagerMixin:
         return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
 
 
+@unique
+class HpcQuotaStatus(Enum):
+    RED = "red"
+    YELLOW = "yellow"
+    GREEN = "green"
+
+
+class CheckQuotaMixin:
+    def generate_quota_report(self):
+        """Generate a quota report for the object."""
+        if not hasattr(self, "resources_requested") or not hasattr(self, "resources_used"):
+            # Sanity check - probably wrong use of mixin
+            raise AttributeError("Object does not have resources_requested or resources_used")
+
+        requested = set((self.resources_requested or {}).keys())
+        used = set((self.resources_used or {}).keys())
+        available = requested & used
+        result = {
+            "used": {a: self.resources_used[a] for a in available},
+            "requested": {a: self.resources_requested[a] for a in available},
+            "percentage": {},
+            "status": {},
+            "folders": {a: self.folders[a] for a in available},
+            "warnings": [],
+        }
+
+        for key in used - requested:
+            result["warnings"].append(
+                f"Resource {key} is used, but not found in requested resources"
+            )
+
+        for key in requested - used:
+            result["warnings"].append(
+                f"Resource {key} is requested, but not found in used resources"
+            )
+
+        for key in available:
+            used_val = self.resources_used.get(key)
+            requested_val = self.resources_requested.get(key)
+            result["percentage"][key] = (
+                (100 * used_val / requested_val) if not requested_val == 0 else 0
+            )
+
+            if used_val >= requested_val:
+                result["status"][key] = HpcQuotaStatus.RED
+
+            elif used_val >= requested_val * (settings.QUOTA_WARNING_THRESHOLD / 100):
+                result["status"][key] = HpcQuotaStatus.YELLOW
+
+            else:
+                result["status"][key] = HpcQuotaStatus.GREEN
+
+        return result
+
+
 # ------------------------------------------------------------------------------
 # Base model for Hpc objects
 # ------------------------------------------------------------------------------
@@ -367,7 +424,7 @@ class HpcUserAbstract(HpcObjectAbstract):
     )
 
 
-class HpcUser(VersionManagerMixin, HpcUserAbstract):
+class HpcUser(VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
     """HpcUser model"""
 
     #: Set custom manager
@@ -511,7 +568,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
+class HpcGroup(VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
     """HpcGroup model"""
 
     #: Set custom manager
@@ -556,6 +613,14 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
             emails.append(self.delegate.user.email)
 
         return emails
+
+    def get_manager_names(self):
+        names = [self.owner.user.get_full_name()]
+
+        if self.delegate:
+            names.append(self.delegate.user.get_full_name())
+
+        return names
 
 
 class HpcGroupVersion(HpcGroupAbstract):
@@ -674,7 +739,7 @@ class HpcProjectAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProject(VersionManagerMixin, HpcProjectAbstract):
+class HpcProject(VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
     """HpcProject model"""
 
     #: Set custom manager
@@ -725,6 +790,14 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
             emails += self.delegate.user.email
 
         return emails
+
+    def get_manager_names(self):
+        names = [self.group.owner.user.get_full_name()]
+
+        if self.delegate:
+            names += self.delegate.user.get_full_name()
+
+        return names
 
 
 class HpcProjectVersion(HpcProjectAbstract):
