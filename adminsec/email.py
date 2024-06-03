@@ -5,12 +5,15 @@ import re
 
 from django.conf import settings
 from django.contrib import auth
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 
 from usersec.models import (
     INVITATION_STATUS_ACCEPTED,
     HpcGroupInvitation,
+    HpcProject,
     HpcProjectInvitation,
+    HpcQuotaStatus,
+    HpcUser,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,6 +84,15 @@ Best regards,
 The BIH HPC Team
 
 (This email has been automatically generated.)
+""".lstrip()
+
+FOOTER_HTML = r"""
+<p>
+Best regards,<br />
+The BIH HPC Team
+</p>
+
+<p><em>(This email has been automatically generated.)</em></p>
 """.lstrip()
 
 # Admin email text blocks
@@ -318,13 +330,44 @@ https://hpc-talk.cubi.bihealth.org
 {footer}
 """.lstrip()
 
+#: Notification for a quota report of an HPC object
+SUBJECT_QUOTA = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
+NOTIFICATION_QUOTA_PLAIN = r"""
+{greeting}
+
+one or more of your {entity} storage quotas for `{name}` are nearly full or already have reached the
+limit. Please consider cleaning up your files to avoid running into issues with your storage quota.
+
+{table}
+
+{footer}
+""".lstrip()
+NOTIFICATION_QUOTA_HTML = r"""
+<html>
+<body>
+<p>{greeting}</p>
+<p>
+one or more of your {entity} storage quotas for <strong>{name}</strong> are nearly full or already
+have reached the limit. Please consider cleaning up your files to avoid running into issues with
+your storage quota.
+</p>
+
+<table>
+{table}
+</table>
+
+{footer}
+</body>
+</html>
+""".lstrip()
+
 
 # ------------------------------------------------------------------------------
 # Logic
 # ------------------------------------------------------------------------------
 
 
-def send_mail(subject, message, recipient_list):
+def send_mail(subject, message, recipient_list, alternative=None):
     """
     Wrapper for send_mail() with logging and error messaging.
 
@@ -335,26 +378,27 @@ def send_mail(subject, message, recipient_list):
     :param reply_to: List of emails for the "reply-to" header (optional)
     :return: Amount of sent email (int)
     """
+
+    messenger = EmailMultiAlternatives if alternative else EmailMessage
+
     try:
-        m = EmailMessage(
+        m = messenger(
             subject=subject,
             body=message,
             from_email=EMAIL_SENDER,
             to=recipient_list,
         )
+        if alternative:
+            m.attach_alternative(alternative, "text/html")
         ret = m.send(fail_silently=False)
-
         logger.debug("Notification email sent")
-
         return ret
 
     except Exception as ex:
         error_msg = "Error sending email: {}".format(str(ex))
         logger.error(error_msg)
-
         if DEBUG:
             raise ex
-
         return 0
 
 
@@ -507,6 +551,67 @@ def send_notification_manager_request_denied(request):
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
+
+
+def send_notification_storage_quota(hpc_obj, report):
+    if isinstance(hpc_obj, HpcUser):
+        greeting = USER_GREETING.format(user=hpc_obj.user.name)
+        emails = [hpc_obj.user.email]
+        entity = "user"
+        name = hpc_obj.user.name
+        unit = "GB"
+    else:
+        greeting = USER_GREETING.format(user=", ".join(hpc_obj.get_manager_names()))
+        emails = hpc_obj.get_manager_emails()
+        entity = "project" if isinstance(hpc_obj, HpcProject) else "group"
+        name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
+        unit = "TB"
+
+    table_text = f"folder | quota [{unit}] | used [{unit}] | % | warning \n"
+    table_html = f"<tr><th>folder</th><th>quota [{unit}]</th><th>used [{unit}]</th><th></th></tr>\n"
+    for tier, status in report["status"].items():
+        data = {
+            "folder": hpc_obj.folders.get(tier),
+            "requested": hpc_obj.resources_requested.get(tier),
+            "used": hpc_obj.resources_used.get(tier),
+            "percent": int(report["percentage"].get(tier)),
+        }
+        warning = ""
+        style = ""
+        if status == HpcQuotaStatus.RED:
+            warning = "QUOTA REACHED"
+            style = "background-color: red; color: white"
+        elif status == HpcQuotaStatus.YELLOW:
+            warning = f"STORAGE OVER {settings.QUOTA_WARNING_THRESHOLD}%"
+            style = "background-color: yellow"
+        table_text += "{folder} | {requested} | {used} | {percent}% | {warning}\n".format(
+            **data, warning=warning
+        )
+        table_html += (
+            "<tr style='{style}'>"
+            "<td>{folder}</td>"
+            "<td style='text-align: right'>{requested}</td>"
+            "<td style='text-align: right'>{used}</td>"
+            "<td style='text-align: right'>{percent}%</td>"
+            "</tr>\n"
+        ).format(**data, style=style)
+
+    subject = SUBJECT_QUOTA.format(entity=entity, name=name)
+    message_html = NOTIFICATION_QUOTA_HTML.format(
+        greeting=greeting,
+        entity=entity,
+        name=name,
+        table=table_html,
+        footer=FOOTER_HTML,
+    )
+    message_text = NOTIFICATION_QUOTA_PLAIN.format(
+        greeting=greeting,
+        entity=entity,
+        name=name,
+        table=table_text,
+        footer=FOOTER,
+    )
+    return send_mail(subject, message_text, emails, alternative=message_html)
 
 
 # ------------------------------------------------------------------------------

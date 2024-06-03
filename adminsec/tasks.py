@@ -1,10 +1,13 @@
 # Create your tasks here
 from collections import defaultdict
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from adminsec.email import send_notification_storage_quota
 from adminsec.ldap import LdapConnector
 from config.celery import app
+from usersec.models import HpcGroup, HpcProject, HpcQuotaStatus, HpcUser
 
 User = get_user_model()
 
@@ -68,6 +71,27 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             continue
 
     return exception_count
+
+
+def generate_quota_reports():
+    return {
+        "users": {o: o.generate_quota_report() for o in HpcUser.objects.all()},
+        "projects": {o: o.generate_quota_report() for o in HpcProject.objects.all()},
+        "groups": {o: o.generate_quota_report() for o in HpcGroup.objects.all()},
+    }
+
+
+@app.task(bin=True)
+def send_quota_email(_self):
+    if not settings.SEND_QUOTA_EMAILS:
+        return
+
+    reports = generate_quota_reports()
+
+    for data in reports.values():
+        for hpc_obj, report in data.items():
+            if any([not s == HpcQuotaStatus.GREEN for s in report["status"].values()]):
+                send_notification_storage_quota(hpc_obj, report)
 
 
 @app.task(bind=True)
