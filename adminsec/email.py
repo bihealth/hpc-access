@@ -363,8 +363,10 @@ your storage quota.
 </table>
 
 <p>
-For more information, please follow this link:
-https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
+For more information and cleanup tips,
+<a href="https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email">
+please consult our documentation.
+</a>
 </p>
 
 {footer}
