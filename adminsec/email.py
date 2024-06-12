@@ -343,6 +343,9 @@ limit. Please consider cleaning up your files to avoid running into issues with 
 
 {table}
 
+For more information, please follow this link:
+https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
+
 {footer}
 """.lstrip()
 NOTIFICATION_QUOTA_HTML = r"""
@@ -358,6 +361,11 @@ your storage quota.
 <table>
 {table}
 </table>
+
+<p>
+For more information, please follow this link:
+https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
+</p>
 
 {footer}
 </body>
