@@ -278,7 +278,7 @@ https://hpc-access.cubi.bihealth.org/
 
 In this email you will learn how to set up your access to the BIH HPC cluster.
 
-Anything you need to know about the cluster is documented in the manual, and
+Anything you need to know about the cluster is documented in the manual and
 this email will point you to the most important articles to get you going. The
 manual also should be the first place to look at if you have further questions
 about the usage of the cluster:
@@ -291,40 +291,43 @@ To access the cluster, you have to generate an SSH key. The SSH key is your
 cluster access and should be protected by a password. Follow the instructions
 in the manual:
 
-https://bihealth.github.io/bih-cluster/connecting/generate-key/linux/
-https://bihealth.github.io/bih-cluster/connecting/generate-key/windows/
+https://hpc-docs.cubi.bihealth.org/connecting/generate-key/linux/
+https://hpc-docs.cubi.bihealth.org/connecting/generate-key/windows/
 
 Once you have created the SSH key, the next step depends on whether you are MDC
 or Charité user:
 
-https://bihealth.github.io/bih-cluster/connecting/submit-key/mdc/
-https://bihealth.github.io/bih-cluster/connecting/submit-key/charite/
+https://hpc-docs.cubi.bihealth.org/connecting/submit-key/mdc/
+https://hpc-docs.cubi.bihealth.org/connecting/submit-key/charite/
 
 ## Step 2 - Login
 
-Please follow the instructions to proceed to the login. Your username is
+Please follow these instructions to proceed to the login:
+
+https://hpc-docs.cubi.bihealth.org/connecting/ssh-basics/#connecting
+
+Your username is:
 
   {username}
 
-Depending on your operating system, please follow the instructions on how to
-configure your SSH client:
+Depending on your operating system you can configure your SSH client further:
 
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/linux/
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/windows/
+https://hpc-docs.cubi.bihealth.org/connecting/advanced-ssh/linux/
+https://hpc-docs.cubi.bihealth.org/connecting/advanced-ssh/windows/
 
-Please find the group folder in
+Your group's main shared folder can be found here:
 
   {group_folder}
 
 ## Problem Solving
 
-If you are running into problems during the login process, we provide you with
-a mini FAQ regarding common problems:
+If you are running into problems during the login process, please read our short
+troubleshooting section regarding common problems:
 
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/connection-problems/
+https://hpc-docs.cubi.bihealth.org/connecting/connection-problems/
 
-If you have general questions about the usage, please head to our portal to
-post your question and receive help from the community:
+If you have general questions about HPC usage, please head to our community forum
+to receive help from fellow HPC users:
 
 https://hpc-talk.cubi.bihealth.org
 
@@ -341,6 +344,9 @@ limit. Please consider cleaning up your files to avoid running into issues with 
 
 {table}
 
+For more information, please follow this link:
+https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
+
 {footer}
 """.lstrip()
 NOTIFICATION_QUOTA_HTML = r"""
@@ -356,6 +362,13 @@ your storage quota.
 <table>
 {table}
 </table>
+
+<p>
+For more information and cleanup tips,
+<a href="https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email">
+please consult our documentation.
+</a>
+</p>
 
 {footer}
 </body>
