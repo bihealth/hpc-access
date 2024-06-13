@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+<h1 class="mt-4">Are you sure you want to publish the terms &amp; reset all user consents?</h1>
+
+<p class="lead">
+    This action will reset all user consents and require the
+    users to consent again to the latest conditions once they log in.<br />
+    <strong>This is action is not reversible!</strong>
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form }}
+    <div class="btn-group">
+        <a href="{% url 'adminsec:termsandconditions-list' %}" class="btn btn-secondary">
+            <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-danger">
+            <i class="iconify" data-icon="mdi:publish"></i>
+            <i class="iconify" data-icon="mdi:eraser"></i>
+            Publish Terms &amp;
+            Reset User Consents
+        </button>
+    </div>
+</form>
+
+{% endblock content %}

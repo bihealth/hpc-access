@@ -40,16 +40,6 @@ function jsonToFields() {
 }
 
 
-function consent() {
-    if ($("#id_consent").is(':checked')) {
-        $("#id_submit_button").removeClass("disabled");
-    }
-    else {
-        $("#id_submit_button").addClass("disabled");
-    }
-}
-
-
 function addOwnerMember() {
     var members = $("#id_members").val();
     members.push($("#submit").data("owner-id").toString());

@@ -49,27 +49,39 @@ class TestRulesBase(TestCase):
 
         # User
         self.user = self.make_user("user")
+        self.user.consented_to_terms = True
+        self.user.save()
 
         # Owner
         self.user_owner = self.make_user("owner")
         self.user_owner.name = "Group Owner"
+        self.user_owner.consented_to_terms = True
         self.user_owner.save()
 
         # Delegate
         self.user_delegate = self.make_user("delegate")
+        self.user_delegate.consented_to_terms = True
+        self.user_delegate.save()
 
         # Member
         self.user_member = self.make_user("member")
+        self.user_member.consented_to_terms = True
+        self.user_member.save()
 
         # User for user-centric views
         self.user_member2 = self.make_user("member2")
+        self.user_member2.consented_to_terms = True
+        self.user_member2.save()
 
         # User without group
         self.user_member_other_group = self.make_user("member_no_group")
+        self.user_member_other_group.consented_to_terms = True
+        self.user_member_other_group.save()
 
         # Pending user
         self.user_pending = self.make_user("pending@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
         self.user_pending.name = "John Doe"
+        self.user_pending.consented_to_terms = True
         self.user_pending.save()
 
         # Invited user

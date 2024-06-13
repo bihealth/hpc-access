@@ -6,6 +6,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from factory.django import get_model
 
+from adminsec.constants import TIER_USER_HOME
 from hpcaccess.users.models import User
 
 APP_NAME = "usersec"
@@ -287,12 +288,17 @@ class CheckQuotaMixin:
         requested = set((self.resources_requested or {}).keys())
         used = set((self.resources_used or {}).keys())
         available = requested & used
+        folders = (
+            {TIER_USER_HOME: self.home_directory}
+            if isinstance(self, get_model(APP_NAME, "HpcUser"))
+            else getattr(self, "folders", {})
+        )
         result = {
             "used": {a: self.resources_used[a] for a in available},
             "requested": {a: self.resources_requested[a] for a in available},
             "percentage": {},
             "status": {},
-            "folders": {a: self.folders[a] for a in available},
+            "folders": {a: folders[a] for a in available},
             "warnings": [],
         }
 
@@ -309,7 +315,7 @@ class CheckQuotaMixin:
         for key in available:
             used_val = self.resources_used.get(key)
             requested_val = self.resources_requested.get(key)
-            result["percentage"][key] = (
+            result["percentage"][key] = round(
                 (100 * used_val / requested_val) if not requested_val == 0 else 0
             )
 
@@ -456,6 +462,10 @@ class HpcUser(VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
+
+    @property
+    def is_pi(self):
+        return self.primary_group.owner == self
 
 
 class HpcUserVersion(HpcUserAbstract):
@@ -1714,3 +1724,56 @@ class HpcGroupInvitationVersion(HpcGroupInvitationAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+
+# ------------------------------------------------------------------------------
+# Other models
+# ------------------------------------------------------------------------------
+
+
+#: Object is initialized.
+TERMS_AUDIENCE_USER = "user"
+
+#: Object is set active.
+TERMS_AUDIENCE_PI = "pi"
+
+#: Object marked as deleted.
+TERMS_AUDIENCE_ALL = "all"
+
+#: Group, project and user statuses.
+TERMS_AUDIENCE_CHOICES = [
+    (TERMS_AUDIENCE_USER, TERMS_AUDIENCE_USER),
+    (TERMS_AUDIENCE_PI, TERMS_AUDIENCE_PI),
+    (TERMS_AUDIENCE_ALL, TERMS_AUDIENCE_ALL),
+]
+
+
+class TermsAndConditions(HpcObjectAbstract):
+    """Model for terms and conditions texts. Not an HpcObject, but requires same basics."""
+
+    #: Date of modification.
+    date_modified = models.DateTimeField(auto_now=True)
+
+    #: Title.
+    title = models.CharField(
+        max_length=512, null=False, blank=False, help_text="Title of this terms and conditions leg."
+    )
+
+    #: Legal text.
+    text = models.TextField(
+        null=False, blank=False, help_text="Text of this terms and conditions leg."
+    )
+
+    #: Display text to ...
+    audience = models.CharField(
+        max_length=16,
+        choices=TERMS_AUDIENCE_CHOICES,
+        default=TERMS_AUDIENCE_ALL,
+        help_text="Define the target audience of the text.",
+    )
+
+    #: Date of publication.
+    date_published = models.DateTimeField(null=True, blank=True, help_text="Date of publication.")
+
+    def __str__(self):
+        return self.title

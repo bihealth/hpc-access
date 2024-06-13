@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% load crispy_forms_tags %}
+
+<h1 class="mt-4">Create a new leg for the Terms &amp; Conditions</h1>
+
+<p class="lead">
+    This will create a new leg of the terms and conditions that is going to be displayed to all
+    users that didn't consent yet. To display this to users that already consented, you need to
+    reset the user consents.
+</p>
+
+<form method="post">{% csrf_token %}
+    {{ form|crispy }}
+    <div class="btn-group">
+        <a href="{% url 'adminsec:termsandconditions-list' %}" class="btn btn-secondary">
+            <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-success">
+            <i class="iconify" data-icon="mdi:content-save"></i>
+            Save
+        </button>
+    </div>
+</form>
+
+
+{% endblock content %}
