@@ -381,10 +381,12 @@ SUBJECT_CONSENT = SUBJECT_PREFIX + "Consent required for BIH HPC cluster"
 NOTIFICATION_CONSENT = r"""
 {greeting}
 
-have been changes in the terms and conditions of the BIH HPC cluster. Please visit the
-following link to review the changes and accept them:
+there have been changes in the terms and conditions for using the BIH HPC cluster. Please visit
+the following link to review them:
 
 {hpc_access_link}
+
+Agreeing to the updated terms and conditions is a requirement for the continued use of BIH HPC.
 
 {footer}
 """.lstrip()
