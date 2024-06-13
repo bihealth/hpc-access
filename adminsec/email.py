@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import auth
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 
+from adminsec.constants import TIER_USER_HOME
 from usersec.models import (
     INVITATION_STATUS_ACCEPTED,
     HpcGroupInvitation,
@@ -362,6 +363,20 @@ your storage quota.
 """.lstrip()
 
 
+#: Notification for a pending consent
+SUBJECT_CONSENT = SUBJECT_PREFIX + "Consent required for BIH HPC cluster"
+NOTIFICATION_CONSENT = r"""
+{greeting}
+
+have been changes in the terms and conditions of the BIH HPC cluster. Please visit the
+following link to review the changes and accept them:
+
+{hpc_access_link}
+
+{footer}
+""".lstrip()
+
+
 # ------------------------------------------------------------------------------
 # Logic
 # ------------------------------------------------------------------------------
@@ -560,18 +575,20 @@ def send_notification_storage_quota(hpc_obj, report):
         entity = "user"
         name = hpc_obj.user.name
         unit = "GB"
+        folders = {TIER_USER_HOME: hpc_obj.home_directory}
     else:
         greeting = USER_GREETING.format(user=", ".join(hpc_obj.get_manager_names()))
         emails = hpc_obj.get_manager_emails()
         entity = "project" if isinstance(hpc_obj, HpcProject) else "group"
         name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
         unit = "TB"
+        folders = hpc_obj.folders
 
     table_text = f"folder | quota [{unit}] | used [{unit}] | % | warning \n"
     table_html = f"<tr><th>folder</th><th>quota [{unit}]</th><th>used [{unit}]</th><th></th></tr>\n"
     for tier, status in report["status"].items():
         data = {
-            "folder": hpc_obj.folders.get(tier),
+            "folder": folders.get(tier),
             "requested": hpc_obj.resources_requested.get(tier),
             "used": hpc_obj.resources_used.get(tier),
             "percent": int(report["percentage"].get(tier)),
@@ -676,3 +693,13 @@ def send_notification_user_welcome_mail(user):
         footer=FOOTER,
     )
     return send_mail(subject, message, [user.user.email])
+
+
+def send_notification_user_consent(user):
+    subject = SUBJECT_CONSENT
+    message = NOTIFICATION_CONSENT.format(
+        greeting=USER_GREETING.format(user=user.name),
+        hpc_access_link=HPC_ACCESS_LINK,
+        footer=FOOTER,
+    )
+    return send_mail(subject, message, [user.email])

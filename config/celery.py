@@ -24,6 +24,10 @@ app.conf.beat_schedule = {
         "task": "adminsec.tasks.send_quota_email",
         "schedule": crontab(hour=0, minute=10),
     },
+    "disable_users_without_consent": {
+        "task": "adminsec.tasks.disable_users_without_consent",
+        "schedule": crontab(hour=0, minute=15),
+    },
 }
 app.conf.timezone = "UTC"
 

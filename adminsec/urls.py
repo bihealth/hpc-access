@@ -242,6 +242,34 @@ urlpatterns_ui = [
         view=views.HpcProjectDeleteRequestDenyView.as_view(),
         name="hpcprojectdeleterequest-deny",
     ),
+    # ------------------------------------------------------------------------------
+    # TermsAndConditions related
+    # ------------------------------------------------------------------------------
+    path(
+        "termsandconditions/list",
+        view=views.TermsAndConditionsListView.as_view(),
+        name="termsandconditions-list",
+    ),
+    path(
+        "termsandconditions/create",
+        view=views.TermsAndConditionsCreateView.as_view(),
+        name="termsandconditions-create",
+    ),
+    path(
+        "termsandconditions/<uuid:termsandconditions>/update/",
+        view=views.TermsAndConditionsUpdateView.as_view(),
+        name="termsandconditions-update",
+    ),
+    path(
+        "termsandconditions/<uuid:termsandconditions>/delete/",
+        view=views.TermsAndConditionsDeleteView.as_view(),
+        name="termsandconditions-delete",
+    ),
+    path(
+        "termsandconditions/publish",
+        view=views.TermsAndConditionsPublishView.as_view(),
+        name="termsandconditions-publish",
+    ),
 ]
 
 urlpatterns_api = [

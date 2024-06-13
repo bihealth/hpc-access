@@ -40,16 +40,31 @@ ENTITIES = (
     ENTITY_PROJECTS,
 )
 
+TIER_USER_HOME = "tier1_home"
+TIER_WORK = "tier1_work"
+TIER_SCRATCH = "tier1_scratch"
+TIER_UNMIRRORED = "tier2_unmirrored"
+TIER_MIRRORED = "tier2_mirrored"
+
+FOLDER_HOME = "home"
+FOLDER_WORK = "work"
+FOLDER_SCRATCH = "scratch"
+FOLDER_UNMIRRORED = "unmirrored"
+FOLDER_MIRRORED = "mirrored"
+
+FOLDER_CEPHFS1 = "cephfs-1"
+FOLDER_CEPHFS2 = "cephfs-2"
+
 CEPHFS_TIER_MAPPING = {
-    ("cephfs-1", "home", ENTITY_USERS): "tier1_home",
-    ("cephfs-1", "work", ENTITY_PROJECTS): "tier1_work",
-    ("cephfs-1", "work", ENTITY_GROUPS): "tier1_work",
-    ("cephfs-1", "scratch", ENTITY_PROJECTS): "tier1_scratch",
-    ("cephfs-1", "scratch", ENTITY_GROUPS): "tier1_scratch",
-    ("cephfs-2", "unmirrored", ENTITY_PROJECTS): "tier2_unmirrored",
-    ("cephfs-2", "unmirrored", ENTITY_GROUPS): "tier2_unmirrored",
-    ("cephfs-2", "mirrored", ENTITY_PROJECTS): "tier2_mirrored",
-    ("cephfs-2", "mirrored", ENTITY_GROUPS): "tier2_mirrored",
+    (FOLDER_CEPHFS1, FOLDER_HOME, ENTITY_USERS): TIER_USER_HOME,
+    (FOLDER_CEPHFS1, FOLDER_WORK, ENTITY_PROJECTS): TIER_WORK,
+    (FOLDER_CEPHFS1, FOLDER_WORK, ENTITY_GROUPS): TIER_WORK,
+    (FOLDER_CEPHFS1, FOLDER_SCRATCH, ENTITY_PROJECTS): TIER_SCRATCH,
+    (FOLDER_CEPHFS1, FOLDER_SCRATCH, ENTITY_GROUPS): TIER_SCRATCH,
+    (FOLDER_CEPHFS2, FOLDER_UNMIRRORED, ENTITY_PROJECTS): TIER_UNMIRRORED,
+    (FOLDER_CEPHFS2, FOLDER_UNMIRRORED, ENTITY_GROUPS): TIER_UNMIRRORED,
+    (FOLDER_CEPHFS2, FOLDER_MIRRORED, ENTITY_PROJECTS): TIER_MIRRORED,
+    (FOLDER_CEPHFS2, FOLDER_MIRRORED, ENTITY_GROUPS): TIER_MIRRORED,
 }
 PREFIX_MAPPING = {
     "projects": POSIX_PROJECT_PREFIX,

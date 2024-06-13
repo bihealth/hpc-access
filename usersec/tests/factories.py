@@ -22,6 +22,7 @@ from usersec.models import (
     HpcUserChangeRequest,
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
+    TermsAndConditions,
 )
 
 # ------------------------------------------------------------------------------
@@ -380,3 +381,13 @@ class HpcGroupInvitationFactory(HpcObjectFactoryBase):
 
     hpcusercreaterequest = factory.SubFactory(HpcUserCreateRequestFactory)
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
+
+
+class TermsAndConditionsFactory(factory.django.DjangoModelFactory):
+    """Factory for TermsAndConditions model"""
+
+    class Meta:
+        model = TermsAndConditions
+
+    title = "AGBs"
+    text = "Some terms and some conditions."

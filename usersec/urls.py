@@ -7,6 +7,7 @@ app_name = "usersec"
 
 urlpatterns = [
     path("orphan/", view=views.OrphanUserView.as_view(), name="orphan-user"),
+    path("terms/", view=views.TermsAndConditionsView.as_view(), name="terms"),
     # ------------------------------------------------------------------------------
     # HpcGroup related
     # ------------------------------------------------------------------------------

@@ -21,6 +21,11 @@ class User(AbstractUser):
     phone = CharField(_("Phone number of User"), blank=True, null=True, max_length=32)
     email = EmailField(_("email address"), blank=True, null=True)
     uid = IntegerField(_("UID of User"), blank=True, null=True)
+    consented_to_terms = BooleanField(
+        _("Terms consent status"),
+        default=False,
+        help_text=_("User has consented to the latest terms and conditions."),
+    )
 
     def get_absolute_url(self):
         """Get url for user's detail view.
