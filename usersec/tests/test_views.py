@@ -1767,7 +1767,7 @@ class TestHpcProjectCreateRequestRetractView(TestViewBase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class TestHpcProjectCreateRequestRectivateView(TestViewBase):
+class TestHpcProjectCreateRequestReactivateView(TestViewBase):
     """Tests for HpcProjectCreateRequestReactivateView."""
 
     def setUp(self):
