@@ -155,7 +155,10 @@ class HomeView(LoginRequiredMixin, View):
                 )
             )
 
-        return redirect(reverse("usersec:orphan-user"))
+        if not settings.VIEW_MODE:
+            return redirect(reverse("usersec:orphan-user"))
+
+        return redirect(reverse("usersec:view-mode-enabled"))
 
 
 class OrphanUserView(HpcPermissionMixin, CreateView):
@@ -363,6 +366,7 @@ class HpcUserView(HpcPermissionMixin, DetailView):
 
         context["group_manager"] = is_group_manager
         context["project_manager"] = is_project_manager
+        context["view_mode"] = settings.VIEW_MODE
         projects_available = False
 
         if is_group_manager:
