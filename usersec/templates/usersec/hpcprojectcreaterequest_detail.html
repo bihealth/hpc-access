@@ -58,7 +58,7 @@
                 <input
                       type="text"
                       class="form-control"
-                      id="set-name-text"
+                      id="set-name-value"
                       placeholder="{{ hpc_project_name_suggestion }}"
                       value="{{ hpc_project_name_suggestion }}"
                       aria-label="Set Project Name"
@@ -157,16 +157,18 @@
 
             <dt class="col-sm-4">Associated Group</dt>
             <dd class="col-sm-8">
-              {{ object.group.name }}
+              AG {{ object.group.name.capitalize }}
               <dl class="row small">
                 <dt class="col-sm-3">Owner</dt>
                 <dd class="col-sm-9">
-                  {{ object.group.owner.user.name }} <span class="fw-light">({{ object.group.owner.username }})</span>
+                  {{ object.group.owner.user.name }}
+                  <span class="fw-light">({{ object.group.owner.username }})</span>
                 </dd>
                 {% if object.group.delegate %}
                   <dt class="col-sm-3">Delegate</dt>
                   <dd class="col-sm-9">
-                    {{ object.group.delegate.user.name }} <span class="fw-light">({{ object.group.delegate.username }})</span>
+                    {{ object.group.delegate.user.name }}
+                    <span class="fw-light">({{ object.group.delegate.username }})</span>
                   </dd>
                 {% endif %}
               </dl>
@@ -212,8 +214,14 @@
         headers: {'X-CSRFToken': csrftoken},
         mode: 'same-origin', // Do not send CSRF token to another domain.
         success: function(data) {
-          folders_set = data.folders['tier1_work'] && data.folders['tier1_scratch'] && data.folders['tier2_unmirrored'] && data.folders['tier2_mirrored']
-          if (data.name && folders_set) {
+          let folders = false;
+          if (data.folders) {
+            folders = data.folders['tier1_work'] &&
+              data.folders['tier1_scratch'] &&
+              data.folders['tier2_unmirrored'] &&
+              data.folders['tier2_mirrored']
+          }
+          if (data.name && folders) {
             $("#folder-submitted-icon").show();
             $("#name-submitted-icon").show();
           } else {
@@ -222,7 +230,7 @@
               $("#name-not-submitted").hide();
               $("#name-submitted-icon").show();
             }
-            if (data.folder) {
+            if (folders) {
               $("#folder-not-submitted").hide();
               $("#folder-submitted-icon").show();
             }
@@ -257,10 +265,10 @@
           data: JSON.stringify(data),
           success: function(data) {
             $("#set-name-value").removeClass().addClass("form-control is-valid");
-            $("#set-name-response").text("Project name has been set to " + data.name).removeClass().addClass("valid-feedback");
+            $("#set-name-response").text("Project name has been set").removeClass().addClass("valid-feedback");
             for (const key in data.folders) {
               $(`#set-folder-${key}-value`).removeClass().addClass("form-control is-valid");
-              $(`#set-folder-${key}-response`).text(`Folder has been set to ${data.folders[key]}`).removeClass().addClass("valid-feedback");
+              $(`#set-folder-${key}-response`).text('Folder has been set.').removeClass().addClass("valid-feedback");
             }
             checkSubmissionStatus();
           },
