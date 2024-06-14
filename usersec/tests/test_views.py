@@ -128,9 +128,18 @@ class TestHomeView(TestViewBase):
             response = self.client.get(reverse("home"))
             self.assertRedirects(response, reverse("admin-landing"))
 
+    def test_get_not_consented_empty_terms(self):
+        self.user.consented_to_terms = False
+        self.user.save()
+
+        with self.login(self.user):
+            response = self.client.get(reverse("home"))
+            self.assertRedirects(response, reverse("usersec:orphan-user"))
+
     def test_get_not_consented(self):
         self.user.consented_to_terms = False
         self.user.save()
+        TermsAndConditionsFactory(date_published=timezone.now())
 
         with self.login(self.user):
             response = self.client.get(reverse("home"))

@@ -126,7 +126,7 @@ class HomeView(LoginRequiredMixin, View):
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 
-        if not request.user.consented_to_terms:
+        if not request.user.consented_to_terms and get_terms_and_conditions(self.request).exists():
             return redirect(reverse("usersec:terms"))
 
         if rules.test_rule("usersec.is_cluster_user", request.user):
@@ -136,6 +136,9 @@ class HomeView(LoginRequiredMixin, View):
                     kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
                 )
             )
+
+        if settings.VIEW_MODE:
+            return redirect(reverse("usersec:view-mode-enabled"))
 
         if rules.test_rule("usersec.has_pending_group_request", request.user):
             request_uuid = request.user.hpcgroupcreaterequest_requester.first().uuid
@@ -155,10 +158,7 @@ class HomeView(LoginRequiredMixin, View):
                 )
             )
 
-        if not settings.VIEW_MODE:
-            return redirect(reverse("usersec:orphan-user"))
-
-        return redirect(reverse("usersec:view-mode-enabled"))
+        return redirect(reverse("usersec:orphan-user"))
 
 
 class OrphanUserView(HpcPermissionMixin, CreateView):
@@ -1670,6 +1670,16 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
         )
 
 
+def get_terms_and_conditions(request):
+    hpcuser = HpcUser.objects.filter(user=request.user)
+    audience = [TERMS_AUDIENCE_ALL]
+
+    if hpcuser.exists():
+        audience.append(TERMS_AUDIENCE_PI if hpcuser.first().is_pi else TERMS_AUDIENCE_USER)
+
+    return TermsAndConditions.objects.filter(audience__in=audience, date_published__isnull=False)
+
+
 class TermsAndConditionsView(ListView):
     """View for consenting to terms and conditions."""
 
@@ -1677,15 +1687,7 @@ class TermsAndConditionsView(ListView):
     template_name = "usersec/terms.html"
 
     def get_queryset(self):
-        hpcuser = HpcUser.objects.filter(user=self.request.user)
-        audience = [TERMS_AUDIENCE_ALL]
-
-        if hpcuser.exists():
-            audience.append(TERMS_AUDIENCE_PI if hpcuser.first().is_pi else TERMS_AUDIENCE_USER)
-
-        return TermsAndConditions.objects.filter(
-            audience__in=audience, date_published__isnull=False
-        )
+        return get_terms_and_conditions(self.request)
 
     def post(self, request, *args, **kwargs):
         request.user.consented_to_terms = True

@@ -949,10 +949,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "GET",
             302,
-            redirect_url=reverse(
-                "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
-            ),
+            redirect_url=reverse("usersec:view-mode-enabled"),
         )
         self.assert_permissions_on_url(
             admin_users,
