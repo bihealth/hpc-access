@@ -399,10 +399,10 @@
         },
         "django-impersonate": {
             "hashes": [
-                "sha256:5eae7f1fe25ffd1af7fc7f338cb0c9b2d84bb874a95c3f07b65e2bcd1ee1f8b2"
+                "sha256:77b1ad339ad2e5e90c1250b13731a77f50f7621abaaa2758c5a629a05f67396b"
             ],
             "index": "pypi",
-            "version": "==1.9.2"
+            "version": "==1.9.4"
         },
         "django-model-utils": {
             "hashes": [
