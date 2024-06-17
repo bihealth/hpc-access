@@ -1,9 +1,19 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import override_settings
+from django.utils import timezone
 from test_plus import TestCase
 
+from adminsec.constants import TIER_USER_HOME
 from adminsec.ldap import LdapConnector
-from adminsec.tasks import _sync_ldap
+from adminsec.tasks import (
+    _generate_quota_reports,
+    _sync_ldap,
+    disable_users_without_consent,
+    send_quota_email,
+)
 from adminsec.tests.test_ldap import (
     AUTH_LDAP2_BIND_DN,
     AUTH_LDAP2_BIND_PASSWORD,
@@ -19,7 +29,16 @@ from adminsec.tests.test_ldap import (
     USERNAME,
     USERNAME2,
 )
-from usersec.tests.factories import HpcUserFactory
+from usersec.models import (
+    OBJECT_STATUS_ACTIVE,
+    OBJECT_STATUS_EXPIRED,
+)
+from usersec.tests.factories import (
+    HpcGroupFactory,
+    HpcProjectFactory,
+    HpcUserFactory,
+    TermsAndConditionsFactory,
+)
 
 LDAP_OTHER_DOMAIN_MOCK = {**LDAP_DEFAULT_MOCKS, "AUTH_LDAP2_USERNAME_DOMAIN": "OTHER_DOMAIN"}
 
@@ -197,3 +216,159 @@ class TestSyncLdap(TestCase):
         self.assertEqual(self.user2.name, "John Doe")
         self.assertTrue(self.user2.is_active)
         self.assertEqual(self.hpcuser2.status, "ACTIVE")
+
+
+class TestSendQuotaEmail(TestCase):
+    """Tests for send_quota_email."""
+
+    def setUp(self):
+        # Superuser
+        self.superuser = self.make_user("superuser")
+        self.superuser.is_superuser = True
+        self.superuser.save()
+
+        # HPC Admin
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+        # Init default user
+        self.user = self.make_user("user@CHARITE")
+        self.user.name = "John Doe"
+        self.user.email = "user@example.com"
+        self.user.save()
+
+        # Create group and owner
+        self.user_owner = self.make_user("owner")
+        self.user_owner.email = "owner@example.com"
+        self.user_owner.name = "AG Owner"
+        self.user_owner.save()
+
+        self.hpc_group = HpcGroupFactory(
+            resources_requested={"work": 20},
+            resources_used={"work": 10},  # 50% used
+            folders={"work": "/data/work/group"},
+        )
+        self.hpc_owner = HpcUserFactory(
+            user=self.user_owner,
+            primary_group=self.hpc_group,
+            creator=self.user_hpcadmin,
+            resources_requested={TIER_USER_HOME: 20},
+            resources_used={TIER_USER_HOME: 10},  # 50% used
+        )
+        self.hpc_group.owner = self.hpc_owner
+        self.hpc_group.save()
+
+        self.user_member = self.make_user("member")
+        self.user_member.name = "AG Member"
+        self.user_member.email = "member@example.com"
+        self.user_member.save()
+
+        self.hpc_member = HpcUserFactory(
+            user=self.user_member,
+            primary_group=self.hpc_group,
+            creator=self.user_hpcadmin,
+            resources_requested={TIER_USER_HOME: 20},
+            resources_used={TIER_USER_HOME: 20},  # 100% used
+        )
+
+        # Create project
+        self.hpc_project = HpcProjectFactory(
+            group=self.hpc_group,
+            resources_requested={"work": 20},
+            resources_used={"work": 18},  # 90% used
+            folders={"work": "/data/work/project"},
+        )
+        self.hpc_project.members.add(self.hpc_owner)
+        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
+
+    def test_generate_quota_reports(self):
+        expected = {
+            "users": {o: o.generate_quota_report() for o in [self.hpc_owner, self.hpc_member]},
+            "projects": {o: o.generate_quota_report() for o in [self.hpc_project]},
+            "groups": {o: o.generate_quota_report() for o in [self.hpc_group]},
+        }
+        reports = _generate_quota_reports()
+        self.assertEqual(reports, expected)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email(self):
+        send_quota_email()
+        self.assertEqual(len(mail.outbox), 2)
+
+
+class DisableUsersWithoutConsent(TestCase):
+    """Tests for disable_users_without_consent."""
+
+    def setUp(self):
+        # Superuser
+        self.superuser = self.make_user("superuser")
+        self.superuser.is_superuser = True
+        self.superuser.save()
+
+        # HPC Admin
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+        self.user1 = self.make_user(f"{USERNAME}@{AUTH_LDAP_USERNAME_DOMAIN}")
+        self.user1.email = "user1@example.mail"
+        self.user1.is_active = True
+        self.user1.consented_to_terms = False
+        self.user1.save()
+
+        self.user2 = self.make_user(f"{USERNAME2}@{AUTH_LDAP2_USERNAME_DOMAIN}")
+        self.user2.email = "user2@example.mail"
+        self.user2.is_active = True
+        self.user2.consented_to_terms = False
+        self.user2.save()
+
+        self.hpc_user1 = HpcUserFactory(
+            user=self.user1,
+            primary_group=None,
+            creator=self.user_hpcadmin,
+            status=OBJECT_STATUS_ACTIVE,
+        )
+
+    def test_disable_users_without_consent_all_not_consented_grace_reached(self):
+        self.terms_all = TermsAndConditionsFactory(
+            date_published=timezone.now() - timedelta(days=40)
+        )
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)
+
+        disable_users_without_consent()
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 2)
+        self.hpc_user1.refresh_from_db()
+        self.assertEqual(self.hpc_user1.status, OBJECT_STATUS_EXPIRED)
+        self.assertEqual(self.hpc_user1.login_shell, "/usr/sbin/nologin")
+
+    def test_disable_users_without_consent_all_consented_grace_reached(self):
+        self.terms_all = TermsAndConditionsFactory(
+            date_published=timezone.now() - timedelta(days=40)
+        )
+        self.user1.consented_to_terms = True
+        self.user1.save()
+        self.user2.consented_to_terms = True
+        self.user2.save()
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)
+
+        disable_users_without_consent()
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)
+        self.hpc_user1.refresh_from_db()
+        self.assertEqual(self.hpc_user1.status, OBJECT_STATUS_ACTIVE)
+        self.assertEqual(self.hpc_user1.login_shell, "/usr/bin/bash")
+
+    def test_disable_users_without_consent_not_consented_grace_not_reached(self):
+        self.terms_all = TermsAndConditionsFactory(
+            date_published=timezone.now() - timedelta(days=10)
+        )
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)
+
+        disable_users_without_consent()
+
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)

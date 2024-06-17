@@ -38,7 +38,7 @@
       <div class="row">
         <div class="col-sm-6">
           <dl class="row">
-            {% include "usersec/modules/resources.html" with object=object %}
+            {% include "usersec/modules/resources_active.html" with object=object %}
 
             <dt class="col-sm-6">Owner</dt>
             <dd class="col-sm-6"><a href="{% url 'usersec:hpcuser-overview' hpcuser=object.owner.uuid %}">{{ object.owner.user.name }}</a></dd>

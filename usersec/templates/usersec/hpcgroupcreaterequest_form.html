@@ -4,29 +4,27 @@
 
 {% block content %}
 
-  <div class="row">
-    <h2>
-      {% if update %}
-        Update HPC group request
-      {% else %}
-        Request HPC group
-      {% endif %}
-    </h2>
-    {% if not admin %}
-      <p>
-        As the first step is for <strong>principal investigators and group leaders</strong> to create a <strong>group</strong> on the cluster which gives their group/lab members a primary entity on the cluster.
-      </p>
-      <p>
-        <strong>Only &quot;group leaders&quot; can do this.</strong>
-        Example of group leaders are principal investigators, leaders of scientific or technical units, and junior group leaders.
-        As a group leader, you take responsibility for the action of your users on the cluster.
-        Please provide a link to your group at Charite/MDC in the comment field for verification.
-      </p>
-      <p>
-        You can add members to your groups and designate a delegate later on in the process.
-      </p>
-    {% endif %}
-  </div>
+<h1 class="mt-5">
+  {% if update %}
+    Update HPC group request
+  {% else %}
+    Request HPC group
+  {% endif %}
+</h1>
+{% if not admin %}
+  <p>
+    As the first step is for <strong>principal investigators and group leaders</strong> to create a <strong>group</strong> on the cluster which gives their group/lab members a primary entity on the cluster.
+  </p>
+  <p>
+    <strong>Only &quot;group leaders&quot; can do this.</strong>
+    Example of group leaders are principal investigators, leaders of scientific or technical units, and junior group leaders.
+    As a group leader, you take responsibility for the action of your users on the cluster.
+    Please provide a link to your group at Charite/MDC in the comment field for verification.
+  </p>
+  <p>
+    You can add members to your groups and designate a delegate later on in the process.
+  </p>
+{% endif %}
 
   {% include "usersec/modules/comments.html" %}
 
@@ -35,7 +33,7 @@
       {% csrf_token %}
       {% if admin %}
         <dl class="row" style="max-width: 50%;">
-          {% include "usersec/modules/resources.html" with object=object %}
+          {% include "usersec/modules/resources_requested.html" with object=object %}
 
           <dt class="col-sm-6">Requester</dt>
           <dd class="col-sm-6">{{ object.requester.username }}</dd>
@@ -79,9 +77,9 @@
         <div class="fieldWrapper">
           <div class="input-group mb-3">
             <span class="input-group-text">
-              <input type="checkbox" class="form-check-input m-0" name="consent" id="id_consent">
+              <input type="checkbox" class="form-check-input m-0" name="consent" id="id_i_am_pi">
             </span>
-            <label for="id_consent">
+            <label for="id_i_am_pi">
               <span class="form-control fw-bold">
                 I confirm that I am a group leader and provided some information/link in the comment field.<sup class="text-danger">*</sup>
               </span>
@@ -91,6 +89,21 @@
             You must confirm that you are a group leader before you can submit the form.
           </p>
         </div>
+        <h3 class="mt-4">Terms &amp; Conditions</h3>
+        {% for obj in terms_list %}
+          <h4 class="mt-4">{{ obj.title }}</h4>
+          <p>{{ obj.text }}</p>
+          <div class="input-group mb-4">
+            <span class="input-group-text">
+              <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
+            </span>
+            <label for="id_consent{{ forloop.counter }}">
+              <span class="form-control fw-bold">
+                I consent to <em>{{ obj.title }}</em>.
+              </span>
+            </label>
+          </div>
+        {% endfor %}
       {% endif %}
 
       {% if update %}
@@ -126,8 +139,23 @@
 {% block inline_javascript %}
   {{ block.super }}
   <script>
+    function consents() {
+      var consent = true;
+      var btn = $("#id_submit_button");
+      $(".consent").each(function(i, obj) {
+        consent &= obj.checked;
+      })
+      consent &= $("#id_i_am_pi").is(':checked');
+      if (consent) {
+          btn.removeClass("disabled");
+      } else if (!btn.hasClass("disabled")) {
+          btn.addClass("disabled");
+      }
+    }
     $(document).ready(function() {
-      $("#id_consent").click(consent);
+      $("#id_i_am_pi").click(consents);
+      $(".consent").click(consents);
+      consents();
     });
   </script>
 {% endblock inline_javascript %}

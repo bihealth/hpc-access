@@ -2,7 +2,9 @@ from importlib import import_module
 
 from django import template
 from django.conf import settings
+from django.utils.safestring import mark_safe
 
+from adminsec.constants import POSIX_AG_PREFIX, POSIX_PROJECT_PREFIX
 from usersec.models import (
     OBJECT_STATUS_ACTIVE,
     OBJECT_STATUS_DELETED,
@@ -77,6 +79,8 @@ def get_detail_url(obj, user):
 @register.filter
 def lookup(dikt, key):
     """Return a value from a dictionary or 'unknown'."""
+    if dikt is None:
+        return "unknown"
     return dikt.get(key, "unknown")
 
 
@@ -96,3 +100,66 @@ def is_project_delegate(user, project):
 def order_by(queryset, order):
     """Return a sorted queryset."""
     return queryset.order_by(order)
+
+
+@register.simple_tag
+def get_posix_group_name(name):
+    """Return the group name."""
+    return f"{POSIX_AG_PREFIX}{name}"
+
+
+@register.simple_tag
+def get_posix_project_name(name):
+    """Return the project name."""
+    return f"{POSIX_PROJECT_PREFIX}{name}"
+
+
+@register.filter
+def storage_in_percent(obj, tier):
+    """Return the storage in percent."""
+    if obj.resources_requested is None or obj.resources_used is None:
+        return 0
+    requested = obj.resources_requested.get(tier, 0)
+    used = obj.resources_used.get(tier, 0)
+    if not requested:
+        return 0
+    return round(100 * used / requested)
+
+
+@register.filter
+def storage_progress_color(percent):
+    """Return the color for the storage progress."""
+    if percent < 80:
+        return "success"
+    if percent < 100:
+        return "warning"
+    return "danger"
+
+
+@register.simple_tag
+def subtier_active(obj, tier):
+    if obj.resources_used is None:
+        return False
+    return obj.resources_used.get(tier) is not None
+
+
+@register.simple_tag
+def tier_active(obj, subtierA, subtierB):
+    return subtier_active(obj, subtierA) or subtier_active(obj, subtierB)
+
+
+@register.filter
+def highlight_folder(text, word):
+    """Highlight a word in a text."""
+    if (
+        word
+        in [
+            "work",
+            "scratch",
+            "mirrored",
+            "unmirrored",
+        ]
+        and word in text
+    ):
+        return mark_safe(text.replace(word, f"<strong><u>{word}</u></strong>"))
+    return text

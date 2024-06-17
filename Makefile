@@ -8,13 +8,15 @@ arg =
 serve:
 	$(manage) runserver
 
+
+.PHONY: serve-public
+serve-public:
+	$(manage) runserver 0.0.0.0:8000
+
+
+.PHONY: celery
 celery:
 	celery -A config.celery_app worker -l info --beat
-
-
-.PHONY: black
-black:
-	black . -l 100 --exclude '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.?v?env|_build|buck-out|build|dist|src)/' $(arg)
 
 
 .PHONY: test
@@ -36,18 +38,11 @@ _test-snap:
 test-snap: _test-snap format
 
 
-.PHONY: isort
-isort:
-	isort --force-sort-within-sections --profile=black .
-
-
-.PHONY: flake8
-flake8:
-	flake8
-
-
 .PHONY: format
-format: isort black flake8
+format:
+	ruff format
+	ruff check --fix
+	ruff check
 
 
 .PHONY: migrations

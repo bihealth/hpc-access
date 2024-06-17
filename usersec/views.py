@@ -1,3 +1,4 @@
+import rules
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -8,9 +9,8 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from django.views.generic.detail import SingleObjectMixin
-import rules
 from rules.contrib.views import PermissionRequiredMixin
 
 from adminsec.constants import DEFAULT_HOME_DIRECTORY
@@ -37,6 +37,9 @@ from usersec.models import (
     OBJECT_STATUS_ACTIVE,
     REQUEST_STATUS_ACTIVE,
     REQUEST_STATUS_REVISION,
+    TERMS_AUDIENCE_ALL,
+    TERMS_AUDIENCE_PI,
+    TERMS_AUDIENCE_USER,
     HpcGroup,
     HpcGroupChangeRequest,
     HpcGroupCreateRequest,
@@ -48,6 +51,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    TermsAndConditions,
 )
 
 # -----------------------------------------------------------------------------
@@ -87,6 +91,9 @@ MSG_INVITATION_GROUP_USER_CREATE_SUCCESS = "Invitation successfully accepted and
 MSG_INVITATION_PROJECT_USER_ADD_FAILURE = "Could not add user to project: {}"
 MSG_INVITATION_PROJECT_USER_ADD_SUCCESS = "Successfully joined the project."
 
+MSG_TERMS_CONSENT = "Consented successfully to terms and conditions."
+
+
 # -----------------------------------------------------------------------------
 # Object comments
 # -----------------------------------------------------------------------------
@@ -119,7 +126,10 @@ class HomeView(LoginRequiredMixin, View):
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 
-        elif rules.test_rule("usersec.is_cluster_user", request.user):
+        if not request.user.consented_to_terms and get_terms_and_conditions(self.request).exists():
+            return redirect(reverse("usersec:terms"))
+
+        if rules.test_rule("usersec.is_cluster_user", request.user):
             return redirect(
                 reverse(
                     "usersec:hpcuser-overview",
@@ -127,17 +137,19 @@ class HomeView(LoginRequiredMixin, View):
                 )
             )
 
-        elif rules.test_rule("usersec.has_pending_group_request", request.user):
+        if settings.VIEW_MODE:
+            return redirect(reverse("usersec:view-mode-enabled"))
+
+        if rules.test_rule("usersec.has_pending_group_request", request.user):
+            request_uuid = request.user.hpcgroupcreaterequest_requester.first().uuid
             return redirect(
                 reverse(
                     "usersec:hpcgroupcreaterequest-detail",
-                    kwargs={
-                        "hpcgroupcreaterequest": request.user.hpcgroupcreaterequest_requester.first().uuid
-                    },
+                    kwargs={"hpcgroupcreaterequest": request_uuid},
                 )
             )
 
-        elif rules.test_rule("usersec.has_group_invitation", request.user):
+        if rules.test_rule("usersec.has_group_invitation", request.user):
             invitation = HpcGroupInvitation.objects.get(username=request.user.username)
             return redirect(
                 reverse(
@@ -166,6 +178,13 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs.update({"user": self.request.user})
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["terms_list"] = TermsAndConditions.objects.filter(
+            audience=TERMS_AUDIENCE_PI, date_published__isnull=False
+        )
+        return context
 
     def form_valid(self, form):
         obj = form.save(commit=False)
@@ -347,6 +366,7 @@ class HpcUserView(HpcPermissionMixin, DetailView):
 
         context["group_manager"] = is_group_manager
         context["project_manager"] = is_project_manager
+        context["view_mode"] = settings.VIEW_MODE
         projects_available = False
 
         if is_group_manager:
@@ -408,7 +428,8 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcusercreaterequest_form.html"
     slug_field = "uuid"
@@ -622,7 +643,8 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcgroupchangerequest_form.html"
     slug_field = "uuid"
@@ -839,7 +861,8 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcUser
     template_name = "usersec/hpcuserchangerequest_form.html"
     slug_field = "uuid"
@@ -1044,7 +1067,8 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcGroup
     template_name = "usersec/hpcprojectcreaterequest_form.html"
     slug_field = "uuid"
@@ -1271,7 +1295,8 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
     it is not the object to be created.
     """
 
-    # Required for permission checks, usually the CreateView doesn't have the current object available
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
     model = HpcProject
     template_name = "usersec/hpcprojectchangerequest_form.html"
     slug_field = "uuid"
@@ -1474,6 +1499,13 @@ class HpcGroupInvitationDetailView(HpcPermissionMixin, DetailView):
     slug_url_kwarg = "hpcgroupinvitation"
     permission_required = "usersec.manage_hpcgroupinvitation"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["terms_list"] = TermsAndConditions.objects.filter(
+            audience=TERMS_AUDIENCE_USER, date_published__isnull=False
+        )
+        return context
+
 
 class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC group invitation accept view."""
@@ -1636,3 +1668,30 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
                 kwargs={"hpcuser": obj.user.uuid},
             )
         )
+
+
+def get_terms_and_conditions(request):
+    hpcuser = HpcUser.objects.filter(user=request.user)
+    audience = [TERMS_AUDIENCE_ALL]
+
+    if hpcuser.exists():
+        audience.append(TERMS_AUDIENCE_PI if hpcuser.first().is_pi else TERMS_AUDIENCE_USER)
+
+    return TermsAndConditions.objects.filter(audience__in=audience, date_published__isnull=False)
+
+
+class TermsAndConditionsView(ListView):
+    """View for consenting to terms and conditions."""
+
+    model = TermsAndConditions
+    template_name = "usersec/terms.html"
+
+    def get_queryset(self):
+        return get_terms_and_conditions(self.request)
+
+    def post(self, request, *args, **kwargs):
+        request.user.consented_to_terms = True
+        request.user.save()
+
+        messages.success(self.request, MSG_TERMS_CONSENT)
+        return HttpResponseRedirect(reverse("home"))

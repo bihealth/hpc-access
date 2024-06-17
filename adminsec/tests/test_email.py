@@ -12,6 +12,7 @@ from adminsec.email import (
     send_notification_manager_request_denied,
     send_notification_manager_revision_required,
     send_notification_manager_user_decided_invitation,
+    send_notification_user_consent,
     send_notification_user_invitation,
     send_notification_user_welcome_mail,
 )
@@ -98,6 +99,11 @@ class TestEmail(TestViewBase):
 
     def test_send_notification_user_welcome_mail(self):
         ret = send_notification_user_welcome_mail(self.hpc_member)
+        self.assertEqual(ret, 1)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_send_notification_user_consent(self):
+        ret = send_notification_user_consent(self.user)
         self.assertEqual(ret, 1)
         self.assertEqual(len(mail.outbox), 1)
 

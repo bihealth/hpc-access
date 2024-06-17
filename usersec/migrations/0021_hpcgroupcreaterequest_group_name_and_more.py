@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usersec", "0020_remove_hpcprojectcreaterequest_delegate_and_more"),
     ]

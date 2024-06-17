@@ -3,6 +3,7 @@ from django.urls import reverse
 from factory import LazyAttribute, SubFactory
 from test_plus.test import TestCase
 
+from adminsec.constants import TIER_USER_HOME
 from usersec.models import (
     INVITATION_STATUS_ACCEPTED,
     INVITATION_STATUS_PENDING,
@@ -16,6 +17,7 @@ from usersec.models import (
     REQUEST_STATUS_RETRACTED,
     REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
+    TERMS_AUDIENCE_ALL,
     HpcGroup,
     HpcGroupChangeRequest,
     HpcGroupChangeRequestVersion,
@@ -36,6 +38,7 @@ from usersec.models import (
     HpcProjectInvitation,
     HpcProjectInvitationVersion,
     HpcProjectVersion,
+    HpcQuotaStatus,
     HpcUser,
     HpcUserChangeRequest,
     HpcUserChangeRequestVersion,
@@ -44,6 +47,7 @@ from usersec.models import (
     HpcUserDeleteRequest,
     HpcUserDeleteRequestVersion,
     HpcUserVersion,
+    TermsAndConditions,
 )
 from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
@@ -60,6 +64,7 @@ from usersec.tests.factories import (
     HpcUserCreateRequestFactory,
     HpcUserDeleteRequestFactory,
     HpcUserFactory,
+    TermsAndConditionsFactory,
     hpc_obj_to_dict,
     hpc_version_obj_to_dict,
 )
@@ -255,9 +260,9 @@ class VersionTesterMixin:
         self.assertEqual(self.model.objects.count(), 1)
         self.assertEqual(self.version_model.objects.count(), 1)
 
-        version_obj = self.version_model.objects.first()
+        obj.refresh_from_db()
+        version_obj = self.version_model.objects.get(belongs_to=obj)
 
-        self.assertEqual(obj, version_obj.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_create_with_version_two(self):
@@ -267,13 +272,13 @@ class VersionTesterMixin:
         self.assertEqual(self.model.objects.count(), 2)
         self.assertEqual(self.version_model.objects.count(), 2)
 
-        version_obj1 = self.version_model.objects.first()
-        version_obj2 = self.version_model.objects.last()
+        version_obj1 = self.version_model.objects.get(belongs_to=obj1)
+        version_obj2 = self.version_model.objects.get(belongs_to=obj2)
 
-        self.assertEqual(obj1, version_obj1.belongs_to)
+        obj1.refresh_from_db()
+        obj2.refresh_from_db()
+
         self.assertEqual(hpc_obj_to_dict(obj1), hpc_version_obj_to_dict(version_obj1))
-
-        self.assertEqual(obj2, version_obj2.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj2), hpc_version_obj_to_dict(version_obj2))
 
     def __assert_save_or_update_base(self, **update):
@@ -322,13 +327,13 @@ class VersionTesterMixin:
                 setattr(obj, k, v)
 
         obj.save_with_version()
+        obj.refresh_from_db()
 
         self.assertEqual(self.model.objects.count(), 1)
         self.assertEqual(self.version_model.objects.count(), 1)
 
-        version_obj = self.version_model.objects.first()
+        version_obj = self.version_model.objects.get(belongs_to=obj)
 
-        self.assertEqual(obj, version_obj.belongs_to)
         self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
 
     def _test_update_with_version(self, **update):
@@ -448,6 +453,57 @@ class TestHpcUser(VersionTesterMixin, TestCase):
             list(user.get_pending_invitations()),
         )
 
+    def test_generate_quota_report_green(self):
+        user = self.factory(
+            resources_requested={TIER_USER_HOME: 20},
+            resources_used={TIER_USER_HOME: 10},
+            home_directory="/home/users",
+        )
+        expected = {
+            "used": {TIER_USER_HOME: 10},
+            "requested": {TIER_USER_HOME: 20},
+            "percentage": {TIER_USER_HOME: 50},
+            "status": {TIER_USER_HOME: HpcQuotaStatus.GREEN},
+            "folders": {TIER_USER_HOME: "/home/users"},
+            "warnings": [],
+        }
+
+        self.assertDictEqual(user.generate_quota_report(), expected)
+
+    def test_generate_quota_report_yellow(self):
+        user = self.factory(
+            resources_requested={TIER_USER_HOME: 20},
+            resources_used={TIER_USER_HOME: 18},
+            home_directory="/home/users",
+        )
+        expected = {
+            "used": {TIER_USER_HOME: 18},
+            "requested": {TIER_USER_HOME: 20},
+            "percentage": {TIER_USER_HOME: 90},
+            "status": {TIER_USER_HOME: HpcQuotaStatus.YELLOW},
+            "folders": {TIER_USER_HOME: "/home/users"},
+            "warnings": [],
+        }
+
+        self.assertDictEqual(user.generate_quota_report(), expected)
+
+    def test_generate_quota_report_red(self):
+        user = self.factory(
+            resources_requested={TIER_USER_HOME: 20},
+            resources_used={TIER_USER_HOME: 20},
+            home_directory="/home/users",
+        )
+        expected = {
+            "used": {TIER_USER_HOME: 20},
+            "requested": {TIER_USER_HOME: 20},
+            "percentage": {TIER_USER_HOME: 100},
+            "status": {TIER_USER_HOME: HpcQuotaStatus.RED},
+            "folders": {TIER_USER_HOME: "/home/users"},
+            "warnings": [],
+        }
+
+        self.assertDictEqual(user.generate_quota_report(), expected)
+
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
     """Tests for HpcGroup model"""
@@ -489,6 +545,59 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
 
     def test_get_detail_url_admin(self):
         self._test_get_detail_url_admin()
+
+    def test_generate_quota_report(self):
+        obj = self.factory(
+            resources_requested={
+                "storage_green": 20,
+                "storage_yellow": 20,
+                "storage_red": 20,
+                "storage_requested_only": 20,
+            },
+            resources_used={
+                "storage_green": 10,
+                "storage_yellow": 18,
+                "storage_red": 20,
+                "storage_used_only": 20,
+            },
+            folders={
+                "storage_green": "/home/groups/green",
+                "storage_yellow": "/home/groups/yellow",
+                "storage_red": "/home/groups/red",
+            },
+        )
+        expected = {
+            "used": {
+                "storage_green": 10,
+                "storage_yellow": 18,
+                "storage_red": 20,
+            },
+            "requested": {
+                "storage_green": 20,
+                "storage_yellow": 20,
+                "storage_red": 20,
+            },
+            "percentage": {
+                "storage_green": 50,
+                "storage_yellow": 90,
+                "storage_red": 100,
+            },
+            "status": {
+                "storage_green": HpcQuotaStatus.GREEN,
+                "storage_yellow": HpcQuotaStatus.YELLOW,
+                "storage_red": HpcQuotaStatus.RED,
+            },
+            "folders": {
+                "storage_green": "/home/groups/green",
+                "storage_yellow": "/home/groups/yellow",
+                "storage_red": "/home/groups/red",
+            },
+            "warnings": [
+                "Resource storage_used_only is used, but not found in requested resources",
+                "Resource storage_requested_only is requested, but not found in used resources",
+            ],
+        }
+        self.assertDictEqual(obj.generate_quota_report(), expected)
 
 
 class TestHpcProject(VersionTesterMixin, TestCase):
@@ -534,6 +643,59 @@ class TestHpcProject(VersionTesterMixin, TestCase):
 
     def test_get_detail_url_admin(self):
         self._test_get_detail_url_admin()
+
+    def test_generate_quota_report(self):
+        obj = self.factory(
+            resources_requested={
+                "storage_green": 20,
+                "storage_yellow": 20,
+                "storage_red": 20,
+                "storage_requested_only": 20,
+            },
+            resources_used={
+                "storage_green": 10,
+                "storage_yellow": 18,
+                "storage_red": 20,
+                "storage_used_only": 20,
+            },
+            folders={
+                "storage_green": "/home/projects/green",
+                "storage_yellow": "/home/projects/yellow",
+                "storage_red": "/home/projects/red",
+            },
+        )
+        expected = {
+            "used": {
+                "storage_green": 10,
+                "storage_yellow": 18,
+                "storage_red": 20,
+            },
+            "requested": {
+                "storage_green": 20,
+                "storage_yellow": 20,
+                "storage_red": 20,
+            },
+            "percentage": {
+                "storage_green": 50,
+                "storage_yellow": 90,
+                "storage_red": 100,
+            },
+            "status": {
+                "storage_green": HpcQuotaStatus.GREEN,
+                "storage_yellow": HpcQuotaStatus.YELLOW,
+                "storage_red": HpcQuotaStatus.RED,
+            },
+            "folders": {
+                "storage_green": "/home/projects/green",
+                "storage_yellow": "/home/projects/yellow",
+                "storage_red": "/home/projects/red",
+            },
+            "warnings": [
+                "Resource storage_used_only is used, but not found in requested resources",
+                "Resource storage_requested_only is requested, but not found in used resources",
+            ],
+        }
+        self.assertDictEqual(obj.generate_quota_report(), expected)
 
 
 class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
@@ -1521,3 +1683,13 @@ class TestHpcProjectInvitation(VersionTesterMixin, TestCase):
 
     def test_get_latest_version_not_available(self):
         self._test_get_latest_version_not_available()
+
+
+class TestTermsAndConditions(TestCase):
+    """Tests for TermsAndConditions model"""
+
+    def test_create(self):
+        tnc = TermsAndConditionsFactory()
+        self.assertEqual(TermsAndConditions.objects.count(), 1)
+        self.assertEqual(tnc.audience, TERMS_AUDIENCE_ALL)
+        self.assertIsNone(tnc.date_published)

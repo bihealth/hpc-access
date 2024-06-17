@@ -109,21 +109,25 @@
                 {% endif %}
               </dd>
 
-              <dt class="col-sm-3">Folder</dt>
+              <dt class="col-sm-3">Unix Group</dt>
               <dd class="col-sm-9">
-                {{ project.folder|default:"<em class='text-muted'>None</em>"}}
+                {% if project.name %}
+                  {% get_posix_project_name project.name %}
+                {% else %}
+                  <em class='text-muted'>None</em>
+                {% endif %}
               </dd>
 
               <dt class="col-sm-3">Expires</dt>
               <dd class="col-sm-9 mb-0">
-                {{ project.expiration|date:"Y/m/d" }}
+                {{ project.expiration|date:"Y-m-d" }}
               </dd>
             </dl>
 
             <hr />
 
             <dl class="row">
-              {% include "usersec/modules/resources.html" with object=project %}
+              {% include "usersec/modules/resources_active.html" with object=project %}
             </dl>
 
             <hr />

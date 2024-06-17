@@ -4,7 +4,7 @@
   <div class="card-header">
     <h4 class="card-title">
       <i class="iconify" data-icon="mdi:user-group"></i>
-      AG {{ object.primary_group.owner.user.last_name }}
+      AG {{ object.primary_group.name.capitalize }}
       {% if object.hpcgroup_owner.exists %}
         <span class="badge rounded-pill bg-warning">Owner</span>
       {% elif object.hpcgroup_delegate.exists %}
@@ -38,17 +38,16 @@
 
         <dt class="col-sm-3">Unix Group</dt>
         <dd class="col-sm-9">
-          {{ object.primary_group.name|default:"<em class='text-muted'>None</em>"}}
-        </dd>
-
-        <dt class="col-sm-3">Folder</dt>
-        <dd class="col-sm-9">
-          {{ object.primary_group.folder|default:"<em class='text-muted'>None</em>"}}
+          {% if object.primary_group.name %}
+            {% get_posix_group_name object.primary_group.name %}
+          {% else %}
+            <em class='text-muted'>None</em>
+          {% endif %}
         </dd>
 
         <dt class="col-sm-3">Expires</dt>
         <dd class="col-sm-9">
-          {{ object.primary_group.expiration|date:"Y/m/d" }}
+          {{ object.primary_group.expiration|date:"Y-m-d" }}
         </dd>
       </dl>
     </div>
@@ -56,7 +55,7 @@
     <hr />
 
     <dl class="row">
-      {% include "usersec/modules/resources.html" with object=object.primary_group %}
+      {% include "usersec/modules/resources_active.html" with object=object.primary_group %}
     </dl>
 
     <hr />

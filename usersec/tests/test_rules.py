@@ -1,6 +1,7 @@
-from django.conf import settings
-from django.urls import reverse
 import rules
+from django.conf import settings
+from django.test import override_settings
+from django.urls import reverse
 from test_plus.test import TestCase
 
 from usersec.models import (
@@ -49,27 +50,39 @@ class TestRulesBase(TestCase):
 
         # User
         self.user = self.make_user("user")
+        self.user.consented_to_terms = True
+        self.user.save()
 
         # Owner
         self.user_owner = self.make_user("owner")
         self.user_owner.name = "Group Owner"
+        self.user_owner.consented_to_terms = True
         self.user_owner.save()
 
         # Delegate
         self.user_delegate = self.make_user("delegate")
+        self.user_delegate.consented_to_terms = True
+        self.user_delegate.save()
 
         # Member
         self.user_member = self.make_user("member")
+        self.user_member.consented_to_terms = True
+        self.user_member.save()
 
         # User for user-centric views
         self.user_member2 = self.make_user("member2")
+        self.user_member2.consented_to_terms = True
+        self.user_member2.save()
 
         # User without group
         self.user_member_other_group = self.make_user("member_no_group")
+        self.user_member_other_group.consented_to_terms = True
+        self.user_member_other_group.save()
 
         # Pending user
         self.user_pending = self.make_user("pending@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
         self.user_pending.name = "John Doe"
+        self.user_pending.consented_to_terms = True
         self.user_pending.save()
 
         # Invited user
@@ -269,6 +282,20 @@ class TestRules(TestRulesBase):
 class TestPermissions(TestRulesBase):
     """Tests for permissions without views."""
 
+    def _test_view_mode_denied(self, perm, obj):
+        users = [
+            self.user_owner,
+            self.user_delegate,
+        ]
+        self.assert_permissions_denied(perm, obj, users)
+
+    def _test_view_mode_granted(self, perm, obj):
+        users = [
+            self.user_owner,
+            self.user_delegate,
+        ]
+        self.assert_permissions_granted(perm, obj, users)
+
     def test_view_hpcuser(self):
         good_users = [
             self.superuser,
@@ -286,6 +313,10 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.view_hpcuser"
         self.assert_permissions_granted(perm, self.hpc_member, good_users)
         self.assert_permissions_denied(perm, self.hpc_member, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcuser_view_mode(self):
+        self._test_view_mode_granted("usersec.view_hpcuser", self.hpc_member)
 
     def test_view_hpcusercreaterequest(self):
         good_users = [
@@ -306,6 +337,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_user_create_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcusercreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcusercreaterequest", self.hpc_user_create_request
+        )
+
     def test_create_hpcusercreaterequest(self):
         good_users = [
             self.superuser,
@@ -324,6 +361,10 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.create_hpcusercreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcusercreaterequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcusercreaterequest", self.hpc_group)
 
     def test_manage_hpcusercreaterequest(self):
         good_users = [
@@ -344,6 +385,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_user_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_user_create_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcusercreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcusercreaterequest", self.hpc_user_create_request
+        )
+
     def test_view_hpcuserchangerequest(self):
         good_users = [
             self.superuser,
@@ -362,6 +409,12 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.view_hpcuserchangerequest"
         self.assert_permissions_granted(perm, self.hpc_user_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_user_change_request, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcuserchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcuserchangerequest", self.hpc_user_change_request
+        )
 
     def test_create_hpcuserchangerequest(self):
         good_users = [
@@ -382,6 +435,10 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_member, good_users)
         self.assert_permissions_denied(perm, self.hpc_member, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcuserchangerequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcuserchangerequest", self.hpc_member)
+
     def test_manage_hpcuserchangerequest(self):
         good_users = [
             self.superuser,
@@ -401,6 +458,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_user_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_user_change_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcuserchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcuserchangerequest", self.hpc_user_change_request
+        )
+
     def test_view_hpcproject(self):
         good_users = [
             self.superuser,
@@ -418,6 +481,10 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.view_hpcproject"
         self.assert_permissions_granted(perm, self.hpc_project, good_users)
         self.assert_permissions_denied(perm, self.hpc_project, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcproject_view_mode(self):
+        self._test_view_mode_granted("usersec.view_hpcproject", self.hpc_project)
 
     def test_view_hpcprojectcreaterequest(self):
         good_users = [
@@ -438,6 +505,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_project_create_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcprojectcreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcprojectcreaterequest", self.hpc_project_create_request
+        )
+
     def test_create_hpcprojectcreaterequest(self):
         good_users = [
             self.superuser,
@@ -456,6 +529,10 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.create_hpcprojectcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcprojectcreaterequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcprojectcreaterequest", self.hpc_group)
 
     def test_manage_hpcprojectcreaterequest(self):
         good_users = [
@@ -476,6 +553,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_project_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_project_create_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcprojectcreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcprojectcreaterequest", self.hpc_project_create_request
+        )
+
     def test_view_hpcprojectchangerequest(self):
         good_users = [
             self.superuser,
@@ -494,6 +577,12 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.view_hpcprojectchangerequest"
         self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcprojectchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcprojectchangerequest", self.hpc_project_change_request
+        )
 
     def test_create_hpcprojectchangerequest(self):
         good_users = [
@@ -514,6 +603,10 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_project, good_users)
         self.assert_permissions_denied(perm, self.hpc_project, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcprojectchangerequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcprojectchangerequest", self.hpc_project)
+
     def test_manage_hpcprojectchangerequest(self):
         good_users = [
             self.superuser,
@@ -533,6 +626,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_project_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_project_change_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcprojectchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcprojectchangerequest", self.hpc_project_change_request
+        )
+
     def test_view_hpcgroup(self):
         good_users = [
             self.superuser,
@@ -545,6 +644,10 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.view_hpcgroup"
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcgroup_view_mode(self):
+        self._test_view_mode_granted("usersec.view_hpcgroup", self.hpc_group)
 
     def test_view_hpcgroupcreaterequest(self):
         good_users = [self.superuser, self.user_pending]
@@ -562,6 +665,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_group_create_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcgroupcreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcgroupcreaterequest", self.hpc_group_create_request
+        )
+
     def test_create_hpcgroupcreaterequest(self):
         good_users = [self.superuser, self.user]
         bad_users = [
@@ -578,6 +687,10 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, None, good_users)
         self.assert_permissions_denied(perm, None, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcgroupcreaterequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcgroupcreaterequest", None)
+
     def test_manage_hpcgroupcreaterequest(self):
         good_users = [self.superuser, self.user_pending]
         bad_users = [
@@ -593,6 +706,12 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.manage_hpcgroupcreaterequest"
         self.assert_permissions_granted(perm, self.hpc_group_create_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_group_create_request, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcgroupcreaterequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcgroupcreaterequest", self.hpc_group_create_request
+        )
 
     def test_view_hpcgroupchangerequest(self):
         good_users = [
@@ -613,6 +732,12 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_group_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_group_change_request, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_view_hpcgroupchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.view_hpcgroupchangerequest", self.hpc_group_change_request
+        )
+
     def test_create_hpcgroupchangerequest(self):
         good_users = [
             self.superuser,
@@ -632,6 +757,10 @@ class TestPermissions(TestRulesBase):
         self.assert_permissions_granted(perm, self.hpc_group, good_users)
         self.assert_permissions_denied(perm, self.hpc_group, bad_users)
 
+    @override_settings(VIEW_MODE=True)
+    def test_create_hpcgroupchangerequest_view_mode(self):
+        self._test_view_mode_denied("usersec.create_hpcgroupchangerequest", self.hpc_group)
+
     def test_manage_hpcgroupchangerequest(self):
         good_users = [
             self.superuser,
@@ -650,6 +779,12 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.manage_hpcgroupchangerequest"
         self.assert_permissions_granted(perm, self.hpc_group_change_request, good_users)
         self.assert_permissions_denied(perm, self.hpc_group_change_request, bad_users)
+
+    @override_settings(VIEW_MODE=True)
+    def test_manage_hpcgroupchangerequest_view_mode(self):
+        self._test_view_mode_denied(
+            "usersec.manage_hpcgroupchangerequest", self.hpc_group_change_request
+        )
 
     def test_manage_hpcgroupinvitation(self):
         good_users = [self.superuser, self.user_invited]
@@ -686,6 +821,31 @@ class TestPermissions(TestRulesBase):
 
 class TestPermissionsInViews(TestRulesBase):
     """Tests for permissions in views."""
+
+    def _test_view_mode_denied(self, url, method="GET"):
+        users = [
+            self.user_owner,
+            self.user_delegate,
+        ]
+        self.assert_permissions_on_url(
+            users,
+            url,
+            method,
+            302,
+            redirect_url=reverse("home"),
+        )
+
+    def _test_view_mode_granted(self, url, method="GET"):
+        users = [
+            self.user_owner,
+            self.user_delegate,
+        ]
+        self.assert_permissions_on_url(
+            users,
+            url,
+            method,
+            200,
+        )
 
     def test_home_view(self):
         url = reverse("home")
@@ -744,6 +904,61 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_home_view_view_mode(self):
+        url = reverse("home")
+        admin_users = [self.user_hpcadmin]
+        superusers = [self.superuser]
+        orphan_users = [self.user]
+        hpc_users = [
+            self.user_owner,
+            self.user_delegate,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+        ]
+        pending_users = [self.user_pending]
+
+        self.assert_permissions_on_url(
+            superusers,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("admin-landing"),
+        )
+        self.assert_permissions_on_url(
+            orphan_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("usersec:view-mode-enabled"),
+        )
+        self.assert_permissions_on_url(
+            hpc_users,
+            url,
+            "GET",
+            302,
+            lazy_url_callback=lambda user: reverse(
+                "usersec:hpcuser-overview",
+                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
+            ),
+            lazy_arg="user",
+        )
+        self.assert_permissions_on_url(
+            pending_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("usersec:view-mode-enabled"),
+        )
+        self.assert_permissions_on_url(
+            admin_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("adminsec:overview"),
+        )
+
     def test_orphan_user_view_get(self):
         url = reverse("usersec:orphan-user")
         good_users = [self.superuser, self.user]
@@ -759,6 +974,11 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_orphan_user_view_get_view_mode(self):
+        url = reverse("usersec:orphan-user")
+        self._test_view_mode_denied(url)
 
     def test_orphan_user_view_post(self):
         url = reverse("usersec:orphan-user")
@@ -794,6 +1014,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_orphan_user_view_post_view_mode(self):
+        url = reverse("usersec:orphan-user")
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_group_create_request_detail_view(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-detail",
@@ -813,6 +1038,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-detail",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_group_create_request_update_view_get(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-update",
@@ -831,6 +1064,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-update",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_create_request_update_view_post(self):
         url = reverse(
@@ -869,6 +1110,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-update",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_group_create_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-retract",
@@ -887,6 +1136,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-retract",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_create_request_retract_view_post(self):
         url = reverse(
@@ -916,6 +1173,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-retract",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_group_create_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcgroupcreaterequest-reactivate",
@@ -944,6 +1209,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_create_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupcreaterequest-reactivate",
+            kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_group_change_request_create_view(self):
         url = reverse(
             "usersec:hpcgroupchangerequest-create",
@@ -965,6 +1238,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_create_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_change_request_detail_view(self):
         url = reverse(
@@ -988,6 +1269,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-detail",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_group_change_request_update_view_get(self):
         url = reverse(
             "usersec:hpcgroupchangerequest-update",
@@ -1009,6 +1298,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-update",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_change_request_update_view_post(self):
         url = reverse(
@@ -1050,6 +1347,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-update",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_group_change_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcgroupchangerequest-retract",
@@ -1071,6 +1376,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-retract",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_change_request_retract_view_post(self):
         url = reverse(
@@ -1103,6 +1416,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-retract",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_group_change_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcgroupchangerequest-reactivate",
@@ -1134,6 +1455,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_change_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupchangerequest-reactivate",
+            kwargs={"hpcgroupchangerequest": self.hpc_group_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_user_view(self):
         url = reverse(
             "usersec:hpcuser-overview",
@@ -1155,6 +1484,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuser-overview",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_granted(url)
 
     def test_hpc_user_detail_view(self):
         url = reverse(
@@ -1178,6 +1515,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuser-detail",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_granted(url)
+
     def test_hpc_group_detail_view(self):
         url = reverse(
             "usersec:hpcgroup-detail",
@@ -1199,6 +1544,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroup-detail",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_granted(url)
 
     def test_hpc_project_detail_view(self):
         url = reverse(
@@ -1222,6 +1575,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcproject-detail",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        self._test_view_mode_granted(url)
+
     def test_hpc_user_create_request_create_view_get(self):
         url = reverse(
             "usersec:hpcusercreaterequest-create",
@@ -1243,6 +1604,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_create_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_create_request_create_view_post(self):
         url = reverse(
@@ -1284,6 +1653,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_create_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_create_request_detail_view(self):
         url = reverse(
             "usersec:hpcusercreaterequest-detail",
@@ -1306,6 +1683,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-detail",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_user_create_request_update_view_get(self):
         url = reverse(
             "usersec:hpcusercreaterequest-update",
@@ -1327,6 +1712,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-update",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_create_request_update_view_post(self):
         url = reverse(
@@ -1368,6 +1761,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-update",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_create_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcusercreaterequest-retract",
@@ -1389,6 +1790,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-retract",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_create_request_retract_view_post(self):
         url = reverse(
@@ -1421,6 +1830,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-retract",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_create_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcusercreaterequest-reactivate",
@@ -1452,6 +1869,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_create_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcusercreaterequest-reactivate",
+            kwargs={"hpcusercreaterequest": self.hpc_user_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_user_change_request_create_view_get(self):
         url = reverse(
             "usersec:hpcuserchangerequest-create",
@@ -1473,6 +1898,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_create_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_change_request_create_view_post(self):
         url = reverse(
@@ -1514,6 +1947,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_create_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_change_request_detail_view(self):
         url = reverse(
             "usersec:hpcuserchangerequest-detail",
@@ -1536,6 +1977,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-detail",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_user_change_request_update_view_get(self):
         url = reverse(
             "usersec:hpcuserchangerequest-update",
@@ -1557,6 +2006,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-update",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_change_request_update_view_post(self):
         url = reverse(
@@ -1598,6 +2055,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-update",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_change_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcuserchangerequest-retract",
@@ -1619,6 +2084,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-retract",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_user_change_request_retract_view_post(self):
         url = reverse(
@@ -1651,6 +2124,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-retract",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_user_change_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcuserchangerequest-reactivate",
@@ -1682,6 +2163,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_change_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserchangerequest-reactivate",
+            kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_project_create_request_create_view_get(self):
         url = reverse(
             "usersec:hpcprojectcreaterequest-create",
@@ -1703,6 +2192,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_create_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_create_request_create_view_post(self):
         url = reverse(
@@ -1745,6 +2242,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_create_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-create",
+            kwargs={"hpcgroup": self.hpc_group.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_create_request_detail_view(self):
         url = reverse(
             "usersec:hpcprojectcreaterequest-detail",
@@ -1767,6 +2272,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-detail",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_project_create_request_update_view_get(self):
         url = reverse(
             "usersec:hpcprojectcreaterequest-update",
@@ -1788,6 +2301,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-update",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_create_request_update_view_post(self):
         url = reverse(
@@ -1830,6 +2351,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-update",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_create_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcprojectcreaterequest-retract",
@@ -1851,6 +2380,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-retract",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_create_request_retract_view_post(self):
         url = reverse(
@@ -1883,6 +2420,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-retract",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_create_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcprojectcreaterequest-reactivate",
@@ -1914,6 +2459,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_create_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectcreaterequest-reactivate",
+            kwargs={"hpcprojectcreaterequest": self.hpc_project_create_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_project_change_request_create_view_get(self):
         url = reverse(
             "usersec:hpcprojectchangerequest-create",
@@ -1935,6 +2488,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_create_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-create",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_change_request_create_view_post(self):
         url = reverse(
@@ -1977,6 +2538,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_create_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-create",
+            kwargs={"hpcproject": self.hpc_project.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_change_request_detail_view(self):
         url = reverse(
             "usersec:hpcprojectchangerequest-detail",
@@ -1999,6 +2568,14 @@ class TestPermissionsInViews(TestRulesBase):
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-detail",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_project_change_request_update_view_get(self):
         url = reverse(
             "usersec:hpcprojectchangerequest-update",
@@ -2020,6 +2597,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-update",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_changee_request_update_view_post(self):
         url = reverse(
@@ -2062,6 +2647,14 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("home"),
         )
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-update",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_change_request_retract_view_get(self):
         url = reverse(
             "usersec:hpcprojectchangerequest-retract",
@@ -2083,6 +2676,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_retract_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-retract",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_project_change_request_retract_view_post(self):
         url = reverse(
@@ -2115,6 +2716,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_retract_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-retract",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
     def test_hpc_project_change_request_reactivate_view(self):
         url = reverse(
             "usersec:hpcprojectchangerequest-reactivate",
@@ -2146,6 +2755,14 @@ class TestPermissionsInViews(TestRulesBase):
         )
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
 
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_project_change_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcprojectchangerequest-reactivate",
+            kwargs={"hpcprojectchangerequest": self.hpc_project_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
     def test_hpc_group_invitation_detail_view(self):
         url = reverse(
             "usersec:hpcgroupinvitation-detail",
@@ -2168,6 +2785,14 @@ class TestPermissionsInViews(TestRulesBase):
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
         self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_group_invitation_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcgroupinvitation-detail",
+            kwargs={"hpcgroupinvitation": self.hpc_group_invitation.uuid},
+        )
+        self._test_view_mode_denied(url)
 
     def test_hpc_group_invitation_accept_view(self):
         url = reverse(

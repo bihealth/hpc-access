@@ -1,9 +1,12 @@
 import uuid as uuid_object
+from enum import Enum, unique
 
+from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
 from factory.django import get_model
 
+from adminsec.constants import TIER_USER_HOME
 from hpcaccess.users.models import User
 
 APP_NAME = "usersec"
@@ -268,6 +271,66 @@ class RequestManagerMixin:
         return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
 
 
+@unique
+class HpcQuotaStatus(Enum):
+    RED = "red"
+    YELLOW = "yellow"
+    GREEN = "green"
+
+
+class CheckQuotaMixin:
+    def generate_quota_report(self):
+        """Generate a quota report for the object."""
+        if not hasattr(self, "resources_requested") or not hasattr(self, "resources_used"):
+            # Sanity check - probably wrong use of mixin
+            raise AttributeError("Object does not have resources_requested or resources_used")
+
+        requested = set((self.resources_requested or {}).keys())
+        used = set((self.resources_used or {}).keys())
+        available = requested & used
+        folders = (
+            {TIER_USER_HOME: self.home_directory}
+            if isinstance(self, get_model(APP_NAME, "HpcUser"))
+            else getattr(self, "folders", {})
+        )
+        result = {
+            "used": {a: self.resources_used[a] for a in available},
+            "requested": {a: self.resources_requested[a] for a in available},
+            "percentage": {},
+            "status": {},
+            "folders": {a: folders[a] for a in available},
+            "warnings": [],
+        }
+
+        for key in used - requested:
+            result["warnings"].append(
+                f"Resource {key} is used, but not found in requested resources"
+            )
+
+        for key in requested - used:
+            result["warnings"].append(
+                f"Resource {key} is requested, but not found in used resources"
+            )
+
+        for key in available:
+            used_val = self.resources_used.get(key)
+            requested_val = self.resources_requested.get(key)
+            result["percentage"][key] = round(
+                (100 * used_val / requested_val) if not requested_val == 0 else 0
+            )
+
+            if used_val >= requested_val:
+                result["status"][key] = HpcQuotaStatus.RED
+
+            elif used_val >= requested_val * (settings.QUOTA_WARNING_THRESHOLD / 100):
+                result["status"][key] = HpcQuotaStatus.YELLOW
+
+            else:
+                result["status"][key] = HpcQuotaStatus.GREEN
+
+        return result
+
+
 # ------------------------------------------------------------------------------
 # Base model for Hpc objects
 # ------------------------------------------------------------------------------
@@ -367,7 +430,7 @@ class HpcUserAbstract(HpcObjectAbstract):
     )
 
 
-class HpcUser(VersionManagerMixin, HpcUserAbstract):
+class HpcUser(VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
     """HpcUser model"""
 
     #: Set custom manager
@@ -380,16 +443,16 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
     current_version = models.IntegerField(help_text="Currently active version of the user object")
 
     def __repr__(self):
-        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},current_version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.user.username if self.user else None,
-            self.username,
-            self.user.uid if self.user else None,
-            self.primary_group.name,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.current_version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"user={self.user.username if self.user else None},"
+            f"username={self.username},"
+            f"uid={self.user.uid if self.user else None},"
+            f"primary_group={self.primary_group.name},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"current_version={self.current_version})"
         )
 
     def __str__(self):
@@ -399,6 +462,10 @@ class HpcUser(VersionManagerMixin, HpcUserAbstract):
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
+
+    @property
+    def is_pi(self):
+        return self.primary_group.owner == self
 
 
 class HpcUserVersion(HpcUserAbstract):
@@ -420,16 +487,16 @@ class HpcUserVersion(HpcUserAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},user={},username={},uid={},primary_group={},status={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.user.username if self.user else None,
-            self.username,
-            self.uid,
-            self.primary_group.name,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"user={self.user.username if self.user else None},"
+            f"username={self.username},"
+            f"uid={self.uid},"
+            f"primary_group={self.primary_group.name},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -474,7 +541,9 @@ class HpcGroupAbstract(HpcObjectAbstract):
     #: Description of what the group is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations the group performs on the cluster",
+        help_text=(
+            "Concise description of what kind of computations the group performs on the cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -502,14 +571,14 @@ class HpcGroupAbstract(HpcObjectAbstract):
     #: POSIX name of the group on the cluster.
     name = models.CharField(max_length=64, help_text="Name of the group on the cluster")
 
-    #: Folder ot the group on the cluster.
-    folder = models.CharField(max_length=64, help_text="Path to the group folder on the cluster")
+    #: Folders of the group on the cluster.
+    folders = models.JSONField(help_text="Paths to the folders of the group on the cluster")
 
     #: Expiration date of the group
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
+class HpcGroup(VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
     """HpcGroup model"""
 
     #: Set custom manager
@@ -522,16 +591,16 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
     current_version = models.IntegerField(help_text="Currently active version of the group object")
 
     def __repr__(self):
-        return "{}(id={},name={},owner={},delegate={},gid={},status={},creator={},current_version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.creator.username if self.creator else None,
-            self.current_version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"owner={self.owner.username},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"current_version={self.current_version})"
         )
 
     def __str__(self):
@@ -555,6 +624,14 @@ class HpcGroup(VersionManagerMixin, HpcGroupAbstract):
 
         return emails
 
+    def get_manager_names(self):
+        names = [self.owner.user.get_full_name()]
+
+        if self.delegate:
+            names.append(self.delegate.user.get_full_name())
+
+        return names
+
 
 class HpcGroupVersion(HpcGroupAbstract):
     """HpcGroupVersion model"""
@@ -575,17 +652,17 @@ class HpcGroupVersion(HpcGroupAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},name={},owner={},delegate={},gid={},status={},members={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.owner.username,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.hpcuser.count(),
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"owner={self.owner.username},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"members={self.hpcuser.count()},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -634,7 +711,10 @@ class HpcProjectAbstract(HpcObjectAbstract):
     #: Description of what the project is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -662,14 +742,14 @@ class HpcProjectAbstract(HpcObjectAbstract):
     #: POSIX name of the project on the cluster.
     name = models.CharField(max_length=64, help_text="Name of the project on the cluster")
 
-    #: Folder ot the project on the cluster.
-    folder = models.CharField(max_length=64, help_text="Path to the project folder on the cluster")
+    #: Folders of the project on the cluster.
+    folders = models.JSONField(help_text="Paths to the folders of the project on the cluster")
 
     #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProject(VersionManagerMixin, HpcProjectAbstract):
+class HpcProject(VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
     """HpcProject model"""
 
     #: Set custom manager
@@ -721,6 +801,14 @@ class HpcProject(VersionManagerMixin, HpcProjectAbstract):
 
         return emails
 
+    def get_manager_names(self):
+        names = [self.group.owner.user.get_full_name()]
+
+        if self.delegate:
+            names += self.delegate.user.get_full_name()
+
+        return names
+
 
 class HpcProjectVersion(HpcProjectAbstract):
     """HpcProjectVersion model"""
@@ -741,17 +829,17 @@ class HpcProjectVersion(HpcProjectAbstract):
     )
 
     def __repr__(self):
-        return "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={},version={})".format(
-            self.__class__.__name__,
-            self.id,
-            self.name,
-            self.group.name,
-            self.delegate.username if self.delegate else None,
-            self.gid,
-            self.status,
-            self.members.count(),
-            self.creator.username if self.creator else None,
-            self.version,
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self.id},"
+            f"name={self.name},"
+            f"group={self.group.name},"
+            f"delegate={self.delegate.username if self.delegate else None},"
+            f"gid={self.gid},"
+            f"status={self.status},"
+            f"members={self.members.count()},"
+            f"creator={self.creator.username if self.creator else None},"
+            f"version={self.version})"
         )
 
 
@@ -887,15 +975,17 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
         max_length=64, help_text="POSIX name of the group on the cluster", null=True, blank=True
     )
 
-    #: Folder ot the group on the cluster.
-    folder = models.CharField(
-        max_length=64, help_text="Path to the group folder on the cluster", null=True, blank=True
+    #: Folders of the group on the cluster.
+    folders = models.JSONField(
+        help_text="Paths to the folders of the project on the cluster", null=True, blank=True
     )
 
     #: Description of what the group is working on.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations the group performs on the cluster",
+        help_text=(
+            "Concise description of what kind of computations the group performs on the cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -972,7 +1062,10 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
     #: Description, optional.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster"
+        ),
         null=True,
         blank=True,
     )
@@ -1314,15 +1407,18 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         max_length=64, help_text="POSIX name of the project on the cluster", null=True, blank=True
     )
 
-    #: Folder ot the project on the cluster.
-    folder = models.CharField(
-        max_length=64, help_text="Path to the project folder on the cluster", null=True, blank=True
+    #: Folders ot the project on the cluster.
+    folders = models.JSONField(
+        help_text="Paths to the folders of the project on the cluster", null=True, blank=True
     )
 
     #: Description of the project.
     description = models.CharField(
         max_length=512,
-        help_text="Concise description of what kind of computations are required for the project on the cluster",
+        help_text=(
+            "Concise description of what kind of computations are required for the project on the "
+            "cluster",
+        ),
         null=True,
         blank=True,
     )
@@ -1628,3 +1724,56 @@ class HpcGroupInvitationVersion(HpcGroupInvitationAbstract):
         help_text="Object this version belongs to",
         on_delete=models.CASCADE,
     )
+
+
+# ------------------------------------------------------------------------------
+# Other models
+# ------------------------------------------------------------------------------
+
+
+#: Object is initialized.
+TERMS_AUDIENCE_USER = "user"
+
+#: Object is set active.
+TERMS_AUDIENCE_PI = "pi"
+
+#: Object marked as deleted.
+TERMS_AUDIENCE_ALL = "all"
+
+#: Group, project and user statuses.
+TERMS_AUDIENCE_CHOICES = [
+    (TERMS_AUDIENCE_USER, TERMS_AUDIENCE_USER),
+    (TERMS_AUDIENCE_PI, TERMS_AUDIENCE_PI),
+    (TERMS_AUDIENCE_ALL, TERMS_AUDIENCE_ALL),
+]
+
+
+class TermsAndConditions(HpcObjectAbstract):
+    """Model for terms and conditions texts. Not an HpcObject, but requires same basics."""
+
+    #: Date of modification.
+    date_modified = models.DateTimeField(auto_now=True)
+
+    #: Title.
+    title = models.CharField(
+        max_length=512, null=False, blank=False, help_text="Title of this terms and conditions leg."
+    )
+
+    #: Legal text.
+    text = models.TextField(
+        null=False, blank=False, help_text="Text of this terms and conditions leg."
+    )
+
+    #: Display text to ...
+    audience = models.CharField(
+        max_length=16,
+        choices=TERMS_AUDIENCE_CHOICES,
+        default=TERMS_AUDIENCE_ALL,
+        help_text="Define the target audience of the text.",
+    )
+
+    #: Date of publication.
+    date_published = models.DateTimeField(null=True, blank=True, help_text="Date of publication.")
+
+    def __str__(self):
+        return self.title

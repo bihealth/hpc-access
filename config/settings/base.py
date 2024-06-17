@@ -4,8 +4,8 @@ Base settings to build other settings files upon.
 
 from pathlib import Path
 
-from dotenv import load_dotenv
 import environ
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -314,8 +314,8 @@ LDAP_ALT_DOMAINS = env.list("LDAP_ALT_DOMAINS", None, [])
 if ENABLE_LDAP:
     import itertools
 
-    from django_auth_ldap.config import LDAPSearch
     import ldap
+    from django_auth_ldap.config import LDAPSearch
 
     ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
@@ -408,6 +408,10 @@ SEND_EMAIL = env.bool("SEND_EMAIL", False)
 EMAIL_HOST = env.str("EMAIL_HOST", "localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", 25)
 EMAIL_SENDER = env.str("EMAIL_SENDER", "root@admin")
+SEND_QUOTA_EMAILS = env.bool("SEND_QUOTA_EMAILS", False)
+QUOTA_WARNING_THRESHOLD = env.int("QUOTA_WARNING_THRESHOLD", 80)
+CONSENT_GRACE_PERIOD = env.int("CONSENT_GRACE_PERIOD", 30)
+VIEW_MODE = env.bool("VIEW_MODE", False)
 
 
 # Celery

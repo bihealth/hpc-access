@@ -11,13 +11,11 @@ from rest_framework.generics import (
 from rest_framework.permissions import IsAdminUser
 
 from adminsec.constants import (
-    POSIX_AG_PREFIX,
-    POSIX_PROJECT_PREFIX,
-    RE_FOLDER_CHECK,
-    RE_GROUP_NAME_CHECK,
-    RE_PROJECT_NAME_CHECK,
+    RE_FOLDER,
+    RE_NAME,
 )
 from adminsec.permissions_api import IsHpcAdminUser
+from hpcaccess.utils.rest_framework import CursorPagination
 from usersec.models import (
     HpcGroup,
     HpcGroupCreateRequest,
@@ -34,12 +32,17 @@ from usersec.serializers import (
 )
 
 
+class HpcUserListPagination(CursorPagination):
+    ordering = "username"
+
+
 class HpcUserListApiView(ListAPIView):
     """API view for listing all users."""
 
-    queryset = HpcUser.objects.all()
+    queryset = HpcUser.objects.all().order_by("username")
     serializer_class = HpcUserSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcUserListPagination
 
 
 class HpcUserRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -54,12 +57,17 @@ class HpcUserRetrieveUpdateApiView(RetrieveUpdateAPIView):
         return get_object_or_404(HpcUser, uuid=self.kwargs["hpcuser"])
 
 
+class HpcGroupListPagination(CursorPagination):
+    ordering = "name"
+
+
 class HpcGroupListApiView(ListAPIView):
     """API view for listing all groups."""
 
     queryset = HpcGroup.objects.all()
     serializer_class = HpcGroupSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcGroupListPagination
 
 
 class HpcGroupRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -74,12 +82,17 @@ class HpcGroupRetrieveUpdateApiView(RetrieveUpdateAPIView):
         return get_object_or_404(HpcGroup, uuid=self.kwargs["hpcgroup"])
 
 
+class HpcProjectListPagination(CursorPagination):
+    ordering = "name"
+
+
 class HpcProjectListApiView(ListAPIView):
     """API view for listing all groups."""
 
     queryset = HpcProject.objects.all()
     serializer_class = HpcProjectSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = HpcProjectListPagination
 
 
 class HpcProjectRetrieveUpdateApiView(RetrieveUpdateAPIView):
@@ -108,38 +121,42 @@ class HpcGroupCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         """Create a new object."""
         name = serializer.validated_data.get("name")
-        folder = serializer.validated_data.get("folder")
+        folders = serializer.validated_data.get("folders")
+        errors = {}
 
         if name is not None:
-            if not re.match(RE_GROUP_NAME_CHECK, name):
-                raise ValidationError(
-                    {
-                        "name": (
-                            f"The group name must start with `{POSIX_AG_PREFIX}`, be lowercase, "
-                            "alphanumeric including hyphens (-), not starting with a number or "
-                            f"a hyphen or ending with a hyphen. (regex: {RE_GROUP_NAME_CHECK})"
-                        )
-                    }
+            if not re.match(RE_NAME, name):
+                errors["name"] = (
+                    "The group name must be lowercase, alphanumeric including hyphens (-), "
+                    "not starting with a number or a hyphen or ending with a hyphen. "
+                    f"(regex: {RE_NAME})"
                 )
 
-            if HpcGroup.objects.filter(name=name).exists():
-                raise ValidationError({"name": f"Group with name `{name}` already exists."})
+            elif HpcGroup.objects.filter(name=name).exists():
+                errors["name"] = f"Group with name `{name}` already exists."
 
-        if folder is not None:
-            if not re.match(RE_FOLDER_CHECK, folder):
-                raise ValidationError(
-                    {
-                        "folder": (
-                            "The path must be a valid UNIX path starting with a slash, "
-                            "only alphanumeric and hpyhen and underscore are allowed and "
-                            "the last folder name must follow the group name rules. "
-                            f"(regex: {RE_FOLDER_CHECK})"
-                        )
-                    }
-                )
+        for fkey, folder in folders.items():
+            if folder is not None:
+                m = re.match(RE_FOLDER, folder)
+                if not m:
+                    errors[fkey] = (
+                        "The path must be a valid UNIX path starting with a slash, "
+                        "only alphanumeric and hpyhen and underscore are allowed and "
+                        "the last folder name must follow the group name rules. "
+                        f"(regex: {RE_FOLDER})"
+                    )
 
-            if HpcGroup.objects.filter(folder=folder).exists():
-                raise ValidationError({"folder": f"Folder with path '{folder}' already exists."})
+                elif HpcGroup.objects.filter(folders__contains={fkey: folder}).exists():
+                    errors[fkey] = f"Folder with path '{folder}' already exists."
+
+                elif not name == m.group("name"):
+                    errors[fkey] = (
+                        "The last folder name the be same as the group name. "
+                        f"(group name: {name})"
+                    )
+
+        if errors:
+            raise ValidationError(errors)
 
         super().perform_update(serializer)
 
@@ -160,37 +177,41 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         """Create a new object."""
         name = serializer.validated_data.get("name")
-        folder = serializer.validated_data.get("folder")
+        folders = serializer.validated_data.get("folders")
+        errors = {}
 
         if name is not None:
-            if not re.match(RE_PROJECT_NAME_CHECK, name):
-                raise ValidationError(
-                    {
-                        "name": (
-                            f"The project name must start with `{POSIX_PROJECT_PREFIX}`, be lowercase, "
-                            "alphanumeric including hyphens (-), not starting with a number or "
-                            f"a hyphen or ending with a hyphen. (regex: {RE_PROJECT_NAME_CHECK})"
-                        )
-                    }
+            if not re.match(RE_NAME, name):
+                errors["name"] = (
+                    "The project name must be lowercase, alphanumeric including hyphens (-), "
+                    "not starting with a number or a hyphen or ending with a hyphen. "
+                    f"(regex: {RE_NAME})"
                 )
 
-            if HpcProject.objects.filter(name=name).exists():
-                raise ValidationError({"name": f"Project with name `{name}` already exists."})
+            elif HpcProject.objects.filter(name=name).exists():
+                errors["name"] = f"Project with name `{name}` already exists."
 
-        if folder is not None:
-            if not re.match(RE_FOLDER_CHECK, folder):
-                raise ValidationError(
-                    {
-                        "folder": (
-                            "The path must be a valid UNIX path starting with a slash, "
-                            "only alphanumeric and hpyhen and underscore are allowed and "
-                            "the last folder name must follow the project name rules. "
-                            f"(regex: {RE_FOLDER_CHECK})"
-                        )
-                    }
-                )
+        for fkey, folder in folders.items():
+            if folder is not None:
+                m = re.match(RE_FOLDER, folder)
+                if not m:
+                    errors[fkey] = (
+                        "The path must be a valid UNIX path starting with a slash, "
+                        "only alphanumeric and hpyhen and underscore are allowed and "
+                        "the last folder name must follow the project name rules. "
+                        f"(regex: {RE_FOLDER})"
+                    )
 
-            if HpcProject.objects.filter(folder=folder).exists():
-                raise ValidationError({"folder": f"Folder with path '{folder}' already exists."})
+                elif HpcProject.objects.filter(folders__contains={fkey: folder}).exists():
+                    errors[fkey] = f"Folder with path '{folder}' already exists."
+
+                elif not name == m.group("name"):
+                    errors[fkey] = (
+                        "The last folder name the be same as the project name. "
+                        f"(project name: {name})"
+                    )
+
+        if errors:
+            raise ValidationError(errors)
 
         super().perform_update(serializer)

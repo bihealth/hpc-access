@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% load common %}
+{% load rules %}
+
+{% block content %}
+
+<h1 class="mt-5">Terms and Conditions</h1>
+
+{% for obj in object_list %}
+  <h4 class="mt-4">{{ obj.title }}</h4>
+  <p>{{ obj.text }}</p>
+  <div class="input-group mb-4">
+    <span class="input-group-text">
+      <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
+    </span>
+    <label for="id_consent{{ forloop.counter }}">
+      <span class="form-control fw-bold">
+        I consent to <em>{{ obj.title }}</em>.
+      </span>
+    </label>
+  </div>
+{% endfor %}
+
+<form method="post" id="submit">
+  {% csrf_token %}
+  <button class="btn btn-primary disabled" type="submit" id="id_submit_button">
+    Continue
+  </button>
+</form>
+
+{% endblock %}
+
+{% block inline_javascript %}
+  {{ block.super }}
+  <script>
+    function consents() {
+        var consent = true;
+        var btn = $("#id_submit_button");
+        $(".consent").each(function(i, obj) {
+            consent &= obj.checked;
+        })
+        if (consent) {
+            btn.removeClass("disabled");
+        } else if (!btn.hasClass("disabled")) {
+            btn.addClass("disabled");
+        }
+    }
+    $(document).ready(function() {
+        $(".consent").click(consents);
+        consents();
+    });
+  </script>
+{% endblock inline_javascript %}

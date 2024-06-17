@@ -1,14 +1,15 @@
 """Configuration for hpc-access-cli."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import List
 
-from hpc_access_cli.models import StateOperation
+import typer
 from pydantic import BaseModel, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
-import typer
+
+from hpc_access_cli.models import StateOperation
 
 #: The rich console to use for output.
 console_err = Console(file=sys.stderr)

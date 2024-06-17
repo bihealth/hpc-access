@@ -5,12 +5,16 @@ import re
 
 from django.conf import settings
 from django.contrib import auth
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 
+from adminsec.constants import TIER_USER_HOME
 from usersec.models import (
     INVITATION_STATUS_ACCEPTED,
     HpcGroupInvitation,
+    HpcProject,
     HpcProjectInvitation,
+    HpcQuotaStatus,
+    HpcUser,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,6 +85,15 @@ Best regards,
 The BIH HPC Team
 
 (This email has been automatically generated.)
+""".lstrip()
+
+FOOTER_HTML = r"""
+<p>
+Best regards,<br />
+The BIH HPC Team
+</p>
+
+<p><em>(This email has been automatically generated.)</em></p>
 """.lstrip()
 
 # Admin email text blocks
@@ -265,7 +278,7 @@ https://hpc-access.cubi.bihealth.org/
 
 In this email you will learn how to set up your access to the BIH HPC cluster.
 
-Anything you need to know about the cluster is documented in the manual, and
+Anything you need to know about the cluster is documented in the manual and
 this email will point you to the most important articles to get you going. The
 manual also should be the first place to look at if you have further questions
 about the usage of the cluster:
@@ -278,42 +291,102 @@ To access the cluster, you have to generate an SSH key. The SSH key is your
 cluster access and should be protected by a password. Follow the instructions
 in the manual:
 
-https://bihealth.github.io/bih-cluster/connecting/generate-key/linux/
-https://bihealth.github.io/bih-cluster/connecting/generate-key/windows/
+https://hpc-docs.cubi.bihealth.org/connecting/generate-key/linux/
+https://hpc-docs.cubi.bihealth.org/connecting/generate-key/windows/
 
 Once you have created the SSH key, the next step depends on whether you are MDC
 or Charité user:
 
-https://bihealth.github.io/bih-cluster/connecting/submit-key/mdc/
-https://bihealth.github.io/bih-cluster/connecting/submit-key/charite/
+https://hpc-docs.cubi.bihealth.org/connecting/submit-key/mdc/
+https://hpc-docs.cubi.bihealth.org/connecting/submit-key/charite/
 
 ## Step 2 - Login
 
-Please follow the instructions to proceed to the login. Your username is
+Please follow these instructions to proceed to the login:
+
+https://hpc-docs.cubi.bihealth.org/connecting/ssh-basics/#connecting
+
+Your username is:
 
   {username}
 
-Depending on your operating system, please follow the instructions on how to
-configure your SSH client:
+Depending on your operating system you can configure your SSH client further:
 
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/linux/
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/windows/
+https://hpc-docs.cubi.bihealth.org/connecting/advanced-ssh/linux/
+https://hpc-docs.cubi.bihealth.org/connecting/advanced-ssh/windows/
 
-Please find the group folder in
+Your group's main shared folder can be found here:
 
   {group_folder}
 
 ## Problem Solving
 
-If you are running into problems during the login process, we provide you with
-a mini FAQ regarding common problems:
+If you are running into problems during the login process, please read our short
+troubleshooting section regarding common problems:
 
-https://bihealth.github.io/bih-cluster/connecting/configure-ssh/connection-problems/
+https://hpc-docs.cubi.bihealth.org/connecting/connection-problems/
 
-If you have general questions about the usage, please head to our portal to
-post your question and receive help from the community:
+If you have general questions about HPC usage, please head to our community forum
+to receive help from fellow HPC users:
 
 https://hpc-talk.cubi.bihealth.org
+
+{footer}
+""".lstrip()
+
+#: Notification for a quota report of an HPC object
+SUBJECT_QUOTA = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
+NOTIFICATION_QUOTA_PLAIN = r"""
+{greeting}
+
+one or more of your {entity} storage quotas for `{name}` are nearly full or already have reached the
+limit. Please consider cleaning up your files to avoid running into issues with your storage quota.
+
+{table}
+
+For more information, please follow this link:
+https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
+
+{footer}
+""".lstrip()
+NOTIFICATION_QUOTA_HTML = r"""
+<html>
+<body>
+<p>{greeting}</p>
+<p>
+one or more of your {entity} storage quotas for <strong>{name}</strong> are nearly full or already
+have reached the limit. Please consider cleaning up your files to avoid running into issues with
+your storage quota.
+</p>
+
+<table>
+{table}
+</table>
+
+<p>
+For more information and cleanup tips,
+<a href="https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email">
+please consult our documentation.
+</a>
+</p>
+
+{footer}
+</body>
+</html>
+""".lstrip()
+
+
+#: Notification for a pending consent
+SUBJECT_CONSENT = SUBJECT_PREFIX + "Consent required for BIH HPC cluster"
+NOTIFICATION_CONSENT = r"""
+{greeting}
+
+there have been changes in the terms and conditions for using the BIH HPC cluster. Please visit
+the following link to review them:
+
+{hpc_access_link}
+
+Agreeing to the updated terms and conditions is a requirement for the continued use of BIH HPC.
 
 {footer}
 """.lstrip()
@@ -324,7 +397,7 @@ https://hpc-talk.cubi.bihealth.org
 # ------------------------------------------------------------------------------
 
 
-def send_mail(subject, message, recipient_list):
+def send_mail(subject, message, recipient_list, alternative=None):
     """
     Wrapper for send_mail() with logging and error messaging.
 
@@ -335,26 +408,27 @@ def send_mail(subject, message, recipient_list):
     :param reply_to: List of emails for the "reply-to" header (optional)
     :return: Amount of sent email (int)
     """
+
+    messenger = EmailMultiAlternatives if alternative else EmailMessage
+
     try:
-        m = EmailMessage(
+        m = messenger(
             subject=subject,
             body=message,
             from_email=EMAIL_SENDER,
             to=recipient_list,
         )
+        if alternative:
+            m.attach_alternative(alternative, "text/html")
         ret = m.send(fail_silently=False)
-
         logger.debug("Notification email sent")
-
         return ret
 
     except Exception as ex:
         error_msg = "Error sending email: {}".format(str(ex))
         logger.error(error_msg)
-
         if DEBUG:
             raise ex
-
         return 0
 
 
@@ -398,7 +472,7 @@ def send_notification_manager_group_created(request, group):
     message = NOTIFICATION_MANAGER_GROUP_CREATED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         manual_link=MANUAL_LINK_PIS,
-        group_folder=group.folder,
+        group_folder=group.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -422,7 +496,7 @@ def send_notification_manager_project_created(request, project):
     message = NOTIFICATION_MANAGER_PROJECT_CREATED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         manual_link=MANUAL_LINK_PIS,
-        project_folder=project.folder,
+        project_folder=project.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [request.requester.email])
@@ -509,6 +583,69 @@ def send_notification_manager_request_denied(request):
     return send_mail(subject, message, [request.requester.email])
 
 
+def send_notification_storage_quota(hpc_obj, report):
+    if isinstance(hpc_obj, HpcUser):
+        greeting = USER_GREETING.format(user=hpc_obj.user.name)
+        emails = [hpc_obj.user.email]
+        entity = "user"
+        name = hpc_obj.user.name
+        unit = "GB"
+        folders = {TIER_USER_HOME: hpc_obj.home_directory}
+    else:
+        greeting = USER_GREETING.format(user=", ".join(hpc_obj.get_manager_names()))
+        emails = hpc_obj.get_manager_emails()
+        entity = "project" if isinstance(hpc_obj, HpcProject) else "group"
+        name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
+        unit = "TB"
+        folders = hpc_obj.folders
+
+    table_text = f"folder | quota [{unit}] | used [{unit}] | % | warning \n"
+    table_html = f"<tr><th>folder</th><th>quota [{unit}]</th><th>used [{unit}]</th><th></th></tr>\n"
+    for tier, status in report["status"].items():
+        data = {
+            "folder": folders.get(tier),
+            "requested": hpc_obj.resources_requested.get(tier),
+            "used": hpc_obj.resources_used.get(tier),
+            "percent": int(report["percentage"].get(tier)),
+        }
+        warning = ""
+        style = ""
+        if status == HpcQuotaStatus.RED:
+            warning = "QUOTA REACHED"
+            style = "background-color: red; color: white"
+        elif status == HpcQuotaStatus.YELLOW:
+            warning = f"STORAGE OVER {settings.QUOTA_WARNING_THRESHOLD}%"
+            style = "background-color: yellow"
+        table_text += "{folder} | {requested} | {used} | {percent}% | {warning}\n".format(
+            **data, warning=warning
+        )
+        table_html += (
+            "<tr style='{style}'>"
+            "<td>{folder}</td>"
+            "<td style='text-align: right'>{requested}</td>"
+            "<td style='text-align: right'>{used}</td>"
+            "<td style='text-align: right'>{percent}%</td>"
+            "</tr>\n"
+        ).format(**data, style=style)
+
+    subject = SUBJECT_QUOTA.format(entity=entity, name=name)
+    message_html = NOTIFICATION_QUOTA_HTML.format(
+        greeting=greeting,
+        entity=entity,
+        name=name,
+        table=table_html,
+        footer=FOOTER_HTML,
+    )
+    message_text = NOTIFICATION_QUOTA_PLAIN.format(
+        greeting=greeting,
+        entity=entity,
+        name=name,
+        table=table_text,
+        footer=FOOTER,
+    )
+    return send_mail(subject, message_text, emails, alternative=message_html)
+
+
 # ------------------------------------------------------------------------------
 # User email notifications
 # ------------------------------------------------------------------------------
@@ -567,7 +704,17 @@ def send_notification_user_welcome_mail(user):
     message = NOTIFICATION_USER_WELCOME_MAIL.format(
         greeting=USER_GREETING.format(user=user.user.name),
         username=user.username,
-        group_folder=user.primary_group.folder,
+        group_folder=user.primary_group.folders.get("tier1_work"),
         footer=FOOTER,
     )
     return send_mail(subject, message, [user.user.email])
+
+
+def send_notification_user_consent(user):
+    subject = SUBJECT_CONSENT
+    message = NOTIFICATION_CONSENT.format(
+        greeting=USER_GREETING.format(user=user.name),
+        hpc_access_link=HPC_ACCESS_LINK,
+        footer=FOOTER,
+    )
+    return send_mail(subject, message, [user.email])
