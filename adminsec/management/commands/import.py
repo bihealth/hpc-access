@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.timezone import make_aware
 
+from adminsec.tasks import clean_db_of_hpc_objects
 from usersec.models import HpcGroup, HpcProject, HpcUser
 
 from .models import HpcaccessState
@@ -42,12 +43,19 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("json", type=str)
         parser.add_argument("--write", action="store_true")
+        parser.add_argument("--purge", action="store_true")
 
     def handle(self, *args, **options):
         worker_user = User.objects.get(username="hpc-worker")
         context = transaction.atomic() if options["write"] else rollback(self)
         try:
             with context, open(options["json"], "r") as jsonfile:
+                if options["purge"]:
+                    users_consented = clean_db_of_hpc_objects()
+                    if users_consented is None:
+                        self.stderr.write("Failed to clean database of HPC objects ... aborting.")
+                        return
+
                 data = HpcaccessState.model_validate_json(jsonfile.read())
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup(
@@ -78,6 +86,7 @@ class Command(BaseCommand):
                     else:
                         hpcgroup = None
 
+                    username = f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
                     user = User.objects.create(
                         first_name=user_data.first_name.strip(),
                         last_name=user_data.last_name.strip(),
@@ -86,9 +95,10 @@ class Command(BaseCommand):
                         is_staff=False,
                         is_superuser=False,
                         is_hpcadmin=False,
+                        consented_to_terms=username in users_consented,
                         phone=user_data.phone_number,
                         uid=user_data.uid,
-                        username=f"{ldap_user}{SUFFIX_MAPPING[suffix]}",
+                        username=username,
                     )
                     hpcuser = HpcUser(
                         uuid=user_uuid,

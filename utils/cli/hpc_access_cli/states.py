@@ -467,20 +467,22 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             console_err.log(f"WARNING: {e}")
             continue
 
+        quota_bytes = fs_data.quota_bytes if fs_data.quota_bytes is not None else 0
+
         if entity == ENTITY_USERS:
             if name not in user_by_uid:
                 console_err.log(f"WARNING: user {name} not found")
                 continue
             if name not in user_quotas:
                 user_quotas[name] = {}
-            user_quotas[name][resource] = fs_data.quota_bytes / 1024**3
+            user_quotas[name][resource] = quota_bytes / 1024**3
         elif entity in (ENTITY_GROUPS, ENTITY_PROJECTS):
             if name not in group_by_name:
                 console_err.log(f"WARNING: group {name} not found")
                 continue
             if name not in group_quotas:
                 group_quotas[name] = {}
-            group_quotas[name][resource] = fs_data.quota_bytes / 1024**4
+            group_quotas[name][resource] = quota_bytes / 1024**4
 
     def build_hpcuser(u: LdapUser, quotas: Dict[str, str]) -> HpcUser:
         if u.login_shell != LOGIN_SHELL_DISABLED:

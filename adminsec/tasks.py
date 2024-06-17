@@ -12,9 +12,20 @@ from config.celery import app
 from usersec.models import (
     OBJECT_STATUS_EXPIRED,
     HpcGroup,
+    HpcGroupChangeRequest,
+    HpcGroupCreateRequest,
+    HpcGroupDeleteRequest,
+    HpcGroupInvitation,
     HpcProject,
+    HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcProjectDeleteRequest,
+    HpcProjectInvitation,
     HpcQuotaStatus,
     HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
+    HpcUserDeleteRequest,
     TermsAndConditions,
 )
 
@@ -135,3 +146,37 @@ def disable_users_without_consent(_self):
 @app.task(bind=True)
 def sync_ldap(_self, write=False, verbose=False):
     _sync_ldap(write, verbose)
+
+
+@transaction.atomic
+def clean_db_of_hpc_objects():
+    hpc_object_to_delete = (
+        HpcUser,
+        HpcGroup,
+        HpcProject,
+        HpcGroupCreateRequest,
+        HpcGroupChangeRequest,
+        HpcGroupDeleteRequest,
+        HpcProjectCreateRequest,
+        HpcProjectChangeRequest,
+        HpcProjectDeleteRequest,
+        HpcUserCreateRequest,
+        HpcUserChangeRequest,
+        HpcUserDeleteRequest,
+        HpcProjectInvitation,
+        HpcGroupInvitation,
+    )
+
+    for model in hpc_object_to_delete:
+        model.objects.all().delete()
+
+    users_consented = [u.username for u in User.objects.filter(consented_to_terms=True)]
+    User.objects.all().exclude(is_hpcadmin=True).exclude(is_superuser=True).exclude(
+        is_staff=True
+    ).delete()
+
+    for model in hpc_object_to_delete:
+        if not model.objects.count() == 0:
+            return None
+    else:
+        return users_consented

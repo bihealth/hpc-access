@@ -11,6 +11,7 @@ from adminsec.ldap import LdapConnector
 from adminsec.tasks import (
     _generate_quota_reports,
     _sync_ldap,
+    clean_db_of_hpc_objects,
     disable_users_without_consent,
     send_quota_email,
 )
@@ -32,10 +33,34 @@ from adminsec.tests.test_ldap import (
 from usersec.models import (
     OBJECT_STATUS_ACTIVE,
     OBJECT_STATUS_EXPIRED,
+    HpcGroup,
+    HpcGroupChangeRequest,
+    HpcGroupCreateRequest,
+    HpcGroupDeleteRequest,
+    HpcGroupInvitation,
+    HpcProject,
+    HpcProjectChangeRequest,
+    HpcProjectCreateRequest,
+    HpcProjectDeleteRequest,
+    HpcProjectInvitation,
+    HpcUser,
+    HpcUserChangeRequest,
+    HpcUserCreateRequest,
 )
 from usersec.tests.factories import (
+    HpcGroupChangeRequestFactory,
+    HpcGroupCreateRequestFactory,
+    HpcGroupDeleteRequestFactory,
     HpcGroupFactory,
+    HpcGroupInvitationFactory,
+    HpcProjectChangeRequestFactory,
+    HpcProjectCreateRequestFactory,
+    HpcProjectDeleteRequestFactory,
     HpcProjectFactory,
+    HpcProjectInvitationFactory,
+    HpcUserChangeRequestFactory,
+    HpcUserCreateRequestFactory,
+    HpcUserDeleteRequestFactory,
     HpcUserFactory,
     TermsAndConditionsFactory,
 )
@@ -372,3 +397,113 @@ class DisableUsersWithoutConsent(TestCase):
         disable_users_without_consent()
 
         self.assertEqual(User.objects.filter(is_active=False).count(), 0)
+
+
+class CleanDbOfHpcObjects(TestCase):
+    """Tests for clean_db_of_hpc_objects."""
+
+    def setUp(self):
+        # Superuser
+        self.superuser = self.make_user("superuser")
+        self.superuser.is_superuser = True
+        self.superuser.save()
+
+        # HPC Admin
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+        # Init default user
+        self.user = self.make_user("user@CHARITE")
+        self.user.name = "John Doe"
+        self.user.email = "user@example.com"
+        self.user.consented_to_terms = True
+        self.user.save()
+
+        # Create group and owner
+        self.user_owner = self.make_user("owner")
+        self.user_owner.email = "owner@example.com"
+        self.user_owner.name = "AG Owner"
+        self.user_owner.save()
+
+        self.hpc_group = HpcGroupFactory(creator=self.user_hpcadmin)
+        self.hpc_owner = HpcUserFactory(
+            user=self.user_owner, primary_group=self.hpc_group, creator=self.user_hpcadmin
+        )
+        self.hpc_group.owner = self.hpc_owner
+        self.hpc_group.save()
+
+        self.user_member = self.make_user("member")
+        self.user_member.name = "AG Member"
+        self.user_member.email = "member@example.com"
+        self.user_member.save()
+
+        self.hpc_member = HpcUserFactory(
+            user=self.user_member, primary_group=self.hpc_group, creator=self.user_hpcadmin
+        )
+
+        # Create project
+        self.hpc_project = HpcProjectFactory(group=self.hpc_group, creator=self.user_hpcadmin)
+        self.hpc_project.members.add(self.hpc_owner)
+        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
+
+        # Create group requests
+        HpcGroupCreateRequestFactory(requester=self.user)
+        HpcGroupChangeRequestFactory(requester=self.user_owner, group=self.hpc_group)
+        HpcGroupDeleteRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+        # Create project requests
+        self.hpc_project_create_request = HpcProjectCreateRequestFactory(
+            requester=self.user_owner, group=self.hpc_group
+        )
+        HpcProjectChangeRequestFactory(requester=self.user_owner, project=self.hpc_project)
+        HpcProjectDeleteRequestFactory(requester=self.user_owner, project=self.hpc_project)
+
+        # Create user requests
+        self.hpc_user_create_request = HpcUserCreateRequestFactory(
+            requester=self.user_owner, group=self.hpc_group
+        )
+        HpcUserChangeRequestFactory(requester=self.user_owner, user=self.hpc_owner)
+        HpcUserDeleteRequestFactory(requester=self.user_owner, user=self.hpc_owner)
+
+        # Create invitations
+        HpcProjectInvitationFactory(
+            project=self.hpc_project,
+            user=self.hpc_member,
+            hpcprojectcreaterequest=self.hpc_project_create_request,
+        )
+        HpcGroupInvitationFactory(hpcusercreaterequest=self.hpc_user_create_request)
+
+    def test_clean_db_of_hpc_objects(self):
+        self.assertEqual(HpcUser.objects.count(), 2)
+        self.assertEqual(HpcGroup.objects.count(), 1)
+        self.assertEqual(HpcProject.objects.count(), 1)
+        self.assertEqual(HpcGroupCreateRequest.objects.count(), 1)
+        self.assertEqual(HpcGroupChangeRequest.objects.count(), 1)
+        self.assertEqual(HpcGroupDeleteRequest.objects.count(), 1)
+        self.assertEqual(HpcProjectCreateRequest.objects.count(), 1)
+        self.assertEqual(HpcProjectChangeRequest.objects.count(), 1)
+        self.assertEqual(HpcProjectDeleteRequest.objects.count(), 1)
+        self.assertEqual(HpcUserCreateRequest.objects.count(), 1)
+        self.assertEqual(HpcUserChangeRequest.objects.count(), 1)
+        self.assertEqual(HpcProjectInvitation.objects.count(), 1)
+        self.assertEqual(HpcGroupInvitation.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 5)
+
+        ret = clean_db_of_hpc_objects()
+
+        self.assertTrue(ret, [self.user.username])
+        self.assertEqual(HpcUser.objects.count(), 0)
+        self.assertEqual(HpcGroup.objects.count(), 0)
+        self.assertEqual(HpcProject.objects.count(), 0)
+        self.assertEqual(HpcGroupCreateRequest.objects.count(), 0)
+        self.assertEqual(HpcGroupChangeRequest.objects.count(), 0)
+        self.assertEqual(HpcGroupDeleteRequest.objects.count(), 0)
+        self.assertEqual(HpcProjectCreateRequest.objects.count(), 0)
+        self.assertEqual(HpcProjectChangeRequest.objects.count(), 0)
+        self.assertEqual(HpcProjectDeleteRequest.objects.count(), 0)
+        self.assertEqual(HpcUserCreateRequest.objects.count(), 0)
+        self.assertEqual(HpcUserChangeRequest.objects.count(), 0)
+        self.assertEqual(HpcProjectInvitation.objects.count(), 0)
+        self.assertEqual(HpcGroupInvitation.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 2)
