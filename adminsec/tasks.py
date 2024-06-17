@@ -1,10 +1,22 @@
 # Create your tasks here
 from collections import defaultdict
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.utils import timezone
 
+from adminsec.email import send_notification_storage_quota
 from adminsec.ldap import LdapConnector
 from config.celery import app
+from usersec.models import (
+    OBJECT_STATUS_EXPIRED,
+    HpcGroup,
+    HpcProject,
+    HpcQuotaStatus,
+    HpcUser,
+    TermsAndConditions,
+)
 
 User = get_user_model()
 
@@ -68,6 +80,56 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             continue
 
     return exception_count
+
+
+def _generate_quota_reports():
+    return {
+        "users": {o: o.generate_quota_report() for o in HpcUser.objects.all()},
+        "projects": {o: o.generate_quota_report() for o in HpcProject.objects.all()},
+        "groups": {o: o.generate_quota_report() for o in HpcGroup.objects.all()},
+    }
+
+
+@app.task(bind=True)
+def send_quota_email(_self):
+    if not settings.SEND_QUOTA_EMAILS:
+        return
+
+    reports = _generate_quota_reports()
+
+    for data in reports.values():
+        for hpc_obj, report in data.items():
+            if any([not s == HpcQuotaStatus.GREEN for s in report["status"].values()]):
+                send_notification_storage_quota(hpc_obj, report)
+
+
+@transaction.atomic
+@app.task(bind=True)
+def disable_users_without_consent(_self):
+    terms = TermsAndConditions.objects.filter(date_published__isnull=False)
+    if not terms.exists():
+        return
+    if (
+        terms.first().date_published + timezone.timedelta(days=settings.CONSENT_GRACE_PERIOD)
+        > timezone.now()
+    ):
+        return
+    users = (
+        User.objects.filter(consented_to_terms=False)
+        .exclude(is_hpcadmin=True)
+        .exclude(is_superuser=True)
+        .exclude(is_staff=True)
+    )
+    for user in users:
+        user.is_active = False
+        user.save()
+        try:
+            hpcuser = HpcUser.objects.get(user=user)
+            hpcuser.status = OBJECT_STATUS_EXPIRED
+            hpcuser.login_shell = "/usr/sbin/nologin"
+            hpcuser.save()
+        except HpcUser.DoesNotExist:
+            continue
 
 
 @app.task(bind=True)

@@ -10,10 +10,12 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
     </li>
-    {% if group_manager or project_manager %}
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="administration-tab" data-bs-toggle="pill" data-bs-target="#administration" type="button" role="tab" aria-controls="administration" aria-selected="false">Administration</button>
-      </li>
+    {% if not view_mode %}
+      {% if group_manager or project_manager %}
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="administration-tab" data-bs-toggle="pill" data-bs-target="#administration" type="button" role="tab" aria-controls="administration" aria-selected="false">Administration</button>
+        </li>
+      {% endif %}
     {% endif %}
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="user-info-tab" data-bs-toggle="pill" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="false">User Info</button>
@@ -30,10 +32,12 @@
         </div>
       </div>
     </div>
-    {% if group_manager or project_manager %}
-      <div class="tab-pane fade" id="administration" role="tabpanel" aria-labelledby="administration-tab">
-        {% include "usersec/modules/request_grid.html" %}
-      </div>
+    {% if not view_mode %}
+      {% if group_manager or project_manager %}
+        <div class="tab-pane fade" id="administration" role="tabpanel" aria-labelledby="administration-tab">
+          {% include "usersec/modules/request_grid.html" %}
+        </div>
+      {% endif %}
     {% endif %}
     <div class="tab-pane fade" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
 
@@ -52,7 +56,7 @@
 
       <dl class="row">
         <dt class="col-sm-2">Member of Group</dt>
-        <dd class="col-sm-10">AG {{ object.primary_group.owner.user.last_name }}</dd>
+        <dd class="col-sm-10">AG {{ object.primary_group.name.capitalize }}</dd>
 
         <dt class="col-sm-2">Member of Projects</dt>
         <dd class="col-sm-10">
@@ -76,12 +80,12 @@
             </li>
             <li>
               <div class="progress w-50">
-                <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_home" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_home" }}' aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_home" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_home" }}' aria-valuemin="0" aria-valuemax="100">
                   {{ object|storage_in_percent:"tier1_home" }}%
                 </div>
               </div>
             </li>
-          </div>
+          </ul>
         </dd>
 
         <dt class="col-sm-2">Login Shell</dt>

@@ -3,12 +3,23 @@ import unicodedata
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import F, Q
+from django.forms import Form
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.datetime_safe import datetime
 from django.views import View
-from django.views.generic import DeleteView, DetailView, TemplateView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
+from django.views.generic.edit import FormMixin
 
 from adminsec.constants import (
     DEFAULT_GROUP_DIRECTORY_TIER1_SCRATCH,
@@ -30,6 +41,7 @@ from adminsec.email import (
     send_notification_manager_project_created,
     send_notification_manager_request_denied,
     send_notification_manager_revision_required,
+    send_notification_user_consent,
     send_notification_user_invitation,
     send_notification_user_welcome_mail,
 )
@@ -57,6 +69,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    TermsAndConditions,
 )
 from usersec.views import (
     MSG_PART_GROUP_CREATION,
@@ -1371,3 +1384,98 @@ class HpcProjectChangeRequestDenyView(HpcPermissionMixin, DeleteView):
 
         messages.success(self.request, MSG_REQUEST_DENIED_SUCCESS.format(MSG_PART_PROJECT_UPDATE))
         return HttpResponseRedirect(reverse("adminsec:overview"))
+
+
+class TermsAndConditionsListView(ListView):
+    """TermsAndConditions list view."""
+
+    model = TermsAndConditions
+    template_name = "adminsec/termsandconditions_list.html"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        data["not_published"] = (
+            TermsAndConditions.objects.filter(
+                Q(date_published__isnull=True) | Q(date_published__lt=F("date_modified"))
+            ).count()
+            > 0
+        )
+        users = (
+            User.objects.all()
+            .exclude(is_hpcadmin=True)
+            .exclude(is_superuser=True)
+            .exclude(is_staff=True)
+        )
+        data["users_consent"] = users.filter(consented_to_terms=True)
+        data["users_missing_consent"] = users.filter(consented_to_terms=False)
+        return data
+
+
+class TermsAndConditionsCreateView(CreateView):
+    """TermsAndConditions create view."""
+
+    model = TermsAndConditions
+    template_name = "adminsec/termsandconditions_form.html"
+    permission_required = "adminsec.is_hpcadmin"
+    fields = ["title", "text", "audience"]
+    success_url = reverse_lazy("adminsec:termsandconditions-list")
+
+
+class TermsAndConditionsUpdateView(UpdateView):
+    """TermsAndConditions update view."""
+
+    model = TermsAndConditions
+    slug_field = "uuid"
+    slug_url_kwarg = "termsandconditions"
+    template_name = "adminsec/termsandconditions_form.html"
+    permission_required = "adminsec.is_hpcadmin"
+    fields = ["title", "text", "audience"]
+    success_url = reverse_lazy("adminsec:termsandconditions-list")
+
+
+class TermsAndConditionsDeleteView(DeleteView):
+    """TermsAndConditions delete view."""
+
+    model = TermsAndConditions
+    slug_field = "uuid"
+    slug_url_kwarg = "termsandconditions"
+    template_name = "adminsec/termsandconditions_confirm_delete.html"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:termsandconditions-list")
+
+
+class TermsAndConditionsPublishView(FormMixin, View):
+    """TermsAndConditions publish view."""
+
+    permission_required = "adminsec.is_hpcadmin"
+    template_name = "adminsec/termsandconditions_confirm_publish.html"
+    success_url = reverse_lazy("adminsec:termsandconditions-list")
+    form_class = Form
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data()
+        return render(request, self.template_name, context=context)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            messages.success(request, "Successfully published the terms and conditions.")
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def form_valid(self, _form):
+        TermsAndConditions.objects.all().update(date_published=timezone.now())
+        User.objects.all().update(consented_to_terms=False)
+
+        if settings.SEND_EMAIL:
+            for user in (
+                User.objects.all()
+                .exclude(is_hpcadmin=True)
+                .exclude(is_superuser=True)
+                .exclude(is_staff=True)
+            ):
+                send_notification_user_consent(user)
+
+        return HttpResponseRedirect(self.success_url)

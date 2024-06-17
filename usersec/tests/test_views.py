@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.messages import get_messages
 from django.core import mail
 from django.urls import reverse
+from django.utils import timezone
 from test_plus.test import TestCase
 
 from usersec.models import (
@@ -15,6 +16,8 @@ from usersec.models import (
     REQUEST_STATUS_DENIED,
     REQUEST_STATUS_INITIAL,
     REQUEST_STATUS_RETRACTED,
+    TERMS_AUDIENCE_PI,
+    TERMS_AUDIENCE_USER,
     HpcGroupCreateRequest,
     HpcProjectChangeRequest,
     HpcProjectCreateRequest,
@@ -39,6 +42,7 @@ from usersec.tests.factories import (
     HpcUserChangeRequestFactory,
     HpcUserCreateRequestFactory,
     HpcUserFactory,
+    TermsAndConditionsFactory,
 )
 
 
@@ -93,6 +97,12 @@ class TestViewBase(TestCase):
 class TestHomeView(TestViewBase):
     """Tests for HomeView."""
 
+    def setUp(self):
+        super().setUp()
+
+        self.user.consented_to_terms = True
+        self.user.save()
+
     def test_get_no_cluster_user(self):
         with self.login(self.user):
             response = self.client.get(reverse("home"))
@@ -118,14 +128,44 @@ class TestHomeView(TestViewBase):
             response = self.client.get(reverse("home"))
             self.assertRedirects(response, reverse("admin-landing"))
 
+    def test_get_not_consented_empty_terms(self):
+        self.user.consented_to_terms = False
+        self.user.save()
+
+        with self.login(self.user):
+            response = self.client.get(reverse("home"))
+            self.assertRedirects(response, reverse("usersec:orphan-user"))
+
+    def test_get_not_consented(self):
+        self.user.consented_to_terms = False
+        self.user.save()
+        TermsAndConditionsFactory(date_published=timezone.now())
+
+        with self.login(self.user):
+            response = self.client.get(reverse("home"))
+            self.assertRedirects(response, reverse("usersec:terms"))
+
 
 class TestOrphanUserView(TestViewBase):
     """Tests for OrphanUserView."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.terms_all = TermsAndConditionsFactory(date_published=timezone.now())
+        self.terms_all_unpublished = TermsAndConditionsFactory()
+        self.terms_pi = TermsAndConditionsFactory(
+            date_published=timezone.now(), title="For PIs", audience=TERMS_AUDIENCE_PI
+        )
+        self.terms_users = TermsAndConditionsFactory(
+            date_published=timezone.now(), title="For Users", audience=TERMS_AUDIENCE_USER
+        )
 
     def test_get(self):
         with self.login(self.user):
             response = self.client.get(reverse("usersec:orphan-user"))
             self.assertEqual(response.status_code, 200)
+            self.assertListEqual(list(response.context["terms_list"]), [self.terms_pi])
 
     def test_post_form_valid(self):
         with self.login(self.user):
@@ -1736,7 +1776,7 @@ class TestHpcProjectCreateRequestRetractView(TestViewBase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class TestHpcProjectCreateRequestRectivateView(TestViewBase):
+class TestHpcProjectCreateRequestReactivateView(TestViewBase):
     """Tests for HpcProjectCreateRequestReactivateView."""
 
     def setUp(self):
@@ -2144,6 +2184,17 @@ class TestHpcGroupInvitationDetailView(TestViewBase):
         self.obj.hpcusercreaterequest.group = self.hpc_group
         self.obj.hpcusercreaterequest.save()
 
+        self.terms_all = TermsAndConditionsFactory(date_published=timezone.now())
+        self.terms_pi = TermsAndConditionsFactory(
+            date_published=timezone.now(), title="For PIs", audience=TERMS_AUDIENCE_PI
+        )
+        self.terms_users = TermsAndConditionsFactory(
+            date_published=timezone.now(), title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+        self.terms_users_unpublished = TermsAndConditionsFactory(
+            title="For Users 2", audience=TERMS_AUDIENCE_USER
+        )
+
     def test_get(self):
         with self.login(self.user_invited):
             response = self.client.get(
@@ -2154,6 +2205,7 @@ class TestHpcGroupInvitationDetailView(TestViewBase):
             )
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["object"], self.obj)
+            self.assertEqual(list(response.context["terms_list"]), [self.terms_users])
 
 
 class TestHpcGroupInvitationAcceptView(TestViewBase):
@@ -2353,3 +2405,61 @@ class TestHpcProjectInvitationRejectView(TestViewBase):
             self.assertEqual(self.obj.status, INVITATION_STATUS_REJECTED)
 
             self.assertEqual(len(mail.outbox), 1)
+
+
+class TestTermsAndConditionsView(TestViewBase):
+    """Tests for TermsAndConditionsView."""
+
+    def setUp(self):
+        super().setUp()
+        self.terms_all = TermsAndConditionsFactory()
+        self.terms_pi = TermsAndConditionsFactory(title="For PIs", audience=TERMS_AUDIENCE_PI)
+        self.terms_users = TermsAndConditionsFactory(
+            title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+
+    def test_get_as_user_empty(self):
+        with self.login(self.user):
+            response = self.client.get(reverse("usersec:terms"))
+            self.assertEqual(response.status_code, 200)
+            self.assertListEqual(list(response.context["object_list"]), [])
+
+    def test_get_as_pi_empty(self):
+        with self.login(self.user_owner):
+            response = self.client.get(reverse("usersec:terms"))
+            self.assertEqual(response.status_code, 200)
+            self.assertListEqual(list(response.context["object_list"]), [])
+
+    def test_get_as_user_published(self):
+        for i in [self.terms_all, self.terms_pi, self.terms_users]:
+            i.date_published = timezone.now()
+            i.save()
+
+        with self.login(self.user_member):
+            response = self.client.get(reverse("usersec:terms"))
+            self.assertEqual(response.status_code, 200)
+            self.assertListEqual(
+                list(response.context["object_list"]), [self.terms_all, self.terms_users]
+            )
+
+    def test_get_as_user_orphan_published(self):
+        for i in [self.terms_all, self.terms_pi, self.terms_users]:
+            i.date_published = timezone.now()
+            i.save()
+
+        with self.login(self.user):
+            response = self.client.get(reverse("usersec:terms"))
+            self.assertEqual(response.status_code, 200)
+            self.assertListEqual(list(response.context["object_list"]), [self.terms_all])
+
+    def test_get_as_pi_published(self):
+        for i in [self.terms_all, self.terms_pi, self.terms_users]:
+            i.date_published = timezone.now()
+            i.save()
+
+        with self.login(self.user_owner):
+            response = self.client.get(reverse("usersec:terms"))
+            self.assertEqual(response.status_code, 200)
+            self.assertListEqual(
+                list(response.context["object_list"]), [self.terms_all, self.terms_pi]
+            )

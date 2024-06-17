@@ -1,33 +1,21 @@
-<div class="btn-group" role="group" >
-  <a class="btn btn-outline-secondary" href="{% url 'adminsec:overview' %}">
-    <i class="iconify" data-icon="mdi:home"></i>
-    Go to Overview
-  </a>
-  {% if is_active %}
-  <div class="btn-group" role="group">
-      <button class="btn btn-secondary dropdown-toggle" type="button" id="hpcadmin-action-menu" data-bs-toggle="dropdown" aria-expanded="false">
-        Action
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="hpcadmin-action-menu">
-        <li>
-          <a class="dropdown-item text-success" href="{{ object.get_approve_url }}">
-            <i class="iconify" data-icon="mdi:check-bold"></i>
-            Approve
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item" href="{{ object.get_revision_url }}">
-            <i class="iconify" data-icon="mdi:comment"></i>
-            Request Revision
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item text-danger" href="{{ object.get_deny_url }}">
-            <i class="iconify" data-icon="mdi:minus-circle"></i>
-            Deny
-          </a>
-        </li>
-      </ul>
-    </div>
-  {% endif %}
-</div>
+{% if is_active %}
+  <div class="btn-group" role="group" >
+    <a class="btn btn-success" href="{{ object.get_approve_url }}">
+      <i class="iconify" data-icon="mdi:check-bold"></i>
+      Approve
+    </a>
+    <a class="btn btn-secondary" href="{{ object.get_revision_url }}">
+      <i class="iconify" data-icon="mdi:comment"></i>
+      Request Revision
+    </a>
+    <a class="btn btn-danger" href="{{ object.get_deny_url }}">
+      <i class="iconify" data-icon="mdi:minus-circle"></i>
+      Deny
+    </a>
+  </div>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{% url 'adminsec:overview' %}">
+  <i class="iconify" data-icon="mdi:home"></i>
+  Go to Overview
+</a>

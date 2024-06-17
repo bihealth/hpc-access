@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import TemplateView
 
 from usersec import views
 
@@ -7,6 +8,12 @@ app_name = "usersec"
 
 urlpatterns = [
     path("orphan/", view=views.OrphanUserView.as_view(), name="orphan-user"),
+    path("terms/", view=views.TermsAndConditionsView.as_view(), name="terms"),
+    path(
+        "viewmode/",
+        view=TemplateView.as_view(template_name="usersec/view_mode.html"),
+        name="view-mode-enabled",
+    ),
     # ------------------------------------------------------------------------------
     # HpcGroup related
     # ------------------------------------------------------------------------------

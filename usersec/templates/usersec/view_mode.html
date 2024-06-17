@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% load common %}
+{% load rules %}
+
+{% block content %}
+
+  <h2 class="mt-5">Hello {{ request.user.name }},</h2>
+
+  <p class="lead">
+    this service only available to users who already have a cluster account.
+    Please contact your PI to get into the process of getting an account.
+    Find more information in the
+    <a href="https://hpc-docs.cubi.bihealth.org/admin/getting-access/">BIH HPC documentation</a>.
+  </p>
+{% endblock %}

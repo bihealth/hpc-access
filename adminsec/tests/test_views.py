@@ -2,10 +2,12 @@ import json
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from adminsec.views import (
     convert_to_posix,
@@ -17,12 +19,15 @@ from usersec.models import (
     REQUEST_STATUS_APPROVED,
     REQUEST_STATUS_DENIED,
     REQUEST_STATUS_RETRACTED,
+    TERMS_AUDIENCE_PI,
+    TERMS_AUDIENCE_USER,
     HpcGroup,
     HpcGroupCreateRequest,
     HpcGroupInvitation,
     HpcProject,
     HpcProjectInvitation,
     HpcUser,
+    TermsAndConditions,
 )
 from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
@@ -32,8 +37,11 @@ from usersec.tests.factories import (
     HpcUserChangeRequestFactory,
     HpcUserCreateRequestFactory,
     HpcUserFactory,
+    TermsAndConditionsFactory,
 )
 from usersec.tests.test_views import TestViewBase
+
+User = get_user_model()
 
 
 class TestAdminView(TestViewBase):
@@ -1852,6 +1860,274 @@ class TestHpcProjectChangeRequestDenyView(TestViewBase):
             self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
 
             self.assertEqual(len(mail.outbox), 1)
+
+
+class TestTermsAndConditionsListView(TestViewBase):
+    """Tests for TermsAndConditionsListView."""
+
+    def test_get(self):
+        self.terms_all = TermsAndConditionsFactory()
+        self.terms_pi = TermsAndConditionsFactory(title="For PIs", audience=TERMS_AUDIENCE_PI)
+        self.terms_users = TermsAndConditionsFactory(
+            title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-list"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context["object_list"]), 3)
+            self.assertListEqual(
+                list(response.context["object_list"]),
+                [self.terms_all, self.terms_pi, self.terms_users],
+            )
+            self.assertTrue(response.context["not_published"])
+
+    def test_get_published(self):
+        self.terms_all = TermsAndConditionsFactory()
+        self.terms_pi = TermsAndConditionsFactory(title="For PIs", audience=TERMS_AUDIENCE_PI)
+        self.terms_users = TermsAndConditionsFactory(
+            title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+        TermsAndConditions.objects.all().update(date_published=timezone.now())
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-list"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context["object_list"]), 3)
+            self.assertListEqual(
+                list(response.context["object_list"]),
+                [self.terms_all, self.terms_pi, self.terms_users],
+            )
+            self.assertFalse(response.context["not_published"])
+
+    def test_get_not_all_published(self):
+        self.terms_all = TermsAndConditionsFactory(date_published=timezone.now())
+        self.terms_pi = TermsAndConditionsFactory(title="For PIs", audience=TERMS_AUDIENCE_PI)
+        self.terms_users = TermsAndConditionsFactory(
+            title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-list"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context["object_list"]), 3)
+            self.assertListEqual(
+                list(response.context["object_list"]),
+                [self.terms_all, self.terms_pi, self.terms_users],
+            )
+            self.assertTrue(response.context["not_published"])
+
+    def test_get_edit_after_published(self):
+        self.terms_all = TermsAndConditionsFactory()
+        self.terms_pi = TermsAndConditionsFactory(title="For PIs", audience=TERMS_AUDIENCE_PI)
+        self.terms_users = TermsAndConditionsFactory(
+            title="For Users", audience=TERMS_AUDIENCE_USER
+        )
+        TermsAndConditions.objects.all().update(date_published=timezone.now())
+        self.terms_all.text = "Updated"
+        self.terms_all.save()
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-list"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context["object_list"]), 3)
+            self.assertListEqual(
+                list(response.context["object_list"]),
+                [self.terms_pi, self.terms_users, self.terms_all],
+            )
+            self.assertTrue(response.context["not_published"])
+
+    def test_get_empty(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-list"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context["object_list"]), 0)
+
+
+class TestTermsAndConditionsCreateView(TestViewBase):
+    """Tests for TermsAndConditionsCreateView."""
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(reverse("adminsec:termsandconditions-create"))
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        terms = {
+            "title": "Terms and Conditions",
+            "text": "Content",
+            "audience": TERMS_AUDIENCE_USER,
+        }
+
+        with self.login(self.user_hpcadmin):
+            self.assertEqual(TermsAndConditions.objects.count(), 0)
+
+            response = self.client.post(
+                reverse("adminsec:termsandconditions-create"),
+                terms,
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:termsandconditions-list"),
+            )
+
+            self.assertEqual(TermsAndConditions.objects.count(), 1)
+
+            terms = TermsAndConditions.objects.first()
+            self.assertEqual(terms.text, "Content")
+            self.assertEqual(terms.audience, TERMS_AUDIENCE_USER)
+
+
+class TestTermsAndConditionsUpdateView(TestViewBase):
+    """Tests for TermsAndConditionsUpdateView."""
+
+    def setUp(self):
+        super().setUp()
+        self.terms = TermsAndConditionsFactory()
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:termsandconditions-update",
+                    kwargs={"termsandconditions": self.terms.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        terms = {
+            "title": self.terms.title,
+            "text": "updated",
+            "audience": TERMS_AUDIENCE_USER,
+        }
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:termsandconditions-update",
+                    kwargs={"termsandconditions": self.terms.uuid},
+                ),
+                terms,
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:termsandconditions-list"),
+            )
+
+            self.terms.refresh_from_db()
+            self.assertEqual(TermsAndConditions.objects.count(), 1)
+            self.assertEqual(self.terms.text, "updated")
+            self.assertEqual(self.terms.audience, TERMS_AUDIENCE_USER)
+
+
+class TestTermsAndConditionsDeleteView(TestViewBase):
+    """Tests for TermsAndConditionsDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.terms = TermsAndConditionsFactory()
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:termsandconditions-delete",
+                    kwargs={"termsandconditions": self.terms.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        self.assertEqual(TermsAndConditions.objects.count(), 1)
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:termsandconditions-delete",
+                    kwargs={"termsandconditions": self.terms.uuid},
+                )
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:termsandconditions-list"),
+            )
+
+            self.assertEqual(TermsAndConditions.objects.count(), 0)
+
+
+class TestTermsAndConditionsPublishView(TestViewBase):
+    """Tests for TermsAndConditionsPublishView."""
+
+    def setUp(self):
+        super().setUp()
+        self.terms = TermsAndConditionsFactory()
+        self.user.consented_to_terms = True
+        self.user.save()
+        self.user_owner.consented_to_terms = True
+        self.user_owner.save()
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:termsandconditions-publish",
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        with self.login(self.user_hpcadmin):
+            self.assertIsNone(self.terms.date_published)
+            self.assertTrue(self.user.consented_to_terms)
+            self.assertTrue(self.user_owner.consented_to_terms)
+
+            response = self.client.post(
+                reverse(
+                    "adminsec:termsandconditions-publish",
+                )
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:termsandconditions-list"),
+            )
+
+            self.terms.refresh_from_db()
+            self.user.refresh_from_db()
+            self.user_owner.refresh_from_db()
+
+            self.assertIsNotNone(self.terms.date_published)
+            self.assertFalse(self.user.consented_to_terms)
+            self.assertFalse(self.user_owner.consented_to_terms)
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully published the terms and conditions.")
+
+            self.assertEqual(
+                len(mail.outbox),
+                User.objects.all()
+                .exclude(is_hpcadmin=True)
+                .exclude(is_superuser=True)
+                .exclude(is_staff=True)
+                .count(),
+            )
 
 
 class TestFunctions(TestViewBase):
