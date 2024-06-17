@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="mt-4">
+  Terms &amp; Conditions
+  <a class="btn btn-secondary float-end" href="{% url 'adminsec:overview' %}">
+    <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+    Go To Overview
+  </a>
+</h1>
+
+<p class="lead">
+  All registered texts are displayed to a user when he logs in for the first time or when the user
+  consents have been reset. Each text gets its own box to tick off. Only if a user ticks all boxes,
+  he can continue.
+  The consents are <strong>not</strong> automatically reset if you change the terms and conditions.
+</p>
+
+{% if not_published %}
+<div class="alert alert-primary">
+  <i class="iconify" data-icon="mdi:info-circle"></i>
+  The terms and conditions have changes that never have been published.
+</div>
+{% endif %}
+
+<table class="table mt-4">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Title</th>
+      <th scope="col">Text</th>
+      <th scope="col">Audience</th>
+      <th scope="col">Published</th>
+      <th scope="col">
+        <a href="{% url 'adminsec:termsandconditions-create' %}" class="btn btn-sm btn-success float-end">
+          <i class="iconify" data-icon="mdi:plus"></i>
+        </a>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr>
+      <th scope="row">{{ forloop.counter }}</th>
+      <td>{{ obj.title }}</td>
+      <td>{{ obj.text|truncatechars:20 }}</td>
+      <td>{{ obj.audience }}</td>
+      <td>{{ obj.date_published|default:"never" }}</td>
+      <td>
+        <div class="btn-group float-end">
+          <a
+            href="{% url 'adminsec:termsandconditions-update' termsandconditions=obj.uuid %}"
+            class="btn btn-sm btn-secondary"
+          >
+            <i class="iconify" data-icon="mdi:edit"></i>
+          </a>
+          <a
+            href="{% url 'adminsec:termsandconditions-delete' termsandconditions=obj.uuid %}"
+            class="btn btn-sm btn-danger"
+          >
+            <i class="iconify" data-icon="mdi:bin"></i>
+          </a>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" class="text-center"><em>No terms</em></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h4 class="mt-4">Danger Area</h4>
+<p>
+  Publish terms & reset user consents.
+  Publishing will reset the user consents and this will force all users to re-consent to the terms and conditions.
+</p>
+<a href="{% url 'adminsec:termsandconditions-publish' %}" class="btn btn-sm btn-danger">
+  <i class="iconify" data-icon="mdi:publish"></i>
+  <i class="iconify" data-icon="mdi:eraser"></i>
+  Publish Terms &amp;
+  Reset User Consents
+</a>
+
+<h4 class="mt-4">Statistics</h4>
+  <div class="row mt-3">
+    <div class="col">
+      <h6 class="fw-bold text-success">
+        Users with consent
+        <span class="badge rounded-pill bg-success">{{ users_consent.count }}</span>
+      </h6>
+      <ul class="list-unstyled">
+        {% for i in users_consent %}
+          <li>{{ i.username }}</li>
+        {% endfor %}
+      </ul>      
+    </div>
+    <div class="col">
+      <h6 class="fw-bold text-secondary">
+        Users without consent
+        <span class="badge rounded-pill bg-secondary">{{ users_missing_consent.count }}</span>
+      </h5>
+      <ul class="list-unstyled">
+        {% for i in users_missing_consent %}
+          <li>{{ i.username }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+{% endblock content %}

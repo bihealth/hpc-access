@@ -1,4 +1,5 @@
 import rules
+from django.conf import settings
 
 from adminsec.rules import is_hpcadmin
 from usersec.models import HpcGroupInvitation
@@ -27,13 +28,19 @@ def _has_group_invitation(user):
     return HpcGroupInvitation.objects.filter(username=user.username).exists()
 
 
+@rules.predicate
+def _view_mode_enabled(_user):
+    return settings.VIEW_MODE
+
+
 has_pending_group_request = (
     ~is_hpcadmin & ~is_cluster_user & ~_has_group_invitation & _has_pending_group_request
 )
 is_orphan = ~is_hpcadmin & ~is_cluster_user & ~_has_group_invitation & ~_has_pending_group_request
 has_group_invitation = ~is_hpcadmin & ~is_cluster_user & _has_group_invitation
+view_mode_enabled = _view_mode_enabled
 
-can_create_hpcgroupcreaterequest = is_orphan
+can_create_hpcgroupcreaterequest = is_orphan & ~view_mode_enabled
 
 
 # HpcUser based
@@ -79,7 +86,7 @@ is_pi_of_hpcuser = ~is_hpcadmin & is_cluster_user & _is_pi_of_hpcuser
 is_delegate_of_hpcuser = ~is_hpcadmin & is_cluster_user & _is_delegate_of_hpcuser
 
 can_view_hpcuser = is_hpcuser | is_pi_of_hpcuser | is_delegate_of_hpcuser
-can_create_hpcuserchangerequest = is_pi_of_hpcuser | is_delegate_of_hpcuser
+can_create_hpcuserchangerequest = (is_pi_of_hpcuser | is_delegate_of_hpcuser) & ~view_mode_enabled
 
 
 # HpcGroupCreateRequest based
@@ -96,8 +103,8 @@ def _is_group_requester(user, hpcgroupcreaterequest):
 
 is_group_requester = ~is_hpcadmin & ~is_cluster_user & _is_group_requester
 
-can_view_hpcgroupcreaterequest = is_group_requester
-can_manage_hpcgroupcreaterequest = is_group_requester
+can_view_hpcgroupcreaterequest = is_group_requester & ~view_mode_enabled
+can_manage_hpcgroupcreaterequest = is_group_requester & ~view_mode_enabled
 
 
 # HpcGroupChangeRequest based
@@ -139,10 +146,10 @@ is_group_delegate_by_hpcgroupchangerequest = (
 
 can_view_hpcgroupchangerequest = (
     is_group_owner_by_hpcgroupchangerequest | is_group_delegate_by_hpcgroupchangerequest
-)
+) & ~view_mode_enabled
 can_manage_hpcgroupchangerequest = (
     is_group_owner_by_hpcgroupchangerequest | is_group_delegate_by_hpcgroupchangerequest
-)
+) & ~view_mode_enabled
 
 
 # HpcProjectCreateRequest based
@@ -184,10 +191,10 @@ is_group_delegate_by_hpcprojectcreaterequest = (
 
 can_view_hpcprojectcreaterequest = (
     is_group_owner_by_hpcprojectcreaterequest | is_group_delegate_by_hpcprojectcreaterequest
-)
+) & ~view_mode_enabled
 can_manage_hpcprojectcreaterequest = (
     is_group_owner_by_hpcprojectcreaterequest | is_group_delegate_by_hpcprojectcreaterequest
-)
+) & ~view_mode_enabled
 
 
 # HpcProjectChangeRequest based
@@ -247,12 +254,12 @@ can_view_hpcprojectchangerequest = (
     is_project_owner_by_hpcprojectchangerequest
     | is_project_delegate_by_hpcprojectchangerequest
     | is_group_delegate_by_hpcprojectchangerequest
-)
+) & ~view_mode_enabled
 can_manage_hpcprojectchangerequest = (
     is_project_owner_by_hpcprojectchangerequest
     | is_project_delegate_by_hpcprojectchangerequest
     | is_group_delegate_by_hpcprojectchangerequest
-)
+) & ~view_mode_enabled
 
 
 # HpcUserCreateRequest based
@@ -294,10 +301,10 @@ is_group_delegate_by_hpcusercreaterequest = (
 
 can_view_hpcusercreaterequest = (
     is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
+) & ~view_mode_enabled
 can_manage_hpcusercreaterequest = (
     is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
+) & ~view_mode_enabled
 
 
 # HpcUserChangeRequest based
@@ -339,10 +346,10 @@ is_group_delegate_by_hpcusercreaterequest = (
 
 can_view_hpcuserchangerequest = (
     is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
+) & ~view_mode_enabled
 can_manage_hpcuserchangerequest = (
     is_group_owner_by_hpcusercreaterequest | is_group_delegate_by_hpcusercreaterequest
-)
+) & ~view_mode_enabled
 
 
 # HpcGroup based
@@ -379,9 +386,9 @@ is_group_delegate = ~is_hpcadmin & is_cluster_user & _is_group_delegate
 is_group_manager = is_group_owner | is_group_delegate
 
 can_view_hpcgroup = is_group_manager | is_group_member
-can_create_hpcprojectcreaterequest = is_group_manager
-can_create_hpcusercreaterequest = is_group_manager
-can_create_hpcgroupchangerequest = is_group_manager
+can_create_hpcprojectcreaterequest = is_group_manager & ~view_mode_enabled
+can_create_hpcusercreaterequest = is_group_manager & ~view_mode_enabled
+can_create_hpcgroupchangerequest = is_group_manager & ~view_mode_enabled
 
 
 # HpcProject based
@@ -427,7 +434,7 @@ is_associated_group_delegate = ~is_hpcadmin & is_cluster_user & _is_associated_g
 is_project_manager = is_project_owner | is_project_delegate | is_associated_group_delegate
 
 can_view_hpcproject = is_project_manager | is_project_member
-can_create_hpcprojectchangerequest = is_project_manager
+can_create_hpcprojectchangerequest = is_project_manager & ~view_mode_enabled
 
 
 # HpcGroupInvitation based

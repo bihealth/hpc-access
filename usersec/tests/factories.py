@@ -22,6 +22,7 @@ from usersec.models import (
     HpcUserChangeRequest,
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
+    TermsAndConditions,
 )
 
 # ------------------------------------------------------------------------------
@@ -176,8 +177,13 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     description = "this is a group"
     creator = factory.SubFactory(UserFactory)  # User
     gid = 2000
-    name = factory.Sequence(lambda n: f"hpc-group{n}")
-    folder = "/data/group"
+    name = factory.Sequence(lambda n: f"group{n}")
+    folders = {
+        "tier1_scratch": "/data/scratch/group",
+        "tier1_work": "/data/work/group",
+        "tier2_mirrored": "/data/mirrored/group",
+        "tier2_unmirrored": "/data/unmirrored/group",
+    }
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
 
@@ -196,7 +202,7 @@ class HpcGroupCreateRequestFactory(HpcGroupRequestFactoryBase):
     class Meta:
         model = HpcGroupCreateRequest
 
-    resources_requested = {"null": "null"}
+    resources_requested = {"tier1": 0}
     description = "some group create request"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
@@ -207,7 +213,7 @@ class HpcGroupChangeRequestFactory(HpcGroupRequestFactoryBase):
     class Meta:
         model = HpcGroupChangeRequest
 
-    resources_requested = {"null": "null"}
+    resources_requested = {"tier1": 0}
     description = "updated group description"
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
@@ -288,14 +294,29 @@ class HpcProjectFactory(HpcObjectFactoryBase):
         model = HpcProject
 
     group = factory.SubFactory(HpcGroupFactory)
-    resources_requested = {"null": "null"}
-    resources_used = {"null": "null"}
+    resources_requested = {
+        "tier1_scratch": 1,
+        "tier1_work": 1,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    }
+    resources_used = {
+        "tier1_scratch": 0.5,
+        "tier1_work": 0.5,
+        "tier2_mirrored": 0,
+        "tier2_unmirrored": 0,
+    }
     creator = factory.SubFactory(UserFactory)  # User
     delegate = None  # HpcUser
     description = "this is a project"
     gid = 5000
     name = factory.Sequence(lambda n: f"hpc-project{n}")
-    folder = "/data/project"
+    folders = {
+        "tier1_scratch": "/data/scratch/project",
+        "tier1_work": "/data/work/project",
+        "tier2_mirrored": "/data/mirrored/project",
+        "tier2_unmirrored": "/data/unmirrored/project",
+    }
     # members = None  # List of HpcUsers
     expiration = datetime(2050, 1, 1, tzinfo=utc)
 
@@ -360,3 +381,13 @@ class HpcGroupInvitationFactory(HpcObjectFactoryBase):
 
     hpcusercreaterequest = factory.SubFactory(HpcUserCreateRequestFactory)
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
+
+
+class TermsAndConditionsFactory(factory.django.DjangoModelFactory):
+    """Factory for TermsAndConditions model"""
+
+    class Meta:
+        model = TermsAndConditions
+
+    title = "AGBs"
+    text = "Some terms and some conditions."

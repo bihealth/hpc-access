@@ -211,6 +211,19 @@ class ResourceDataUser(BaseModel):
     tier1_home: float = 0.0
 
 
+class GroupFolders(BaseModel):
+    """Folders for a group or project."""
+
+    #: The work directory.
+    tier1_work: str
+    #: The scratch directory.
+    tier1_scratch: str
+    #: The mirrored directory.
+    tier2_mirrored: str
+    #: The unmirrored directory.
+    tier2_unmirrored: str
+
+
 @enum.unique
 class Status(enum.Enum):
     """Status of a hpc user, group, or project."""
@@ -281,8 +294,8 @@ class HpcGroup(BaseModel):
     gid: Optional[int]
     #: The name of the record.
     name: str
-    #: The folder of the group.
-    folder: str
+    #: The folders of the group.
+    folders: GroupFolders
     #: Point in time of group expiration.
     expiration: datetime.datetime
     #: The version of the group record.
@@ -310,8 +323,8 @@ class HpcProject(BaseModel):
     gid: Optional[int]
     #: The name of the record.
     name: str
-    #: The folder of the group.
-    folder: str
+    #: The folders of the group.
+    folders: GroupFolders
     #: Point in time of group expiration.
     expiration: datetime.datetime
     #: The version of the project record.

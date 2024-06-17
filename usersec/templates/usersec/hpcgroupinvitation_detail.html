@@ -9,22 +9,22 @@
     <span class="text-danger">{{ object.hpcusercreaterequest.group.name }}</span>
   </h1>
 
-  <p>
-    This is some informative text.
-  </p>
+  <h3 class="mt-4">Terms &amp; Conditions</h3>
 
-  <div class="fieldWrapper">
-    <div class="input-group mb-3">
+  {% for obj in terms_list %}
+    <h4 class="mt-4">{{ obj.title }}</h4>
+    <p>{{ obj.text }}</p>
+    <div class="input-group mb-4">
       <span class="input-group-text">
-        <input type="checkbox" class="form-check-input m-0" name="consent" id="id_consent">
+        <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
       </span>
-      <label for="id_consent">
+      <label for="id_consent{{ forloop.counter }}">
         <span class="form-control fw-bold">
-          I consent.<sup class="text-danger">*</sup>
+          I consent to <em>{{ obj.title }}</em>.
         </span>
       </label>
     </div>
-  </div>
+  {% endfor %}
 
   <a
     class="btn btn-success disabled"
@@ -41,14 +41,26 @@
     Reject
   </a>
 
-
 {% endblock content %}
 
 {% block inline_javascript %}
   {{ block.super }}
   <script>
+    function consents() {
+        var consent = true;
+        var btn = $("#id_submit_button");
+        $(".consent").each(function(i, obj) {
+            consent &= obj.checked;
+        })
+        if (consent) {
+            btn.removeClass("disabled");
+        } else if (!btn.hasClass("disabled")) {
+            btn.addClass("disabled");
+        }
+    }
     $(document).ready(function() {
-      $("#id_consent").click(consent);
+        $(".consent").click(consents);
+        consents();
     });
   </script>
 {% endblock inline_javascript %}

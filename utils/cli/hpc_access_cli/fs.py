@@ -112,19 +112,19 @@ class FsResourceManager:
         for key, value in diff.items():
             if key == "quota_bytes":
                 if value is None:
-                    console_err.log(f"+ setfattr -x ceph-quota.max_max_bytes {directory.path}")
+                    console_err.log(f"+ setfattr -x ceph-quota.max_bytes {directory.path}")
                     if not dry_run:
-                        check_call(["setfattr", "-x", "ceph-quota.max_max_bytes", directory.path])
+                        check_call(["setfattr", "-x", "ceph-quota.max_bytes", directory.path])
                 else:
                     console_err.log(
-                        f"+ setfattr -n ceph-quota.max_max_bytes -v {value} {directory.path}"
+                        f"+ setfattr -n ceph-quota.max_bytes -v {value} {directory.path}"
                     )
                     if not dry_run:
                         check_call(
                             [
                                 "setfattr",
                                 "-n",
-                                "ceph-quota.max_max_bytes",
+                                "ceph-quota.max_bytes",
                                 "-v",
                                 f"{value}",
                                 directory.path,

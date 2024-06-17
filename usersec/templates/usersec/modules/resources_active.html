@@ -8,77 +8,78 @@
 {% subtier_active object "tier2_unmirrored" as tier2_unmirrored_active %}
 
 {% if tier1_active %}
-  <dt class="col-sm-12">Fast Active Storage <span class="fw-light">(Tier 1)</span></dt>
-
-  {% if tier1_scratch_active %}
-    <dt class="col-sm-3 small">Scratch</dt>
-    <dd class="col-sm-3">
-      <span class="text-{{ object|storage_text_color:"tier1_scratch" }}">
-        {{ object.resources_used|lookup:"tier1_scratch"|floatformat:"1" }}
-      </span>
-      / {{ object.resources_requested|lookup:"tier1_scratch" }} TB
-    </dd>
-    <dd class="col-sm-6">
-      <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier1_scratch"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_scratch" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_scratch" }}' aria-valuemin="0" aria-valuemax="100">
-          {{ object|storage_in_percent:"tier1_scratch" }}%
-        </div>
-      </div>
-    </dd>
-  {% endif %}
+  <h5>Fast Active Storage <span class="fw-light">(Tier 1)</span></h5>
 
   {% if tier1_work_active %}
-    <dt class="col-sm-3 small">Work</dt>
-    <dd class="col-sm-3">
-      <span class="text-{{ object|storage_text_color:"tier1_work" }}">
-        {{ object.resources_used|lookup:"tier1_work"|floatformat:"1" }}
-      </span>
-      / {{ object.resources_requested|lookup:"tier1_work" }} TB
+    <dd class="col-sm-12">
+      <code>{{ object.folders|lookup:"tier1_work"|highlight_folder:"work" }}</code>
     </dd>
-    <dd class="col-sm-6">
+
+    <dt class="col-sm-7">
       <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier1_work"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_work" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_work" }}' aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-{{ object|storage_in_percent:"tier1_work"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_work" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_work" }}' aria-valuemin="0" aria-valuemax="100">
           {{ object|storage_in_percent:"tier1_work" }}%
         </div>
       </div>
+    </dt>
+    <dd class="col-sm-5 text-end">
+      {{ object.resources_used|lookup:"tier1_work"|floatformat:"1" }}
+      of {{ object.resources_requested|lookup:"tier1_work" }} TB used
+    </dd>
+  {% endif %}
+
+  {% if tier1_scratch_active %}
+    <dd class="col-sm-12"><code>{{ object.folders|lookup:"tier1_scratch"|highlight_folder:"scratch" }}</code></dd>
+
+    <dt class="col-sm-7">
+      <div class="progress">
+        <div class="progress-bar bg-{{ object|storage_in_percent:"tier1_scratch"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_scratch" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_scratch" }}' aria-valuemin="0" aria-valuemax="100">
+          {{ object|storage_in_percent:"tier1_scratch" }}%
+        </div>
+      </div>
+    </dt>
+    <dd class="col-sm-5 text-end">
+      {{ object.resources_used|lookup:"tier1_scratch"|floatformat:"1" }}
+      of {{ object.resources_requested|lookup:"tier1_scratch" }} TB used
     </dd>
   {% endif %}
 {% endif %}
 
 {% if tier2_active %}
-  <dt class="col-sm-12">Long-Term Storage <span class="fw-light">(Tier 2)</span></dt>
+  {% if tier1_active %}
+    <hr />
+  {% endif %}
+  <h5>Long-Term Storage <span class="fw-light">(Tier 2)</span></h5>
 
   {% if tier2_unmirrored_active %}
-    <dt class="col-sm-3 small">Unmirrored</dt>
-    <dd class="col-sm-3">
-      <span class="text-{{ object|storage_text_color:"tier2_unmirrored" }}">
-        {{ object.resources_used|lookup:"tier2_unmirrored"|floatformat:"1" }}
-      </span>
-      / {{ object.resources_requested|lookup:"tier2_unmirrored" }} TB
-    </dd>
-    <dd class="col-sm-6">
+    <dd class="col-sm-12"><code>{{ object.folders|lookup:"tier2_unmirrored"|highlight_folder:"unmirrored" }}</code></dd>
+
+    <dt class="col-sm-7">
       <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier2_unmirrored"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier2_unmirrored" }}%' aria-valuenow='{{ object|storage_in_percent:"tier2_unmirrored" }}' aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-{{ object|storage_in_percent:"tier2_unmirrored"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier2_unmirrored" }}%' aria-valuenow='{{ object|storage_in_percent:"tier2_unmirrored" }}' aria-valuemin="0" aria-valuemax="100">
           {{ object|storage_in_percent:"tier2_unmirrored" }}%
         </div>
       </div>
+    </dt>
+    <dd class="col-sm-5 text-end">
+      {{ object.resources_used|lookup:"tier2_unmirrored"|floatformat:"1" }}
+      of {{ object.resources_requested|lookup:"tier2_unmirrored" }} TB used
     </dd>
   {% endif %}
 
   {% if tier2_mirrored_active %}
-    <dt class="col-sm-3 small">Mirrored</dt>
-    <dd class="col-sm-3">
-      <span class="text-{{ object|storage_text_color:"tier2_mirrored" }}">
-        {{ object.resources_used|lookup:"tier2_mirrored"|floatformat:"1" }}
-      </span>
-      / {{ object.resources_requested|lookup:"tier2_mirrored" }} TB
-    </dd>
-    <dd class="col-sm-6">
+    <dd class="col-sm-12"><code>{{ object.folders|lookup:"tier2_mirrored"|highlight_folder:"mirrored" }}</code></dd>
+
+    <dt class="col-sm-7">
       <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ object|storage_in_percent:"tier2_mirrored"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier2_mirrored" }}%' aria-valuenow='{{ object|storage_in_percent:"tier2_mirrored" }}' aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-{{ object|storage_in_percent:"tier2_mirrored"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier2_mirrored" }}%' aria-valuenow='{{ object|storage_in_percent:"tier2_mirrored" }}' aria-valuemin="0" aria-valuemax="100">
           {{ object|storage_in_percent:"tier2_mirrored" }}%
         </div>
       </div>
+    </dt>
+    <dd class="col-sm-5 text-end">
+      {{ object.resources_used|lookup:"tier2_mirrored"|floatformat:"1" }}
+      of {{ object.resources_requested|lookup:"tier2_mirrored" }} TB used
     </dd>
   {% endif %}
 {% endif %}

@@ -18,6 +18,15 @@ app.conf.beat_schedule = {
     "sync_ldap": {
         "task": "adminsec.tasks.sync_ldap",
         "schedule": crontab(hour=0, minute=5),
+        # "args": (True, False),
+    },
+    "send_quota_email": {
+        "task": "adminsec.tasks.send_quota_email",
+        "schedule": crontab(hour=0, minute=10),
+    },
+    "disable_users_without_consent": {
+        "task": "adminsec.tasks.disable_users_without_consent",
+        "schedule": crontab(hour=0, minute=15),
     },
 }
 app.conf.timezone = "UTC"

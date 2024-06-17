@@ -2,6 +2,7 @@ from importlib import import_module
 
 from django import template
 from django.conf import settings
+from django.utils.safestring import mark_safe
 
 from adminsec.constants import POSIX_AG_PREFIX, POSIX_PROJECT_PREFIX
 from usersec.models import (
@@ -135,18 +136,6 @@ def storage_progress_color(percent):
     return "danger"
 
 
-@register.filter
-def storage_text_color(obj, tier):
-    """Return the color for the storage progress."""
-    if obj.resources_requested is None or obj.resources_used is None:
-        return "dark"
-    requested = obj.resources_requested.get(tier, 0)
-    used = obj.resources_used.get(tier, 0)
-    if used < requested:
-        return "dark"
-    return "danger"
-
-
 @register.simple_tag
 def subtier_active(obj, tier):
     if obj.resources_used is None:
@@ -157,3 +146,20 @@ def subtier_active(obj, tier):
 @register.simple_tag
 def tier_active(obj, subtierA, subtierB):
     return subtier_active(obj, subtierA) or subtier_active(obj, subtierB)
+
+
+@register.filter
+def highlight_folder(text, word):
+    """Highlight a word in a text."""
+    if (
+        word
+        in [
+            "work",
+            "scratch",
+            "mirrored",
+            "unmirrored",
+        ]
+        and word in text
+    ):
+        return mark_safe(text.replace(word, f"<strong><u>{word}</u></strong>"))
+    return text

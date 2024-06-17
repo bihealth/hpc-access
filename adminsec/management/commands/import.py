@@ -57,19 +57,9 @@ class Command(BaseCommand):
                         creator=worker_user,
                         status=group_data.status.name,
                         gid=group_data.gid,
-                        folder=group_data.folder,
-                        resources_requested={
-                            "tier1_scratch": group_data.resources_requested.tier1_scratch,
-                            "tier1_work": group_data.resources_requested.tier1_scratch,
-                            "tier2_mirrored": group_data.resources_requested.tier1_scratch,
-                            "tier2_unmirrored": group_data.resources_requested.tier1_scratch,
-                        },
-                        resources_used={
-                            "tier1_scratch": group_data.resources_used.tier1_scratch,
-                            "tier1_work": group_data.resources_used.tier1_scratch,
-                            "tier2_mirrored": group_data.resources_used.tier1_scratch,
-                            "tier2_unmirrored": group_data.resources_used.tier1_scratch,
-                        },
+                        folders=dict(group_data.folders),
+                        resources_requested=dict(group_data.resources_requested),
+                        resources_used=dict(group_data.resources_used),
                         expiration=make_aware(group_data.expiration),
                     )
                     hpcgroup.save_with_version()
@@ -158,23 +148,13 @@ class Command(BaseCommand):
                         uuid=project_uuid,
                         name=project_data.name,
                         gid=project_data.gid,
-                        folder=project_data.folder,
+                        folders=dict(project_data.folders),
                         status=project_data.status.name,
                         creator=worker_user,
                         group=hpcgroup,
                         delegate=delegate,
-                        resources_requested={
-                            "tier1_scratch": project_data.resources_requested.tier1_scratch,
-                            "tier1_work": project_data.resources_requested.tier1_scratch,
-                            "tier2_mirrored": project_data.resources_requested.tier1_scratch,
-                            "tier2_unmirrored": project_data.resources_requested.tier1_scratch,
-                        },
-                        resources_used={
-                            "tier1_scratch": project_data.resources_used.tier1_scratch,
-                            "tier1_work": project_data.resources_used.tier1_scratch,
-                            "tier2_mirrored": project_data.resources_used.tier1_scratch,
-                            "tier2_unmirrored": project_data.resources_used.tier1_scratch,
-                        },
+                        resources_requested=dict(project_data.resources_requested),
+                        resources_used=dict(project_data.resources_used),
                         expiration=make_aware(project_data.expiration),
                     )
                     hpcproject.save_with_version()
