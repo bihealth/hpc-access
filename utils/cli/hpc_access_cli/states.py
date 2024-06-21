@@ -596,23 +596,20 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
         hpc_user = build_hpcuser(u, user_quotas.get(u.uid, {}))
         hpc_users[hpc_user.uuid] = hpc_user
     hpc_groups = {}
-    for g in system_state.ldap_groups.values():
-        if not g.cn.startswith(POSIX_AG_PREFIX):
-            continue
-        hpc_group = build_hpcgroup(
-            g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_AG_PREFIX), {})
-        )
-        if hpc_group:
-            hpc_groups[hpc_group.uuid] = hpc_group
     hpc_projects = {}
-    for p in system_state.ldap_groups.values():
-        if not p.cn.startswith(POSIX_PROJECT_PREFIX):
-            continue
-        hpc_project = build_hpcproject(
-            p, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_AG_PREFIX), {})
-        )
-        if hpc_project:
-            hpc_projects[hpc_project.uuid] = hpc_project
+    for g in system_state.ldap_groups.values():
+        if g.cn.startswith(POSIX_AG_PREFIX):
+            hpc_group = build_hpcgroup(
+                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_AG_PREFIX), {})
+            )
+            if hpc_group:
+                hpc_groups[hpc_group.uuid] = hpc_group
+        elif g.cn.startswith(POSIX_PROJECT_PREFIX):
+            hpc_project = build_hpcproject(
+                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_PROJECT_PREFIX), {})
+            )
+            if hpc_project:
+                hpc_projects[hpc_project.uuid] = hpc_project
     return HpcaccessState(
         hpc_users=hpc_users,
         hpc_groups=hpc_groups,
