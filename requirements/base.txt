@@ -26,3 +26,4 @@ ldap3==2.9.1
 
 # Documentation
 sphinx
+sphinx-rtd-theme

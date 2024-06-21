@@ -6,26 +6,18 @@
 HPC Access Manual
 =================
 
-HPC Access is a user access management system, developed for, but not limited to, the `BIH HPC Cluster <http://hpc.bihealth.org/>`_,
-facilitating the access managament for the principal investigators and the members of their group as well as the administrators of the cluster.
+HPC Access is a user access management system, developed for the `BIH HPC Cluster <http://hpc.bihealth.org/>`.
+It provides users with an overview of the data they have access to and informs them about quota usage.
+Principal investigators and group delegates can use HPC access to make resource requests to the administrators of the cluster.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Users
+   :caption: User Manual
 
-   usersec_login
-   usersec_pis
    usersec_users
 
 .. toctree::
    :maxdepth: 2
-   :caption: Admins
+   :caption: Admin Manual
 
    adminsec
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

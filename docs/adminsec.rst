@@ -1,6 +1,6 @@
-.. _adminsec:
+.. _admins:
 
-Admin
-=====
+Admin Manual
+============
 
 TBD
