@@ -8,7 +8,6 @@ from usersec.models import (
     HpcGroupCreateRequest,
     HpcProjectChangeRequest,
     HpcProjectCreateRequest,
-    HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
 )
@@ -880,11 +879,7 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "GET",
             302,
-            lazy_url_callback=lambda user: reverse(
-                "usersec:hpcuser-overview",
-                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
-            ),
-            lazy_arg="user",
+            redirect_url=reverse("usersec:hpcuser-overview"),
         )
         self.assert_permissions_on_url(
             pending_users,
@@ -938,11 +933,9 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "GET",
             302,
-            lazy_url_callback=lambda user: reverse(
+            redirect_url=reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
             ),
-            lazy_arg="user",
         )
         self.assert_permissions_on_url(
             pending_users,
@@ -1464,21 +1457,18 @@ class TestPermissionsInViews(TestRulesBase):
         self._test_view_mode_denied(url)
 
     def test_hpc_user_view(self):
-        url = reverse(
-            "usersec:hpcuser-overview",
-            kwargs={"hpcuser": self.hpc_member.uuid},
-        )
+        url = reverse("usersec:hpcuser-overview")
         good_users = [
-            self.superuser,
             self.user_owner,
             self.user_delegate,
             self.user_member,
-        ]
-        bad_users = [
-            self.user_pending,
-            self.user_hpcadmin,
             self.user_member2,
             self.user_member_other_group,
+        ]
+        bad_users = [
+            self.superuser,
+            self.user_pending,
+            self.user_hpcadmin,
             self.user,
         ]
 
@@ -1489,7 +1479,6 @@ class TestPermissionsInViews(TestRulesBase):
     def test_hpc_user_view_view_mode(self):
         url = reverse(
             "usersec:hpcuser-overview",
-            kwargs={"hpcuser": self.hpc_member.uuid},
         )
         self._test_view_mode_granted(url)
 
@@ -2823,7 +2812,6 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             lazy_url_callback=lambda: reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": HpcUser.objects.last().uuid},
             ),
         )
         self.assert_permissions_on_url(
@@ -2920,11 +2908,9 @@ class TestPermissionsInViews(TestRulesBase):
             url,
             "GET",
             302,
-            lazy_url_callback=lambda user: reverse(
+            redirect_url=reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": user.hpcuser_user.first().uuid},
             ),
-            lazy_arg="user",
         )
         self.assert_permissions_on_url(
             not_so_good_users,
@@ -2985,7 +2971,6 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": self.hpc_project_invitation.user.uuid},
             ),
         )
         self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))

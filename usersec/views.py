@@ -9,7 +9,13 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 from django.views.generic.detail import SingleObjectMixin
 from rules.contrib.views import PermissionRequiredMixin
 
@@ -126,16 +132,14 @@ class HomeView(LoginRequiredMixin, View):
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 
+        if not request.user.is_active:
+            return redirect(reverse("logout"))
+
         if not request.user.consented_to_terms and get_terms_and_conditions(self.request).exists():
             return redirect(reverse("usersec:terms"))
 
         if rules.test_rule("usersec.is_cluster_user", request.user):
-            return redirect(
-                reverse(
-                    "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
-                )
-            )
+            return redirect(reverse("usersec:hpcuser-overview"))
 
         if settings.VIEW_MODE:
             return redirect(reverse("usersec:view-mode-enabled"))
@@ -349,9 +353,19 @@ class HpcUserView(HpcPermissionMixin, DetailView):
 
     model = HpcUser
     template_name = "usersec/overview.html"
-    slug_field = "uuid"
-    slug_url_kwarg = "hpcuser"
     permission_required = "usersec.view_hpcuser"
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_active:
+            return redirect(reverse("logout"))
+
+        if not rules.test_rule("usersec.is_cluster_user", request.user):
+            return redirect(reverse("home"))
+
+        return super().get(request, *args, **kwargs)
+
+    def get_object(self):
+        return self.request.user.hpcuser_user.first()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1564,7 +1578,6 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": hpcuser.uuid},
             )
         )
 
@@ -1628,7 +1641,6 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
             return HttpResponseRedirect(
                 reverse(
                     "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
                 )
             )
 
@@ -1639,7 +1651,6 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": request.user.hpcuser_user.first().uuid},
             )
         )
 
@@ -1665,7 +1676,6 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
-                kwargs={"hpcuser": obj.user.uuid},
             )
         )
 

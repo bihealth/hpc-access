@@ -105,7 +105,7 @@ urlpatterns = [
     # HpcUser related
     # ------------------------------------------------------------------------------
     path(
-        "hpcuser/<uuid:hpcuser>/overview/",
+        "",
         view=views.HpcUserView.as_view(),
         name="hpcuser-overview",
     ),

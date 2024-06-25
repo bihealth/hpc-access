@@ -39,13 +39,13 @@
                 <dl class="row">
                   <dt class="col-sm-6">Owner</dt>
                   <dd class="col-sm-6">
-                    <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.group.owner.uuid %}">{{ invitation.project.group.owner.user.name }}</a>
+                    {{ invitation.project.group.owner.user.name }}
                     <span class="small fw-light">({{ project.group.owner.username }})</span>
                   </dd>
                   {% if invitation.project.delegate %}
                     <dt class="col-sm-6">Delegate</dt>
                     <dd class="col-sm-6">
-                      <a href="{% url 'usersec:hpcuser-overview' hpcuser=invitation.project.delegate.uuid %}">{{ project.delegate.user.name }}</a>
+                      {{ project.delegate.user.name }}
                       <span class="small fw-light">({{ project.delegate.username }})</span>
                     </dd>
                   {% endif %}
