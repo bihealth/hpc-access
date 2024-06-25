@@ -41,7 +41,7 @@
             {% include "usersec/modules/resources_active.html" with object=object %}
 
             <dt class="col-sm-6">Owner</dt>
-            <dd class="col-sm-6"><a href="{% url 'usersec:hpcuser-overview' hpcuser=object.owner.uuid %}">{{ object.owner.user.name }}</a></dd>
+            <dd class="col-sm-6">{{ object.owner.user.name }}</dd>
 
             <dt class="col-sm-6">Delegate</dt>
             <dd class="col-sm-6">{{ object.delegate.user.name|default:"<em class='text-muted'>not named</em>" }}</dd>

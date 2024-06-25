@@ -109,13 +109,12 @@ class TestHomeView(TestViewBase):
             self.assertRedirects(response, reverse("usersec:orphan-user"))
 
     def test_get_cluster_user(self):
-        hpcuser = HpcUserFactory(user=self.user, primary_group=self.hpc_group)
-
+        HpcUserFactory(user=self.user, primary_group=self.hpc_group)
         with self.login(self.user):
             response = self.client.get(reverse("home"))
             self.assertRedirects(
                 response,
-                reverse("usersec:hpcuser-overview", kwargs={"hpcuser": hpcuser.uuid}),
+                reverse("usersec:hpcuser-overview"),
             )
 
     def test_get_admin_user(self):
@@ -758,7 +757,6 @@ class TestHpcUserView(TestViewBase):
             response = self.client.get(
                 reverse(
                     "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": self.hpc_owner.uuid},
                 )
             )
 
@@ -2239,7 +2237,6 @@ class TestHpcGroupInvitationAcceptView(TestViewBase):
                 response,
                 reverse(
                     "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": HpcUser.objects.last().uuid},
                 ),
             )
 
@@ -2335,7 +2332,6 @@ class TestHpcProjectInvitationAcceptView(TestViewBase):
                 response,
                 reverse(
                     "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": HpcUser.objects.last().uuid},
                 ),
             )
 
@@ -2392,7 +2388,6 @@ class TestHpcProjectInvitationRejectView(TestViewBase):
                 response,
                 reverse(
                     "usersec:hpcuser-overview",
-                    kwargs={"hpcuser": self.hpc_member.uuid},
                 ),
             )
 
