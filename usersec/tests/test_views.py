@@ -44,6 +44,7 @@ from usersec.tests.factories import (
     HpcUserFactory,
     TermsAndConditionsFactory,
 )
+from usersec.views import HpcUserView
 
 
 class TestViewBase(TestCase):
@@ -112,10 +113,9 @@ class TestHomeView(TestViewBase):
         HpcUserFactory(user=self.user, primary_group=self.hpc_group)
         with self.login(self.user):
             response = self.client.get(reverse("home"))
-            self.assertRedirects(
-                response,
-                reverse("usersec:hpcuser-overview"),
-            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsInstance(response.context_data["view"], HpcUserView)
+            self.assertEqual(response.context_data["object"], self.user.hpcuser_user.first())
 
     def test_get_admin_user(self):
         with self.login(self.user_hpcadmin):

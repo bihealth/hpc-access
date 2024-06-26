@@ -7,7 +7,7 @@ app_name = "adminsec"
 
 urlpatterns_ui = [
     path(
-        "overview/",
+        "",
         view=views.AdminView.as_view(),
         name="overview",
     ),

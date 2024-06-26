@@ -1,9 +1,8 @@
 {% load common %}
 
-<div class="card mt-5">
+<div class="card">
   <div class="card-header">
     <h4 class="card-title">
-      <i class="iconify" data-icon="mdi:user-group"></i>
       AG {{ object.primary_group.name.capitalize }}
       {% if object.hpcgroup_owner.exists %}
         <span class="badge rounded-pill bg-warning">Owner</span>
@@ -12,6 +11,10 @@
       {% else %}
         <span class="badge rounded-pill bg-light text-secondary" style="border: 1px solid #6c757d !important">Member</span>
       {% endif %}
+      <span class="float-end fw-light fs-6 text-muted">
+        <i class="iconify" data-icon="mdi:clock"></i>
+        {{ object.primary_group.expiration|date:"Y-m-d" }}
+      </span>
     </h4>
     <h6 class="card-subtitle text-muted">
       <q class="fst-italic">{{ object.primary_group.description|default:"Information about your work group" }}</q>
@@ -35,62 +38,51 @@
             <em class="text-muted">None</em>
           {% endif %}
         </dd>
-
-        <dt class="col-sm-3">Unix Group</dt>
-        <dd class="col-sm-9">
-          {% if object.primary_group.name %}
-            {% get_posix_group_name object.primary_group.name %}
-          {% else %}
-            <em class='text-muted'>None</em>
-          {% endif %}
-        </dd>
-
-        <dt class="col-sm-3">Expires</dt>
-        <dd class="col-sm-9">
-          {{ object.primary_group.expiration|date:"Y-m-d" }}
-        </dd>
       </dl>
     </div>
 
-    <hr />
-
-    <dl class="row">
+    <dl class="row mt-4">
       {% include "usersec/modules/resources_active.html" with object=object.primary_group %}
     </dl>
 
-    <hr />
-
-    <h6>
-      <strong>Members</strong>
-      <span class="badge rounded-pill bg-dark">{{ object.primary_group.hpcuser.count }}</span>
-      <div class="btn-group btn-group-sm" role="group" id="toggleInactiveGroupMembersGroup" aria-label="Toggle inactive group members">
-        <input type="checkbox" class="btn-check" id="toggleInactiveGroupMembers" autocomplete="off">
-        <label class="btn btn-outline-secondary" style="border: 0px" for="toggleInactiveGroupMembers">
-          <span class="badge rounded-pill bg-secondary">
-            <span id="inactiveGroupMembers">0</span> inactive
-          </span>
-          <span id="toggleInactiveGroupMembersText">show</span>
-        </label>
+    <div class="accordion accordion-flush" id="groupMembersAccordion">
+      <div class="accordion-item">
+        <h6 class="accordion-header" id="groupMembersAccordionHeader">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroupMembersAccordion" aria-expanded="false" aria-controls="collapseGroupMembersAccordion">
+            <strong>Members</strong>
+            <span class="badge rounded-pill bg-dark ms-1">{{ object.primary_group.hpcuser.count }}</span>
+          </button>
+        </h6>
+        <div id="collapseGroupMembersAccordion" class="accordion-collapse collapse" aria-labelledby="groupMembersAccordionHeader" data-bs-parent="#groupMembersAccordion">
+          <div class="accordion-body">
+            <div class="btn-group btn-group-sm float-end" role="group" id="toggleInactiveGroupMembersGroup" aria-label="Toggle inactive group members">
+              <input type="checkbox" class="btn-check" id="toggleInactiveGroupMembers" autocomplete="off">
+              <label class="btn btn-outline-secondary" style="border: 0px" for="toggleInactiveGroupMembers">
+                <span class="badge rounded-pill bg-secondary">
+                  <span id="inactiveGroupMembers">0</span> inactive
+                </span>
+                <span id="toggleInactiveGroupMembersText">show</span>
+              </label>
+            </div>
+            <ul class="list-unstyled">
+              {% for member in object.primary_group.hpcuser.all|order_by:"user__last_name" %}
+                <li {% if member.status != 'ACTIVE' %} class="groupMemberInactive text-muted text-decoration-line-through" style="color: #aaaaaa"{% endif %}>
+                  {{ member.user.last_name|default:"<em>Unknown</em>" }}, {{ member.user.first_name|default:"<em>Unknown</em>" }}
+                  <span class="small fw-light">({{ member.username }})</span>
+                  {% if group_manager or project_manager %}    
+                    <span class="small text-muted">
+                      <i class="iconify" data-icon="mdi:clock"></i>
+                      {{ member.expiration|date:"Y/m/d" }}
+                    </span>
+                  {% endif %}
+                </li>
+              {% empty %}
+                <li><em class="text-muted">No members (?)</em></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
       </div>
-    </h6>
-    <ul class="list-unstyled">
-      {% for member in object.primary_group.hpcuser.all|order_by:"user__last_name" %}
-        <li {% if member.status != 'ACTIVE' %} class="groupMemberInactive text-muted text-decoration-line-through" style="color: #aaaaaa"{% endif %}>
-          {% if member.status == 'ACTIVE' %}
-            <a href="mailto:{{ member.user.email }}" class="text-dark"><span class="iconify" data-icon="mdi:email" class="text-dark"></span></a>
-          {% else %}
-            <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
-          {% endif %}
-          {{ member.user.last_name|default:"<em>Unknown</em>" }}, {{ member.user.first_name|default:"<em>Unknown</em>" }}
-          <span class="small fw-light">({{ member.username }})</span>
-          <span class="small text-muted">
-            <i class="iconify" data-icon="mdi:clock"></i>
-            {{ member.expiration|date:"Y/m/d" }}
-          </span>
-        </li>
-      {% empty %}
-        <li><em class="text-muted">No members (?)</em></li>
-      {% endfor %}
-    </ul>
+    </div>
   </div>
 </div>

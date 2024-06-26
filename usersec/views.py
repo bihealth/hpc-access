@@ -139,7 +139,7 @@ class HomeView(LoginRequiredMixin, View):
             return redirect(reverse("usersec:terms"))
 
         if rules.test_rule("usersec.is_cluster_user", request.user):
-            return redirect(reverse("usersec:hpcuser-overview"))
+            return HpcUserView.as_view()(request)
 
         if settings.VIEW_MODE:
             return redirect(reverse("usersec:view-mode-enabled"))

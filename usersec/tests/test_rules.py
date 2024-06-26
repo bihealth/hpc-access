@@ -878,8 +878,7 @@ class TestPermissionsInViews(TestRulesBase):
             hpc_users,
             url,
             "GET",
-            302,
-            redirect_url=reverse("usersec:hpcuser-overview"),
+            200,
         )
         self.assert_permissions_on_url(
             pending_users,
@@ -932,10 +931,7 @@ class TestPermissionsInViews(TestRulesBase):
             hpc_users,
             url,
             "GET",
-            302,
-            redirect_url=reverse(
-                "usersec:hpcuser-overview",
-            ),
+            200,
         )
         self.assert_permissions_on_url(
             pending_users,
@@ -1465,15 +1461,37 @@ class TestPermissionsInViews(TestRulesBase):
             self.user_member2,
             self.user_member_other_group,
         ]
-        bad_users = [
-            self.superuser,
-            self.user_pending,
-            self.user_hpcadmin,
-            self.user,
-        ]
+        admin_user = [self.superuser]
+        hpcadmin_user = [self.user_hpcadmin]
+        orphan_user = [self.user_pending]
+        bad_users = [self.user]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            admin_user, url, "GET", 302, redirect_url=reverse("admin-landing")
+        )
+        self.assert_permissions_on_url(
+            hpcadmin_user, url, "GET", 302, redirect_url=reverse("adminsec:overview")
+        )
+        self.assert_permissions_on_url(
+            orphan_user,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcgroupcreaterequest-detail",
+                kwargs={"hpcgroupcreaterequest": self.hpc_group_create_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse(
+                "usersec:orphan-user",
+            ),
+        )
 
     @override_settings(VIEW_MODE=True)
     def test_hpc_user_view_view_mode(self):
