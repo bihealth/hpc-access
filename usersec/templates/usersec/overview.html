@@ -5,97 +5,65 @@
 
 {% block content %}
 
-  <h2 class="mt-4">Welcome, {{ object.user.name }}! <span class="small fw-light">&mdash; {{ object.username }}</span></h2>
-  <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
-    </li>
-    {% if not view_mode %}
-      {% if group_manager or project_manager %}
+  <h2 class="mt-5">
+    Welcome, {{ object.user.name }}!
+    <ul class="list-unstyled text-end fw-light fs-6 text-muted float-end">
+      <li>{{ object.username}}</li>
+      <li>
+        <i class="iconify" data-icon="mdi:clock"></i>
+        {{ object.expiration|date:"Y-m-d" }}
+      </li>
+    </ul>
+  </h2>
+  {% if not view_mode %}
+    {% if group_manager or project_manager %}
+      <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+        </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="administration-tab" data-bs-toggle="pill" data-bs-target="#administration" type="button" role="tab" aria-controls="administration" aria-selected="false">Administration</button>
         </li>
-      {% endif %}
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
     {% endif %}
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="user-info-tab" data-bs-toggle="pill" data-bs-target="#user-info" type="button" role="tab" aria-controls="user-info" aria-selected="false">User Info</button>
-    </li>
-  </ul>
-  <div class="tab-content">
-    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-      <div class="row">
-        <div class="col-6">
-          {% include "usersec/modules/overview_group.html" %}
-        </div>
-        <div class="col-6">
-          {% include "usersec/modules/overview_projects.html" %}
-        </div>
+  {% endif %}
+  <div class="row mt-4">
+    <div class="col-4"><code>{{ object.home_directory|default:"None" }}</code></div>
+    <div class="col-6 progress">
+      <div
+        class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}"
+        role="progressbar"
+        style="width: {{ object|storage_in_percent:"tier1_home" }}%"
+        aria-valuenow="{{ object|storage_in_percent:"tier1_home" }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        {{ object|storage_in_percent:"tier1_home" }}%
       </div>
     </div>
-    {% if not view_mode %}
-      {% if group_manager or project_manager %}
-        <div class="tab-pane fade" id="administration" role="tabpanel" aria-labelledby="administration-tab">
-          {% include "usersec/modules/request_grid.html" %}
-        </div>
-      {% endif %}
-    {% endif %}
-    <div class="tab-pane fade" id="user-info" role="tabpanel" aria-labelledby="user-info-tab">
-
-      <ul class="list-unstyled">
-        <li>
-          <a href="mailto:{{ object.user.email }}" class="text-dark"><span class="iconify" data-icon="mdi:email"></span></a>
-          {{ object.user.email|default:"<em class='text-muted'>None</em>" }}
-        </li>
-        <li>
-          <span class="iconify" data-icon="mdi:phone-classic"></span>
-          {{ object.user.phone|default:"<em class='text-muted'>None</em>" }}
-        </li>
-      </ul>
-
-      <hr />
-
-      <dl class="row">
-        <dt class="col-sm-2">Member of Group</dt>
-        <dd class="col-sm-10">AG {{ object.primary_group.name.capitalize }}</dd>
-
-        <dt class="col-sm-2">Member of Projects</dt>
-        <dd class="col-sm-10">
-          <ul class="list-unstyled">
-          {% for project in object.hpcproject_members.all|order_by:"name" %}
-            <li>{{ project.name }}</li>
-          {% empty %}
-            <li><em class="text-muted">None</em></li>
-          {% endfor %}
-          </ul>
-        </dd>
-
-        <dt class="col-sm-2">Home Directory</dt>
-        <dd class="col-sm-10"><code>{{ object.home_directory|default:"None" }}</code></dd>
-
-        <dt class="col-sm-2">Storage Usage</dt>
-        <dd class="col-sm-10">
-          <ul class="list-unstyled">
-            <li>
-              {{ object.resources_used|lookup:"tier1_home"|floatformat:"1" }} of {{ object.resources_requested|lookup:"tier1_home" }} GB used
-            </li>
-            <li>
-              <div class="progress w-50">
-                <div class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}" role="progressbar" style='width: {{ object|storage_in_percent:"tier1_home" }}%' aria-valuenow='{{ object|storage_in_percent:"tier1_home" }}' aria-valuemin="0" aria-valuemax="100">
-                  {{ object|storage_in_percent:"tier1_home" }}%
-                </div>
-              </div>
-            </li>
-          </ul>
-        </dd>
-
-        <dt class="col-sm-2">Login Shell</dt>
-        <dd class="col-sm-10">{{ object.login_shell|default:"<em class='text-muted'>None</em>" }}</dd>
-
-        <dt class="col-sm-2">Expires</dt>
-        <dd class="col-sm-10">{{ object.expiration|date:"Y-m-d" }}</dd>
-      </dl>
+    <div class="col-2 text-end">
+      {{ object.resources_used|lookup:"tier1_home"|floatformat:"1" }} of {{ object.resources_requested|lookup:"tier1_home" }} GB used
     </div>
   </div>
+  <div class="row mt-4">
+    <div class="col-6">
+      {% include "usersec/modules/overview_group.html" %}
+    </div>
+    <div class="col-6">
+      {% include "usersec/modules/overview_projects.html" %}
+    </div>
+  </div>
+  {% if not view_mode %}
+    {% if group_manager or project_manager %}
+        </div>
+      </div>
+      <div class="tab-pane fade" id="administration" role="tabpanel" aria-labelledby="administration-tab">
+        {% include "usersec/modules/request_grid.html" %}
+      </div>
+    {% endif %}
+  {% endif %}
 {% endblock content %}
 
 {% block javascript %}

@@ -1,13 +1,12 @@
 {% load common %}
 
-<div class="card mt-5">
+<div class="card">
   <div class="card-header">
     <h4 class="card-title">
-      <i class="iconify" data-icon="mdi:package-variant"></i>
       Projects
+      <span class="badge rounded-pill bg-dark" id="projectCount">{{ object.hpcproject_members.count }}</span>
     </h4>
     <h6 class="card-subtitle text-muted">
-      <span class="badge rounded-pill bg-dark" id="projectCount">{{ object.hpcproject_members.count }}</span>
       <div class="btn-group btn-group-sm" role="group" id="toggleInactiveProjectsGroup" aria-label="Toggle inactive projects">
         <input type="checkbox" class="btn-check" id="toggleInactiveProjects" autocomplete="off">
         <label class="btn btn-outline-secondary" style="border: 0px" for="toggleInactiveProjects">
@@ -79,7 +78,6 @@
       <div class="accordion-item {% if project.status != 'ACTIVE' %}projectInactive{% endif %}">
         <h2 class="accordion-header" id="headingProject{{ forloop.counter0 }}">
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter0 }}">
-            <i class="iconify me-2" data-icon="mdi:package-variant"></i>
             <span {% if project.status != 'ACTIVE' %}class="text-muted text-decoration-line-through"{% endif %}>{{ project.name }}</span>
             {% if object|is_project_owner:project %}
               <span class="badge rounded-pill bg-warning ms-1">Owner</span>
@@ -88,6 +86,10 @@
             {% else %}
               <span class="badge rounded-pill bg-light text-secondary ms-1" style="border: 1px solid #6c757d !important">Member</span>
             {% endif %}
+            <span class="ms-3 fw-light small text-muted">
+              <i class="iconify" data-icon="mdi:clock"></i>
+              {{ project.expiration|date:"Y-m-d" }}
+            </span>
           </button>
         </h2>
         <div id="collapse{{ forloop.counter0 }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter0 }}" data-bs-parent="#projectAccordion">
@@ -108,29 +110,11 @@
                   <em class="text-muted">None</em>
                 {% endif %}
               </dd>
-
-              <dt class="col-sm-3">Unix Group</dt>
-              <dd class="col-sm-9">
-                {% if project.name %}
-                  {% get_posix_project_name project.name %}
-                {% else %}
-                  <em class='text-muted'>None</em>
-                {% endif %}
-              </dd>
-
-              <dt class="col-sm-3">Expires</dt>
-              <dd class="col-sm-9 mb-0">
-                {{ project.expiration|date:"Y-m-d" }}
-              </dd>
             </dl>
 
-            <hr />
-
-            <dl class="row">
+            <dl class="row mt-3">
               {% include "usersec/modules/resources_active.html" with object=project %}
             </dl>
-
-            <hr />
 
             <h6>
               <strong>Members</strong>
@@ -142,11 +126,6 @@
             <ul class="list-unstyled">
               {% for member in project.members.all|order_by:"user__last_name" %}
                 <li {% if member.status != 'ACTIVE' %}class="project{{ forloop.parentloop.counter0 }}MemberInactive text-muted text-decoration-line-through"{% endif %}>
-                  {% if member.status == 'ACTIVE' %}
-                    <a href="mailto:{{ member.user.email }}" class="text-dark"><span class="iconify" data-icon="mdi:email"></span></a>
-                  {% else %}
-                    <span class="iconify" data-icon="mdi:do-not-disturb-alt"></span>
-                  {% endif %}
                   {{ member.user.last_name }}, {{ member.user.first_name }}
                   <span class="small fw-light">({{ member.username }})</span>
                 </li>
