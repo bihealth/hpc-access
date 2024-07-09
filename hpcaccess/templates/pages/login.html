@@ -28,17 +28,21 @@
   <p>
     Please log in using your Charité or MDC account.
   </p>
-  <p>
-    Enter your user name as: <b>user@CHARITE</b> or <b>user@MDC-BERLIN</b>
-  </p>
 
   <form class="form-signin" method="post" id="form-login">
     {% csrf_token %}
     {% get_django_setting 'ENABLE_LDAP' as ENABLE_LDAP %}
-    <input type="text" name="username"
-           id="login-username" class="form-control"
-           placeholder="{% if ENABLE_LDAP %}username@DOMAIN{% else %}username{% endif %}"
-           required autofocus>
+    <div class="input-group">
+      <input type="text" name="username"
+            id="login-username" class="form-control"
+            placeholder="username"
+            required autofocus>
+      <select id="login-domain" name="domain" class="form-select">
+        <option value="CHARITE">Charité</option>
+        <option value="MDC-BERLIN">MDC</option>
+        <option value=""></option>
+      </select>
+    </div>
     <input type="password" name="password" id="login-password"
            class="form-control my-sm-2 mb-sm-2" placeholder="password"
            required>

@@ -14,14 +14,15 @@ class PrimaryLDAPBackend(LDAPBackend):
     settings_prefix = "AUTH_LDAP_"
 
     def authenticate(self, request=None, username=None, password=None, **kwargs):
+        domain = request.POST.get("domain")
         # Login with username@DOMAIN
         if LDAP_DOMAIN:
-            if username.find("@") == -1 or username.strip().split("@")[1].upper() != LDAP_DOMAIN:
+            if not domain == LDAP_DOMAIN:
                 return None
-            ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
+            ldap_user = _LDAPUser(self, username=username.strip())
         # Login with username only
         else:
-            if username.find("@") != -1:
+            if domain == "":
                 return None
             ldap_user = _LDAPUser(self, username=username.strip())
         user = ldap_user.authenticate(password)
@@ -42,7 +43,8 @@ class SecondaryLDAPBackend(LDAPBackend):
     settings_prefix = "AUTH_LDAP2_"
 
     def authenticate(self, request=None, username=None, password=None, **kwargs):
-        if username.find("@") == -1 or username.split("@")[1].upper() != LDAP2_DOMAIN:
+        domain = request.POST.get("domain")
+        if not domain == LDAP2_DOMAIN:
             return None
 
         ldap_user = _LDAPUser(self, username=username.split("@")[0].strip())
