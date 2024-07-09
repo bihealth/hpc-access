@@ -1,4 +1,5 @@
 # Create your tasks here
+import logging
 from collections import defaultdict
 
 from django.conf import settings
@@ -30,6 +31,10 @@ from usersec.models import (
 )
 
 User = get_user_model()
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="myapp.log", level=logging.INFO)
 
 
 def _sync_ldap(write=False, verbose=False, ldapcon=None):
@@ -168,6 +173,7 @@ def clean_db_of_hpc_objects():
     )
 
     for model in hpc_object_to_delete:
+        logger.info(f"Deleting {model.objects.count()} {model.__name__} objects")
         model.objects.all().delete()
 
     users_consented = [u.username for u in User.objects.filter(consented_to_terms=True)]
@@ -177,6 +183,7 @@ def clean_db_of_hpc_objects():
 
     for model in hpc_object_to_delete:
         if not model.objects.count() == 0:
+            logger.info("Failed to clean database of HPC objects ... aborting.")
             return None
     else:
         return users_consented

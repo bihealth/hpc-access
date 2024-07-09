@@ -31,16 +31,18 @@
   {% endif %}
   <div class="row mt-4">
     <div class="col-4"><code>{{ object.home_directory|default:"None" }}</code></div>
-    <div class="col-6 progress">
-      <div
-        class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}"
-        role="progressbar"
-        style="width: {{ object|storage_in_percent:"tier1_home" }}%"
-        aria-valuenow="{{ object|storage_in_percent:"tier1_home" }}"
-        aria-valuemin="0"
-        aria-valuemax="100"
-      >
-        {{ object|storage_in_percent:"tier1_home" }}%
+    <div class="col-6">
+      <div class="progress">
+        <div
+          class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}"
+          role="progressbar"
+          style="width: {{ object|storage_in_percent:"tier1_home" }}%"
+          aria-valuenow="{{ object|storage_in_percent:"tier1_home" }}"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          {{ object|storage_in_percent:"tier1_home" }}%
+        </div>
       </div>
     </div>
     <div class="col-2 text-end">

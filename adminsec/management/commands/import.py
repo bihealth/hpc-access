@@ -1,5 +1,6 @@
 """Command for importing data from a json file."""
 
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 
@@ -36,6 +37,9 @@ SUFFIX_MAPPING = {
     "m": "@MDC-BERLIN",
 }
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="myapp.log", level=logging.INFO)
+
 
 class Command(BaseCommand):
     help = "Import HPC objects from a json file."
@@ -51,11 +55,13 @@ class Command(BaseCommand):
         try:
             with context, open(options["json"], "r") as jsonfile:
                 if options["purge"]:
+                    logger.info("Purging database of HPC objects ...")
                     users_consented = clean_db_of_hpc_objects()
                     if users_consented is None:
                         self.stderr.write("Failed to clean database of HPC objects ... aborting.")
                         return
 
+                logger.info("Importing HPC objects ...")
                 data = HpcaccessState.model_validate_json(jsonfile.read())
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup(
