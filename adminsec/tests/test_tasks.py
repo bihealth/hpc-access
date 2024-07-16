@@ -10,10 +10,12 @@ from adminsec.constants import TIER_USER_HOME
 from adminsec.ldap import LdapConnector
 from adminsec.tasks import (
     _generate_quota_reports,
+    _send_quota_email,
     _sync_ldap,
     clean_db_of_hpc_objects,
     disable_users_without_consent,
-    send_quota_email,
+    send_quota_email_red,
+    send_quota_email_yellow,
 )
 from adminsec.tests.test_ldap import (
     AUTH_LDAP2_BIND_DN,
@@ -43,6 +45,7 @@ from usersec.models import (
     HpcProjectCreateRequest,
     HpcProjectDeleteRequest,
     HpcProjectInvitation,
+    HpcQuotaStatus,
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
@@ -244,7 +247,7 @@ class TestSyncLdap(TestCase):
 
 
 class TestSendQuotaEmail(TestCase):
-    """Tests for send_quota_email."""
+    """Tests for _send_quota_email."""
 
     def setUp(self):
         # Superuser
@@ -279,7 +282,7 @@ class TestSendQuotaEmail(TestCase):
             primary_group=self.hpc_group,
             creator=self.user_hpcadmin,
             resources_requested={TIER_USER_HOME: 20},
-            resources_used={TIER_USER_HOME: 10},  # 50% used
+            resources_used={TIER_USER_HOME: 20},  # 100% used
         )
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
@@ -294,15 +297,15 @@ class TestSendQuotaEmail(TestCase):
             primary_group=self.hpc_group,
             creator=self.user_hpcadmin,
             resources_requested={TIER_USER_HOME: 20},
-            resources_used={TIER_USER_HOME: 20},  # 100% used
+            resources_used={TIER_USER_HOME: 18},  # 90% used
         )
 
         # Create project
         self.hpc_project = HpcProjectFactory(
             group=self.hpc_group,
-            resources_requested={"work": 20},
-            resources_used={"work": 18},  # 90% used
-            folders={"work": "/data/work/project"},
+            resources_requested={"work": 20, "scratch": 20},
+            resources_used={"work": 18, "scratch": 20},  # 90% used, 100% used
+            folders={"work": "/data/work/project", "scratch": "/data/scratch/project"},
         )
         self.hpc_project.members.add(self.hpc_owner)
         self.hpc_project.get_latest_version().members.add(self.hpc_owner)
@@ -317,9 +320,38 @@ class TestSendQuotaEmail(TestCase):
         self.assertEqual(reports, expected)
 
     @override_settings(SEND_QUOTA_EMAILS=True)
-    def test_send_quota_email(self):
-        send_quota_email()
+    def test__send_quota_email_red(self):
+        _send_quota_email(HpcQuotaStatus.RED)
         self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test__send_quota_email_red_with_delegate(self):
+        self.hpc_project.delegate = self.hpc_member
+        self.hpc_project.members.add(self.hpc_member)
+        self.hpc_project.get_latest_version().members.add(self.hpc_member)
+        self.hpc_project.save()
+        _send_quota_email(HpcQuotaStatus.RED)
+        self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test__send_quota_email_yellow(self):
+        _send_quota_email(HpcQuotaStatus.YELLOW)
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test__send_quota_email_status_green(self):
+        _send_quota_email(HpcQuotaStatus.GREEN)
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_red(self):
+        send_quota_email_red()
+        self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_yellow(self):
+        send_quota_email_yellow()
+        self.assertEqual(len(mail.outbox), 1)
 
 
 class DisableUsersWithoutConsent(TestCase):

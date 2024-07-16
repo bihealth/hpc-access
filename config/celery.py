@@ -20,8 +20,12 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=0, minute=5),
         # "args": (True, False),
     },
-    "send_quota_email": {
-        "task": "adminsec.tasks.send_quota_email",
+    "send_quota_email_yellow": {
+        "task": "adminsec.tasks.send_quota_email_yellow",
+        "schedule": crontab(day_of_week=1, hour=0, minute=20),
+    },
+    "send_quota_email_red": {
+        "task": "adminsec.tasks.send_quota_email_red",
         "schedule": crontab(hour=0, minute=10),
     },
     "disable_users_without_consent": {

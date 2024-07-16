@@ -273,9 +273,21 @@ class RequestManagerMixin:
 
 @unique
 class HpcQuotaStatus(Enum):
-    RED = "red"
-    YELLOW = "yellow"
-    GREEN = "green"
+    GREEN = 1
+    YELLOW = 2
+    RED = 3
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
+    def __gt__(self, other):
+        return self.value > other.value
+
+    def __le__(self, other):
+        return self.value <= other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
 
 
 class CheckQuotaMixin:
@@ -322,7 +334,10 @@ class CheckQuotaMixin:
             if used_val >= requested_val:
                 result["status"][key] = HpcQuotaStatus.RED
 
-            elif used_val >= requested_val * (settings.QUOTA_WARNING_THRESHOLD / 100):
+            elif used_val >= max(
+                requested_val * settings.QUOTA_WARNING_THRESHOLD / 100,
+                requested_val - settings.QUOTA_WARNING_ABSOLUTE,
+            ):
                 result["status"][key] = HpcQuotaStatus.YELLOW
 
             else:
@@ -616,19 +631,33 @@ class HpcGroup(VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
             self_delegate_username,
         )
 
-    def get_manager_emails(self):
-        emails = [self.owner.user.email]
+    def get_manager_emails(self, slim=True):
+        owner_email = self.owner.user.email
+        delegate_email = self.delegate.user.email if self.delegate else None
 
-        if self.delegate:
-            emails.append(self.delegate.user.email)
+        if slim:
+            emails = [delegate_email if self.delegate else owner_email]
+
+        else:
+            emails = [owner_email]
+
+            if self.delegate:
+                emails.append(delegate_email)
 
         return emails
 
-    def get_manager_names(self):
-        names = [self.owner.user.get_full_name()]
+    def get_manager_names(self, slim=True):
+        owner_name = self.owner.user.get_full_name()
+        delegate_name = self.delegate.user.get_full_name() if self.delegate else None
 
-        if self.delegate:
-            names.append(self.delegate.user.get_full_name())
+        if slim:
+            names = [delegate_name if self.delegate else owner_name]
+
+        else:
+            names = [owner_name]
+
+            if self.delegate:
+                names.append(delegate_name)
 
         return names
 
@@ -793,19 +822,33 @@ class HpcProject(VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
             self_delegate_username,
         )
 
-    def get_manager_emails(self):
-        emails = [self.group.owner.user.email]
+    def get_manager_emails(self, slim=True):
+        owner_email = self.group.owner.user.email
+        delegate_email = self.delegate.user.email if self.delegate else None
 
-        if self.delegate:
-            emails += self.delegate.user.email
+        if slim:
+            emails = [delegate_email if self.delegate else owner_email]
+
+        else:
+            emails = [owner_email]
+
+            if self.delegate:
+                emails.append(delegate_email)
 
         return emails
 
-    def get_manager_names(self):
-        names = [self.group.owner.user.get_full_name()]
+    def get_manager_names(self, slim=True):
+        owner_name = self.group.owner.user.get_full_name()
+        delegate_name = self.delegate.user.get_full_name() if self.delegate else None
 
-        if self.delegate:
-            names += self.delegate.user.get_full_name()
+        if slim:
+            names = [delegate_name if self.delegate else owner_name]
+
+        else:
+            names = [owner_name]
+
+            if self.delegate:
+                names.append(delegate_name)
 
         return names
 
