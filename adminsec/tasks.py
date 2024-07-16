@@ -34,7 +34,7 @@ User = get_user_model()
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename="myapp.log", level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 def _sync_ldap(write=False, verbose=False, ldapcon=None):
@@ -106,17 +106,31 @@ def _generate_quota_reports():
     }
 
 
-@app.task(bind=True)
-def send_quota_email(_self):
+def _send_quota_email(status):
     if not settings.SEND_QUOTA_EMAILS:
         return
 
     reports = _generate_quota_reports()
 
     for data in reports.values():
+        print(status, data)
         for hpc_obj, report in data.items():
-            if any([not s == HpcQuotaStatus.GREEN for s in report["status"].values()]):
+            if any([s > status for s in report["status"].values()]):
+                # Skip if the object is already in a worse state
+                continue
+
+            if any([s == status for s in report["status"].values()]):
                 send_notification_storage_quota(hpc_obj, report)
+
+
+@app.task(bind=True)
+def send_quota_email_yellow(_self):
+    _send_quota_email(HpcQuotaStatus.YELLOW)
+
+
+@app.task(bind=True)
+def send_quota_email_red(_self):
+    _send_quota_email(HpcQuotaStatus.RED)
 
 
 @transaction.atomic
