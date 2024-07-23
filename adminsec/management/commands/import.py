@@ -48,6 +48,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         worker_user = User.objects.get(username="hpc-worker")
         context = transaction.atomic() if options["write"] else rollback(self)
+        users_consented = []
         try:
             with context, open(options["json"], "r") as jsonfile:
                 if options["purge"]:
