@@ -70,14 +70,12 @@
         </div>
       {% endfor %}
 
-      {% if update %}
-        <a class="btn btn-secondary"
-           href="{{ object|get_detail_url:user }}"
-        >
-          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-          Cancel
-        </a>
-      {% endif %}
+      <a class="btn btn-secondary"
+          href="{% url 'home' %}"
+      >
+        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+        Cancel
+      </a>
       <button class="btn btn-primary" type="submit" id="id_submit_button">
         {% if update %}
           {% if admin %}

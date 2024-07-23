@@ -1,3 +1,5 @@
+from itertools import chain
+
 import rules
 from django.conf import settings
 from django.contrib import messages
@@ -42,6 +44,7 @@ from usersec.models import (
     INVITATION_STATUS_REJECTED,
     OBJECT_STATUS_ACTIVE,
     REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_RETRACTED,
     REQUEST_STATUS_REVISION,
     TERMS_AUDIENCE_ALL,
     TERMS_AUDIENCE_PI,
@@ -320,7 +323,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
 
 class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
-    """HPC group create request update view."""
+    """HPC group create request reactivate view."""
 
     model = HpcGroupCreateRequest
     slug_field = "uuid"
@@ -346,6 +349,16 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
                 kwargs={"hpcgroupcreaterequest": obj.uuid},
             )
         )
+
+
+class HpcGroupCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
+    """HPC group create request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcGroupCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupcreaterequest"
+    permission_required = "usersec.manage_hpcgroupcreaterequest"
 
 
 class HpcUserView(HpcPermissionMixin, DetailView):
@@ -382,6 +395,25 @@ class HpcUserView(HpcPermissionMixin, DetailView):
         context["project_manager"] = is_project_manager
         context["view_mode"] = settings.VIEW_MODE
         projects_available = False
+        context["pending_requests"] = []
+        context["revision_requests"] = []
+        context["retracted_requests"] = []
+        context["has_pending_group_change_request"] = False
+        context["retracted_group_change_request"] = ""
+
+        def get_requests_by_status(status):
+            return list(
+                chain(
+                    HpcUserCreateRequest.objects.filter(group=group, status=status),
+                    HpcProjectCreateRequest.objects.filter(group=group, status=status),
+                    HpcUserChangeRequest.objects.filter(user__primary_group=group, status=status),
+                    HpcGroupChangeRequest.objects.filter(group=group, status=status),
+                    HpcProjectChangeRequest.objects.filter(
+                        Q(project__group=group) | Q(project__delegate=context["object"]),
+                        status=status,
+                    ),
+                )
+            )
 
         if is_group_manager:
             context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.filter(group=group)
@@ -398,6 +430,19 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             context["hpcgroupdeleterequests"] = None
             context["hpcuserdeleterequests"] = None
             context["hpcprojectdeleterequests"] = None
+            context["pending_requests"] = get_requests_by_status(REQUEST_STATUS_ACTIVE)
+            context["revision_requests"] = get_requests_by_status(REQUEST_STATUS_REVISION)
+            context["retracted_requests"] = get_requests_by_status(REQUEST_STATUS_RETRACTED)
+            context["has_pending_group_change_request"] = HpcGroupChangeRequest.objects.filter(
+                group=group, status=REQUEST_STATUS_ACTIVE
+            ).exists()
+            hpc_group_change_request = HpcGroupChangeRequest.objects.filter(
+                group=group, status=REQUEST_STATUS_RETRACTED
+            )
+            if hpc_group_change_request.exists():
+                context["retracted_group_change_request"] = str(
+                    hpc_group_change_request.first().uuid
+                )
             context["form_user_select"] = UserSelectForm(group=group)
             projects_available |= group.hpcprojects.exists()
 
@@ -406,6 +451,24 @@ class HpcUserView(HpcPermissionMixin, DetailView):
                 "project__delegate"
             ).filter(project__delegate=context["object"])
             context["hpcprojectdeleterequests"] = None
+            context["pending_requests"] += list(
+                HpcProjectChangeRequest.objects.filter(
+                    Q(project__group=group) | Q(project__delegate=context["object"]),
+                    status=REQUEST_STATUS_ACTIVE,
+                )
+            )
+            context["revision_requests"] += list(
+                HpcProjectChangeRequest.objects.filter(
+                    Q(project__group=group) | Q(project__delegate=context["object"]),
+                    status=REQUEST_STATUS_REVISION,
+                )
+            )
+            context["retracted_requests"] += list(
+                HpcProjectChangeRequest.objects.filter(
+                    Q(project__group=group) | Q(project__delegate=context["object"]),
+                    status=REQUEST_STATUS_RETRACTED,
+                )
+            )
             projects_available |= context["object"].hpcproject_delegate.exists()
 
         if is_project_manager or is_group_manager:
@@ -487,12 +550,7 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
         messages.success(
             self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMITTED, MSG_PART_USER_CREATION)
         )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
@@ -602,7 +660,7 @@ class HpcUserCreateRequestRetractView(HpcPermissionMixin, DeleteView):
 
 
 class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
-    """HPC user create request update view."""
+    """HPC user create request reactivate view."""
 
     model = HpcUserCreateRequest
     slug_field = "uuid"
@@ -630,6 +688,16 @@ class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
         )
 
 
+class HpcUserCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
+    """HPC user create request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcGroupCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "usersec.manage_hpcusercreaterequest"
+
+
 class HpcGroupDeleteRequestCreateView(View):
     pass
 
@@ -647,6 +715,10 @@ class HpcGroupDeleteRequestRetractView(View):
 
 
 class HpcGroupDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcGroupDeleteRequestDeleteView(View):
     pass
 
 
@@ -820,7 +892,7 @@ class HpcGroupChangeRequestRetractView(HpcPermissionMixin, DeleteView):
 
 
 class HpcGroupChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
-    """HPC group change request update view."""
+    """HPC group change request reactivate view."""
 
     model = HpcGroupChangeRequest
     slug_field = "uuid"
@@ -848,6 +920,16 @@ class HpcGroupChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
         )
 
 
+class HpcGroupChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
+    """HPC group change request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcGroupChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "usersec.manage_hpcgroupchangerequest"
+
+
 class HpcUserDeleteRequestCreateView(View):
     pass
 
@@ -865,6 +947,10 @@ class HpcUserDeleteRequestRetractView(View):
 
 
 class HpcUserDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcUserDeleteRequestDeleteView(View):
     pass
 
 
@@ -1062,6 +1148,10 @@ class HpcUserChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
                 kwargs={"hpcuserchangerequest": obj.uuid},
             )
         )
+
+
+class HpcUserChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
+    pass
 
 
 class HpcProjectDetailView(HpcPermissionMixin, DetailView):
@@ -1282,6 +1372,10 @@ class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
         )
 
 
+class HpcProjectCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
+    pass
+
+
 class HpcProjectDeleteRequestCreateView(View):
     pass
 
@@ -1299,6 +1393,10 @@ class HpcProjectDeleteRequestRetractView(View):
 
 
 class HpcProjectDeleteRequestReactivateView(View):
+    pass
+
+
+class HpcProjectDeleteRequestDeleteView(View):
     pass
 
 
@@ -1502,6 +1600,10 @@ class HpcProjectChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
                 kwargs={"hpcprojectchangerequest": obj.uuid},
             )
         )
+
+
+class HpcProjectChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
+    pass
 
 
 class HpcGroupInvitationDetailView(HpcPermissionMixin, DetailView):

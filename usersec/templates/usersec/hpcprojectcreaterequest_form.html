@@ -5,112 +5,117 @@
 
 {% block content %}
 
-  <div class="row">
-    <h2>
-      {% if update %}
-        Update HPC Project Request
-      {% else %}
-        Request HPC Project
-      {% endif %}
-    </h2>
-  </div>
+  <h2 class="mt-5">
+    {% if update %}
+      Update HPC Project Request
+    {% else %}
+      Request HPC Project
+    {% endif %}
+  </h2>
+
+  <p class="lead">
+    Request a new project on the HPC cluster.
+  </p>
 
   {% include "usersec/modules/comments.html" %}
 
-  <div class="container-fluid">
-    <form method="post" id="submit" data-is-admin="{{ admin }}" data-owner-id="{% if group %}{{ group.owner.id }}{% else %}{{ object.group.owner.id }}{% endif %}">
-      {% csrf_token %}
-      {% if admin %}
-        <dl class="row">
-          {% include "usersec/modules/resources_requested.html" with object=object %}
+  <form method="post" class="mb-3" id="submit" data-is-admin="{{ admin }}" data-owner-id="{% if group %}{{ group.owner.id }}{% else %}{{ object.group.owner.id }}{% endif %}">
+    {% csrf_token %}
+    {% if admin %}
+      <dl class="row">
+        {% include "usersec/modules/resources_requested.html" with object=object %}
 
-          <dt class="col-sm-6">Requester</dt>
-          <dd class="col-sm-6">{{ object.requester.username }}</dd>
+        <dt class="col-sm-6">Requester</dt>
+        <dd class="col-sm-6">{{ object.requester.username }}</dd>
 
-          <dt class="col-sm-6">Description</dt>
-          <dd class="col-sm-6">{{ object.description }}</dd>
+        <dt class="col-sm-6">Description</dt>
+        <dd class="col-sm-6">{{ object.description }}</dd>
 
-          <dt class="col-sm-6">Members <span class="badge rounded-pill bg-secondary">{{ object.members.count }}</span></dt>
-          <dd class="col-sm-6">
-            <ul class="list-unstyled">
-              {% for member in object.members.all %}
-                <li>{{ member }}</li>
-              {% endfor %}
-            </ul>
-          </dd>
+        <dt class="col-sm-6">Members <span class="badge rounded-pill bg-secondary">{{ object.members.count }}</span></dt>
+        <dd class="col-sm-6">
+          <ul class="list-unstyled">
+            {% for member in object.members.all %}
+              <li>{{ member }}</li>
+            {% endfor %}
+          </ul>
+        </dd>
 
-          <dt class="col-sm-6">Expiration</dt>
-          <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
-        </dl>
-      {% endif %}
+        <dt class="col-sm-6">Expiration</dt>
+        <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
+      </dl>
+    {% endif %}
 
-      {% for field in form.hidden_fields %}
-        {{ field }}
-      {% endfor %}
+    {% for field in form.hidden_fields %}
+      {{ field }}
+    {% endfor %}
 
-      {% for field in form.visible_fields %}
-        <div class="fieldWrapper {% if field.label == "Members" %}d-none{% endif %}">
-          {% if field.errors %}
-            <div class="alert alert-danger" role="alert">
-              {{ field.errors }}
-            </div>
-          {% endif %}
-          <div class="input-group mb-3">
-            <span class="input-group-text">
-              {% if field.field.required %}
-                <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
-              {% else %}
-                {{ field.label }}
-              {% endif %}
-            </span>
-            {{ field }}
-            {% if field.label == "Select Members" %}
-              <button class="btn btn-secondary" type="button" id="addMember">
-                <i class="iconify" data-icon="mdi:plus"></i>
-                Add
-              </button>
-            {% endif %}
+    {% for field in form.visible_fields %}
+      <div class="fieldWrapper {% if field.label == "Members" %}d-none{% endif %}">
+        {% if field.errors %}
+          <div class="alert alert-danger" role="alert">
+            {{ field.errors }}
           </div>
-          {% if field.help_text %}
-            <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
-          {% endif %}
+        {% endif %}
+        <div class="input-group mb-3">
+          <span class="input-group-text">
+            {% if field.field.required %}
+              <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
+            {% else %}
+              {{ field.label }}
+            {% endif %}
+          </span>
+          {{ field }}
           {% if field.label == "Select Members" %}
-            <h6>Members selected</h6>
-            <div class="mb-4" id="membersSelected">
-              <em class="text-danger fst-italic">No members selected.</em>
-            </div>
+            <button class="btn btn-secondary" type="button" id="addMember">
+              Add
+            </button>
           {% endif %}
         </div>
-      {% endfor %}
-
-      {% if update %}
-        <a class="btn btn-secondary"
-          {% if admin %}
-           href="{% url 'adminsec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
-          {% else %}
-           href="{% url 'usersec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
-          {% endif %}
-        >
-          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-          Cancel
-        </a>
-      {% endif %}
-      <button class="btn btn-primary" type="submit">
-        {% if update %}
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:comment"></i>
-            Request Revision
-          {% else %}
-            <i class="iconify" data-icon="mdi:refresh"></i>
-            Update
-          {% endif %}
-        {% else %}
-          <i class="iconify" data-icon="mdi:upload"></i>
-          Submit
+        {% if field.help_text %}
+          <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
         {% endif %}
-      </button>
-    </form>
-  </div>
+        {% if field.label == "Select Members" %}
+          <h6>Members selected</h6>
+          <div class="mb-4" id="membersSelected">
+            <em class="text-danger fst-italic">No members selected.</em>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    {% if update %}
+      <a class="btn btn-secondary"
+        {% if admin %}
+          href="{% url 'adminsec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
+        {% else %}
+          href="{% url 'usersec:hpcprojectcreaterequest-detail' hpcprojectcreaterequest=object.uuid %}"
+        {% endif %}
+      >
+        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+        Cancel
+      </a>
+    {% endif %}
+    <a class="btn btn-secondary"
+      href="{% url 'home' %}"
+    >
+      <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+      Cancel
+    </a>
+    <button class="btn btn-primary" type="submit">
+      {% if update %}
+        {% if admin %}
+          <i class="iconify" data-icon="mdi:comment"></i>
+          Request Revision
+        {% else %}
+          <i class="iconify" data-icon="mdi:refresh"></i>
+          Update
+        {% endif %}
+      {% else %}
+        <i class="iconify" data-icon="mdi:upload"></i>
+        Submit
+      {% endif %}
+    </button>
+  </form>
 {% endblock content %}
 
 {% block inline_javascript %}

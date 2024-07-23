@@ -504,6 +504,9 @@ class HpcObjectAbstract(models.Model):
     #: Date created
     date_created = models.DateTimeField(auto_now_add=True, help_text="DateTime of creation")
 
+    #: Date modified
+    date_modified = models.DateTimeField(auto_now=True, help_text="DateTime of last modification")
+
 
 # ------------------------------------------------------------------------------
 # HpcUser related
@@ -1060,6 +1063,14 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
         return mapping.get(self.status, "unknown status")
 
+    def get_request_type(self):
+        cls_name = self.__class__.__name__
+        name = cls_name.replace("Request", "").replace("Hpc", "")
+        ret = re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", name)
+        if ret:
+            return " ".join(ret)
+        return self.__class__.__name__
+
 
 # HpcGroupRequest related
 # ------------------------------------------------------------------------------
@@ -1541,7 +1552,7 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         max_length=512,
         help_text=(
             "Concise description of what kind of computations are required for the project on the "
-            "cluster",
+            "cluster"
         ),
         null=True,
         blank=True,

@@ -1,0 +1,176 @@
+{% load common %}
+
+<div class="row mb-4">
+  {% if pending_requests %}
+    <div class="col-{% if revision_requests and retracted_requests %}4{% elif revision_requests or retracted_requests %}6{% else %}12{% endif %}">
+      <div class="card bg-info">
+        <div class="card-header">
+          <h5 class="card-title lead">
+            Pending Requests
+          </h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for obj in pending_requests %}
+            <li class="list-group-item bg-info">
+              <a class="btn btn-light" href="{{ obj|get_detail_url:user }}">
+                <span class="badge bg-dark">{{ obj.get_request_type }}</span>
+                <span class="small">
+                  issued on {{ obj.date_created|date:"Y-m-d H:i" }}
+                  last modified on {{ obj.date_modified|date:"Y-m-d H:i" }}
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+  {% if revision_requests %}
+    <div class="col-{% if pending_requests and retracted_requests %}4{% elif pending_requests or retracted_requests %}6{% else %}12{% endif %}">
+      <div class="card bg-warning">
+        <div class="card-header">
+          <h5 class="card-title lead">
+            Requests That Require Revision
+          </h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for obj in revision_requests %}
+            <li class="list-group-item bg-warning">
+              <a class="btn btn-light" href="{{ obj|get_detail_url:user }}">
+                <span class="badge bg-dark">{{ obj.get_request_type }}</span>
+                <span class="small">
+                  issued on {{ obj.date_created|date:"Y-m-d H:i" }},
+                  last modified on {{ obj.date_modified|date:"Y-m-d H:i" }}
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+  {% if retracted_requests %}
+    <div class="col-{% if revision_requests and pending_requests %}4{% elif revision_requests or pending_requests %}6{% else %}12{% endif %}">
+      <div class="card bg-secondary text-light">
+        <div class="card-header">
+          <h5 class="card-title lead">
+            Requests That Have Been Retracted
+          </h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for obj in retracted_requests %}
+            <li class="list-group-item bg-secondary">
+              <a class="btn btn-light" href="{{ obj|get_detail_url:user }}">
+                <span class="badge bg-dark">{{ obj.get_request_type }}</span>
+                <span class="small">
+                  issued on {{ obj.date_created|date:"Y-m-d H:i" }},
+                  last modified on {{ obj.date_modified|date:"Y-m-d H:i" }}
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="row">
+  <div class="col-6">
+    <div class="card bg-light">
+      <div class="card-header">
+        <h5 class="card-title lead">Manage Group</h5>
+      </div>
+      <div class="card-body d-grid gap-2">
+        {% if has_pending_group_change_request %}
+          <a class="btn btn-secondary disabled" href="#">
+            Group Update Request Pending
+          </a>
+        {% elif retracted_group_change_request %}
+          <a
+            class="btn btn-secondary"
+            href="{% url 'usersec:hpcgroupchangerequest-update' hpcgroupchangerequest=retracted_group_change_request %}"
+          >
+            Resume Group Update Request
+          </a>
+        {% else %}
+          <a
+            class="btn btn-secondary"
+            href="{% url 'usersec:hpcgroupchangerequest-create' hpcgroup=object.primary_group.uuid %}"
+          >
+            Update Group <span class="small">(Resources, Delegate, Expiration)</span>
+          </a>
+        {% endif %}
+        <a
+          class="btn btn-secondary"
+          href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}"
+        >
+          Invite Member to Group
+        </a>
+        <!-- <div class="input-group">
+          <button type="button" class="btn btn-secondary" id="submitMemberSelection">
+            Extend Membership for
+          </button>
+          {{ form_user_select.members }}
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6">
+    <div class="card bg-light">
+      <div class="card-header">
+        <h5 class="card-title lead">Manage Projects</h5>
+      </div>
+      <div class="card-body d-grid gap-2">
+        <a class="btn btn-secondary" href="{% url 'usersec:hpcprojectcreaterequest-create' hpcgroup=object.primary_group.uuid %}">
+          Request New Project
+        </a>
+        <div class="input-group">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="submitProjectSelection"
+            {% if not projects_available %}
+              disabled
+            {% endif %}
+          >
+            Update Project
+          </button>
+          {{ form_project_select.projects }}
+        </div>
+        <!-- <a class="btn btn-outline-danger disabled">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Delete Project
+        </a>
+        <a class="btn btn-outline-danger disabled">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Request to Delete Group
+        </a>
+        <a class="btn btn-outline-danger disabled">
+          <i class="iconify" data-icon="mdi:trash-can"></i>
+          Request to Remove Member
+        </a> -->
+    </div>
+  </div>
+</div>
+
+{% block inline_javascript %}
+
+  <script>
+    $("#submitMemberSelection").click(function() {
+      let member_url = $("#id_members").val();
+      if (member_url) {
+        window.location.href = member_url;
+      }
+    });
+
+    $("#submitProjectSelection").click(function() {
+      let project_url = $("#id_projects").val();
+      if (project_url) {
+        window.location.href = project_url;
+      }
+    });
+  </script>
+
+{% endblock inline_javascript %}

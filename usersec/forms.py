@@ -553,7 +553,7 @@ class UserSelectForm(forms.Form):
         ]
 
         self.fields["members"] = forms.ChoiceField(choices=choices)
-        self.fields["members"].widget.attrs["class"] = "form-control"
+        self.fields["members"].widget.attrs["class"] = "form-select"
 
 
 class ProjectSelectForm(forms.Form):
@@ -583,4 +583,4 @@ class ProjectSelectForm(forms.Form):
         if not choices:
             self.fields["projects"].disabled = True
 
-        self.fields["projects"].widget.attrs["class"] = "form-control"
+        self.fields["projects"].widget.attrs["class"] = "form-select"
