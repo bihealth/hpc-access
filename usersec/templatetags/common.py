@@ -17,6 +17,7 @@ from usersec.models import (
     REQUEST_STATUS_RETRACTED,
     REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
+    HpcQuotaStatus,
 )
 
 site = import_module(settings.SITE_PACKAGE)
@@ -115,23 +116,11 @@ def get_posix_project_name(name):
 
 
 @register.filter
-def storage_in_percent(obj, tier):
-    """Return the storage in percent."""
-    if obj.resources_requested is None or obj.resources_used is None:
-        return 0
-    requested = obj.resources_requested.get(tier, 0)
-    used = obj.resources_used.get(tier, 0)
-    if not requested:
-        return 0
-    return round(100 * used / requested)
-
-
-@register.filter
-def storage_progress_color(percent):
+def storage_progress_color(status):
     """Return the color for the storage progress."""
-    if percent < 80:
+    if status == HpcQuotaStatus.GREEN:
         return "success"
-    if percent < 100:
+    if status == HpcQuotaStatus.YELLOW:
         return "warning"
     return "danger"
 
@@ -154,6 +143,7 @@ def highlight_folder(text, word):
     if (
         word
         in [
+            "home",
             "work",
             "scratch",
             "mirrored",

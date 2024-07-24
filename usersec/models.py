@@ -1,3 +1,4 @@
+import re
 import uuid as uuid_object
 from enum import Enum, unique
 
@@ -102,6 +103,9 @@ LOGIN_SHELL_CHOICES = [
     (LOGIN_SHELL_ZSH, LOGIN_SHELL_ZSH),
     (LOGIN_SHELL_SH, LOGIN_SHELL_SH),
 ]
+
+
+RE_EMAIL = r"^\S+@\S+\.\S+$"
 
 
 # ------------------------------------------------------------------------------
@@ -346,6 +350,69 @@ class CheckQuotaMixin:
         return result
 
 
+def parse_email(email):
+    if not email:
+        return ""
+
+    if re.match(RE_EMAIL, email) is None:
+        return ""
+
+    return email
+
+
+class ContactMixin:
+    def get_manager_emails(self, slim=True):
+        if isinstance(self, get_model(APP_NAME, "HpcGroup")):
+            owner_email = self.owner.user.email
+        elif isinstance(self, get_model(APP_NAME, "HpcProject")):
+            owner_email = self.group.owner.user.email
+
+        owner_email = parse_email(owner_email)
+        delegate_email = parse_email(self.delegate.user.email if self.delegate else None)
+        emails = {}
+
+        if delegate_email:
+            emails["delegate"] = delegate_email
+
+        if owner_email and (not slim or not delegate_email):
+            emails["owner"] = owner_email
+
+        return emails
+
+    def get_manager_names(self, slim=True):
+        if isinstance(self, get_model(APP_NAME, "HpcGroup")):
+            owner_name = self.owner.user.get_full_name()
+        elif isinstance(self, get_model(APP_NAME, "HpcProject")):
+            owner_name = self.group.owner.user.get_full_name()
+
+        delegate_name = self.delegate.user.get_full_name() if self.delegate else None
+        names = {}
+
+        if delegate_name:
+            names["delegate"] = delegate_name
+
+        if not slim or not delegate_name:
+            names["owner"] = owner_name
+
+        return names
+
+    def get_manager_contact(self, slim=True):
+        emails = self.get_manager_emails(slim)
+        names = self.get_manager_names(slim)
+
+        # Don't return contact info where there is no email available
+        contacts = {n: {} for n in set(emails.keys()) & set(names.keys())}
+
+        for name in contacts.keys():
+            contacts[name]["email"] = emails[name]
+            contacts[name]["name"] = names[name]
+
+        return contacts
+
+    def get_user_email(self):
+        return parse_email(self.user.email)
+
+
 # ------------------------------------------------------------------------------
 # Base model for Hpc objects
 # ------------------------------------------------------------------------------
@@ -445,7 +512,7 @@ class HpcUserAbstract(HpcObjectAbstract):
     )
 
 
-class HpcUser(VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
+class HpcUser(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
     """HpcUser model"""
 
     #: Set custom manager
@@ -593,7 +660,7 @@ class HpcGroupAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroup(VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
+class HpcGroup(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
     """HpcGroup model"""
 
     #: Set custom manager
@@ -630,36 +697,6 @@ class HpcGroup(VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
             self_owner_username,
             self_delegate_username,
         )
-
-    def get_manager_emails(self, slim=True):
-        owner_email = self.owner.user.email
-        delegate_email = self.delegate.user.email if self.delegate else None
-
-        if slim:
-            emails = [delegate_email if self.delegate else owner_email]
-
-        else:
-            emails = [owner_email]
-
-            if self.delegate:
-                emails.append(delegate_email)
-
-        return emails
-
-    def get_manager_names(self, slim=True):
-        owner_name = self.owner.user.get_full_name()
-        delegate_name = self.delegate.user.get_full_name() if self.delegate else None
-
-        if slim:
-            names = [delegate_name if self.delegate else owner_name]
-
-        else:
-            names = [owner_name]
-
-            if self.delegate:
-                names.append(delegate_name)
-
-        return names
 
 
 class HpcGroupVersion(HpcGroupAbstract):
@@ -778,7 +815,7 @@ class HpcProjectAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProject(VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
+class HpcProject(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
     """HpcProject model"""
 
     #: Set custom manager
@@ -821,36 +858,6 @@ class HpcProject(VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
             self_group_owner_username,
             self_delegate_username,
         )
-
-    def get_manager_emails(self, slim=True):
-        owner_email = self.group.owner.user.email
-        delegate_email = self.delegate.user.email if self.delegate else None
-
-        if slim:
-            emails = [delegate_email if self.delegate else owner_email]
-
-        else:
-            emails = [owner_email]
-
-            if self.delegate:
-                emails.append(delegate_email)
-
-        return emails
-
-    def get_manager_names(self, slim=True):
-        owner_name = self.group.owner.user.get_full_name()
-        delegate_name = self.delegate.user.get_full_name() if self.delegate else None
-
-        if slim:
-            names = [delegate_name if self.delegate else owner_name]
-
-        else:
-            names = [owner_name]
-
-            if self.delegate:
-                names.append(delegate_name)
-
-        return names
 
 
 class HpcProjectVersion(HpcProjectAbstract):

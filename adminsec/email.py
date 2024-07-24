@@ -409,6 +409,10 @@ def send_mail(subject, message, recipient_list, alternative=None):
     :return: Amount of sent email (int)
     """
 
+    if not recipient_list:
+        logger.warning("No recipients given, aborting sending email")
+        return 0
+
     messenger = EmailMultiAlternatives if alternative else EmailMessage
 
     try:
@@ -585,15 +589,20 @@ def send_notification_manager_request_denied(request):
 
 def send_notification_storage_quota(hpc_obj, report):
     if isinstance(hpc_obj, HpcUser):
-        greeting = USER_GREETING.format(user=hpc_obj.user.name)
-        emails = [hpc_obj.user.email]
-        entity = "user"
+        email = hpc_obj.get_user_email()
         name = hpc_obj.user.name
+        if not email:
+            logger.warning(f"User {name} has no valid email address: {hpc_obj.user.email}")
+            return 0
+        greeting = USER_GREETING.format(user=name)
+        emails = [email]
+        entity = "user"
         unit = "GB"
         folders = {TIER_USER_HOME: hpc_obj.home_directory}
     else:
-        greeting = USER_GREETING.format(user=", ".join(hpc_obj.get_manager_names()))
-        emails = hpc_obj.get_manager_emails()
+        contacts = hpc_obj.get_manager_contact(slim=True)
+        greeting = USER_GREETING.format(user=", ".join([c["name"] for c in contacts.values()]))
+        emails = [c["email"] for c in contacts.values()]
         entity = "project" if isinstance(hpc_obj, HpcProject) else "group"
         name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
         unit = "TB"
@@ -643,6 +652,7 @@ def send_notification_storage_quota(hpc_obj, report):
         table=table_text,
         footer=FOOTER,
     )
+    logger.info(f"Sending quota email: {emails}, '{subject}'")
     return send_mail(subject, message_text, emails, alternative=message_html)
 
 

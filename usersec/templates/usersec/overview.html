@@ -30,23 +30,25 @@
     {% endif %}
   {% endif %}
   <div class="row mt-4">
-    <div class="col-4"><code>{{ object.home_directory|default:"None" }}</code></div>
+    <div class="col-4"><code class="text-dark">{{ object.home_directory|default:"None"|highlight_folder:"home" }}</code></div>
     <div class="col-6">
       <div class="progress">
+        {% with percentage=object.generate_quota_report.percentage.tier1_home status=object.generate_quota_report.status.tier1_home %}
         <div
-          class="progress-bar bg-{{ object|storage_in_percent:"tier1_home"|storage_progress_color }}"
+          class="progress-bar fw-bold bg-{{ status|storage_progress_color }}"
           role="progressbar"
-          style="width: {{ object|storage_in_percent:"tier1_home" }}%"
-          aria-valuenow="{{ object|storage_in_percent:"tier1_home" }}"
+          style="width: {{ percentage }}%"
+          aria-valuenow="{{ percentage }}"
           aria-valuemin="0"
           aria-valuemax="100"
         >
-          {{ object|storage_in_percent:"tier1_home" }}%
+          {{ percentage }}%
         </div>
-      </div>
+        {% endwith %}
+        </div>
     </div>
     <div class="col-2 text-end">
-      {{ object.resources_used|lookup:"tier1_home"|floatformat:"1" }} of {{ object.resources_requested|lookup:"tier1_home" }} GB used
+      {{ object.resources_used.tier1_home|floatformat:"1" }} of {{ object.resources_requested.tier1_home }} GB used
     </div>
   </div>
   <div class="row mt-4">
