@@ -237,8 +237,8 @@ class HpcUserFactory(HpcObjectFactoryBase):
 
     user = factory.SubFactory(UserFactory)  # User
     primary_group = factory.SubFactory(HpcGroupFactory)
-    resources_requested = {"null": "null"}
-    resources_used = {"null": "null"}
+    resources_requested = {"tier1_home": 1.0}
+    resources_used = {"tier1_home": 0.5}
     creator = factory.SubFactory(UserFactory)  # User
     description = "this is a user"
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)

@@ -48,6 +48,7 @@ from usersec.models import (
     HpcUserDeleteRequestVersion,
     HpcUserVersion,
     TermsAndConditions,
+    parse_email,
 )
 from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
@@ -504,6 +505,22 @@ class TestHpcUser(VersionTesterMixin, TestCase):
 
         self.assertDictEqual(user.generate_quota_report(), expected)
 
+    def test_parse_email(self):
+        email = parse_email("valid@example.com")
+        self.assertEqual(email, "valid@example.com")
+
+    def test_parse_email_invalid(self):
+        email = parse_email("invalid")
+        self.assertEqual(email, "")
+
+    def test_parse_email_empty(self):
+        email = parse_email("")
+        self.assertEqual(email, "")
+
+    def test_get_user_email(self):
+        user = self.factory()
+        self.assertEqual(user.get_user_email(), user.user.email)
+
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
     """Tests for HpcGroup model"""
@@ -598,6 +615,124 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
             ],
         }
         self.assertDictEqual(obj.generate_quota_report(), expected)
+
+    def test_get_manager_emails(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_emails(), {"delegate": "delegate@example.com"})
+
+    def test_get_manager_emails_no_delegate(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        obj = self.factory(owner=hpcuser_owner)
+        self.assertEqual(obj.get_manager_emails(), {"owner": "owner@example.com"})
+
+    def test_get_manager_emails_slim_false(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_emails(slim=False),
+            {"owner": "owner@example.com", "delegate": "delegate@example.com"},
+        )
+
+    def test_get_manager_emails_invalid_address(self):
+        user_owner = self.make_user("owner")
+        user_owner.email = "INVALID"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        obj = self.factory(owner=hpcuser_owner)
+        self.assertEqual(obj.get_manager_emails(), {})
+
+    def test_get_manager_names(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_names(), {"delegate": "Delegate"})
+
+    def test_get_manager_names_no_delegate(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        obj = self.factory(owner=hpcuser_owner)
+        self.assertEqual(obj.get_manager_names(), {"owner": "Owner"})
+
+    def test_get_manager_names_slim_false(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_names(slim=False), {"owner": "Owner", "delegate": "Delegate"}
+        )
+
+    def test_get_manager_contact(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(),
+            {"delegate": {"name": "Delegate", "email": "delegate@example.com"}},
+        )
+
+    def test_get_manager_contact_slim_false(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(slim=False),
+            {
+                "owner": {"name": "Owner", "email": "owner@example.com"},
+                "delegate": {"name": "Delegate", "email": "delegate@example.com"},
+            },
+        )
+
+    def test_get_manager_contact_invalid_address(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.email = "INVALID"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(slim=False),
+            {
+                "owner": {"name": "Owner", "email": "owner@example.com"},
+            },
+        )
 
 
 class TestHpcProject(VersionTesterMixin, TestCase):
@@ -696,6 +831,134 @@ class TestHpcProject(VersionTesterMixin, TestCase):
             ],
         }
         self.assertDictEqual(obj.generate_quota_report(), expected)
+
+    def test_get_manager_emails(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_emails(), {"delegate": "delegate@example.com"})
+
+    def test_get_manager_emails_no_delegate(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup)
+        self.assertEqual(obj.get_manager_emails(), {"owner": "owner@example.com"})
+
+    def test_get_manager_emails_slim_false(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_emails(slim=False),
+            {"owner": "owner@example.com", "delegate": "delegate@example.com"},
+        )
+
+    def test_get_manager_emails_invalid_address(self):
+        user_owner = self.make_user("owner")
+        user_owner.email = "INVALID"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup)
+        self.assertEqual(obj.get_manager_emails(), {})
+
+    def test_get_manager_names(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_names(), {"delegate": "Delegate"})
+
+    def test_get_manager_names_no_delegate(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup)
+        self.assertEqual(obj.get_manager_names(), {"owner": "Owner"})
+
+    def test_get_manager_names_slim_false(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_names(slim=False), {"owner": "Owner", "delegate": "Delegate"}
+        )
+
+    def test_get_manager_contact(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(),
+            {"delegate": {"name": "Delegate", "email": "delegate@example.com"}},
+        )
+
+    def test_get_manager_contact_slim_false(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(slim=False),
+            {
+                "owner": {"name": "Owner", "email": "owner@example.com"},
+                "delegate": {"name": "Delegate", "email": "delegate@example.com"},
+            },
+        )
+
+    def test_get_manager_contact_invalid_address(self):
+        user_owner = self.make_user("owner")
+        user_owner.last_name = "Owner"
+        user_owner.save()
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        user_delegate.last_name = "Delegate"
+        user_delegate.email = "INVALID"
+        user_delegate.save()
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(
+            obj.get_manager_contact(slim=False),
+            {
+                "owner": {"name": "Owner", "email": "owner@example.com"},
+            },
+        )
 
 
 class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):

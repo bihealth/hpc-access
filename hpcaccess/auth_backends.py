@@ -14,7 +14,7 @@ class PrimaryLDAPBackend(LDAPBackend):
     settings_prefix = "AUTH_LDAP_"
 
     def authenticate(self, request=None, username=None, password=None, **kwargs):
-        domain = request.POST.get("domain")
+        domain = request.POST.get("domain") if request else None
         # Login with username@DOMAIN
         if LDAP_DOMAIN:
             if not domain == LDAP_DOMAIN:

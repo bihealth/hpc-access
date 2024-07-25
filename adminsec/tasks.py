@@ -99,6 +99,7 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
 
 
 def _generate_quota_reports():
+    logger.info("Generating quota reports ...")
     return {
         "users": {o: o.generate_quota_report() for o in HpcUser.objects.all()},
         "projects": {o: o.generate_quota_report() for o in HpcProject.objects.all()},
@@ -108,15 +109,16 @@ def _generate_quota_reports():
 
 def _send_quota_email(status):
     if not settings.SEND_QUOTA_EMAILS:
+        logger.info("Quota emails are disabled ... aborting.")
         return
 
     reports = _generate_quota_reports()
 
     for data in reports.values():
-        print(status, data)
         for hpc_obj, report in data.items():
             if any([s > status for s in report["status"].values()]):
                 # Skip if the object is already in a worse state
+                logger.info(f"Skipping {hpc_obj} as it is already in a worse state")
                 continue
 
             if any([s == status for s in report["status"].values()]):
@@ -125,11 +127,13 @@ def _send_quota_email(status):
 
 @app.task(bind=True)
 def send_quota_email_yellow(_self):
+    logger.info("Sending quota email for status YELLOW")
     _send_quota_email(HpcQuotaStatus.YELLOW)
 
 
 @app.task(bind=True)
 def send_quota_email_red(_self):
+    logger.info("Sending quota email for status RED")
     _send_quota_email(HpcQuotaStatus.RED)
 
 

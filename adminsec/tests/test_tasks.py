@@ -331,7 +331,7 @@ class TestSendQuotaEmail(TestCase):
         self.hpc_project.get_latest_version().members.add(self.hpc_member)
         self.hpc_project.save()
         _send_quota_email(HpcQuotaStatus.RED)
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 1)
 
     @override_settings(SEND_QUOTA_EMAILS=True)
     def test__send_quota_email_yellow(self):
