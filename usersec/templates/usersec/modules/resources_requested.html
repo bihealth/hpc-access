@@ -4,10 +4,10 @@
 <dd class="col-sm-6">
   <dl class="row">
     <dt class="col-sm-7 small">Scratch</dt>
-    <dd class="col-sm-5">{{ object.resources_requested|lookup:"tier1_scratch" }} TB</dd>
+    <dd class="col-sm-5">{{ object.resources_requested.tier1_scratch }} TB</dd>
 
     <dt class="col-sm-7 small">Work</dt>
-    <dd class="col-sm-5">{{ object.resources_requested|lookup:"tier1_work" }} TB</dd>
+    <dd class="col-sm-5">{{ object.resources_requested.tier1_work }} TB</dd>
   </dl>
 </dd>
 
@@ -15,9 +15,9 @@
 <dd class="col-sm-6">
   <dl class="row">
     <dt class="col-sm-7 small">Unmirrored</dt>
-    <dd class="col-sm-5">{{ object.resources_requested|lookup:"tier2_unmirrored" }} TB</dd>
+    <dd class="col-sm-5">{{ object.resources_requested.tier2_unmirrored }} TB</dd>
 
     <dt class="col-sm-7 small">Mirrored</dt>
-    <dd class="col-sm-5">{{ object.resources_requested|lookup:"tier2_mirrored" }} TB</dd>
+    <dd class="col-sm-5">{{ object.resources_requested.tier2_mirrored }} TB</dd>
   </dl>
 </dd>

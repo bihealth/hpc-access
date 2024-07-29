@@ -81,9 +81,14 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             user.name = " ".join([user.first_name, user.last_name])
             user.is_active = not disabled
 
-            if user.hpcuser_user.count():
+            if user.hpcuser_user.exists():
                 hpcuser = user.hpcuser_user.first()
-                hpcuser.status = "EXPIRED" if disabled else "ACTIVE"
+                if disabled:
+                    hpcuser.status = "EXPIRED"
+                    hpcuser.login_shell = "/usr/sbin/nologin"
+                else:
+                    hpcuser.status = "ACTIVE"
+                    hpcuser.login_shell = "/bin/bash"
 
                 if write:
                     hpcuser.save()
