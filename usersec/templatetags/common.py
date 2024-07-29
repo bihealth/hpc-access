@@ -78,14 +78,6 @@ def get_detail_url(obj, user):
 
 
 @register.filter
-def lookup(dikt, key):
-    """Return a value from a dictionary or 'unknown'."""
-    if dikt is None:
-        return "unknown"
-    return dikt.get(key, "unknown")
-
-
-@register.filter
 def is_project_owner(user, project):
     """Return if a user is owner of the project."""
     return project.group.owner == user

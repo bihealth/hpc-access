@@ -24,7 +24,6 @@ from usersec.templatetags.common import (
     get_django_setting,
     is_project_delegate,
     is_project_owner,
-    lookup,
     site_version,
 )
 from usersec.tests.factories import HpcGroupFactory, HpcProjectFactory, HpcUserFactory
@@ -74,11 +73,6 @@ class TestCommon(TestCase):
         url = get_detail_url(hpcuser, user)
         expected = reverse("usersec:hpcuser-detail", kwargs={"hpcuser": hpcuser.uuid})
         self.assertEqual(url, expected)
-
-    def test_lookup(self):
-        data = {"key": "value"}
-        self.assertEqual(lookup(data, "key"), "value")
-        self.assertEqual(lookup(data, "nonsense"), "unknown")
 
     def test_is_project_owner(self):
         user = self.make_user("user")

@@ -352,23 +352,41 @@ class CheckQuotaMixin:
 
 def parse_email(email):
     if not email:
-        return ""
+        raise ValueError("Email is empty")
 
     if re.match(RE_EMAIL, email) is None:
-        return ""
+        raise ValueError("Email is not valid")
 
     return email
 
 
+def user_active(hpcuser):
+    return (
+        hpcuser.user.is_active
+        and hpcuser.login_shell != "/usr/sbin/nologin"
+        and hpcuser.status != "EXPIRED"
+    )
+
+
 class ContactMixin:
     def get_manager_emails(self, slim=True):
-        if isinstance(self, get_model(APP_NAME, "HpcGroup")):
+        if isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for Hpc{Group,Project} objects")
+        elif isinstance(self, get_model(APP_NAME, "HpcGroup")):
             owner_email = self.owner.user.email
         elif isinstance(self, get_model(APP_NAME, "HpcProject")):
             owner_email = self.group.owner.user.email
 
-        owner_email = parse_email(owner_email)
-        delegate_email = parse_email(self.delegate.user.email if self.delegate else None)
+        try:
+            owner_email = parse_email(owner_email)
+        except ValueError:
+            owner_email = None
+
+        try:
+            delegate_email = parse_email(self.delegate.user.email if self.delegate else None)
+        except ValueError:
+            delegate_email = None
+
         emails = {}
 
         if delegate_email:
@@ -380,7 +398,9 @@ class ContactMixin:
         return emails
 
     def get_manager_names(self, slim=True):
-        if isinstance(self, get_model(APP_NAME, "HpcGroup")):
+        if isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for Hpc{Group,Project} objects")
+        elif isinstance(self, get_model(APP_NAME, "HpcGroup")):
             owner_name = self.owner.user.get_full_name()
         elif isinstance(self, get_model(APP_NAME, "HpcProject")):
             owner_name = self.group.owner.user.get_full_name()
@@ -396,12 +416,35 @@ class ContactMixin:
 
         return names
 
+    def get_manager_active(self, slim=True):
+        if isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for Hpc{Group,Project} objects")
+        elif isinstance(self, get_model(APP_NAME, "HpcGroup")):
+            owner_active = user_active(self.owner)
+        elif isinstance(self, get_model(APP_NAME, "HpcProject")):
+            owner_active = user_active(self.group.owner)
+
+        delegate_active = user_active(self.delegate) if self.delegate else None
+        active = []
+
+        if delegate_active:
+            active.append("delegate")
+
+        if owner_active and (not slim or not delegate_active):
+            active.append("owner")
+
+        return active
+
     def get_manager_contact(self, slim=True):
+        if isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for Hpc{Group,Project} objects")
+
         emails = self.get_manager_emails(slim)
         names = self.get_manager_names(slim)
+        active = self.get_manager_active(slim)
 
         # Don't return contact info where there is no email available
-        contacts = {n: {} for n in set(emails.keys()) & set(names.keys())}
+        contacts = {n: {} for n in set(emails.keys()) & set(names.keys()) & set(active)}
 
         for name in contacts.keys():
             contacts[name]["email"] = emails[name]
@@ -409,8 +452,24 @@ class ContactMixin:
 
         return contacts
 
+    def get_user_active(self):
+        if not isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for HpcUser objects")
+
+        return user_active(self)
+
     def get_user_email(self):
-        return parse_email(self.user.email)
+        if not isinstance(self, get_model(APP_NAME, "HpcUser")):
+            raise NotImplementedError("Method only implemented for HpcUser objects")
+
+        if not self.get_user_active():
+            return None
+
+        try:
+            return parse_email(self.user.email)
+
+        except ValueError:
+            return None
 
 
 # ------------------------------------------------------------------------------

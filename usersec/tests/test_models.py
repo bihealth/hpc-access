@@ -49,6 +49,7 @@ from usersec.models import (
     HpcUserVersion,
     TermsAndConditions,
     parse_email,
+    user_active,
 )
 from usersec.tests.factories import (
     HpcGroupChangeRequestFactory,
@@ -510,16 +511,62 @@ class TestHpcUser(VersionTesterMixin, TestCase):
         self.assertEqual(email, "valid@example.com")
 
     def test_parse_email_invalid(self):
-        email = parse_email("invalid")
-        self.assertEqual(email, "")
+        with self.assertRaisesRegex(ValueError, "Email is not valid"):
+            parse_email("invalid")
 
     def test_parse_email_empty(self):
-        email = parse_email("")
-        self.assertEqual(email, "")
+        with self.assertRaisesRegex(ValueError, "Email is empty"):
+            parse_email("")
+
+    def test_user_active(self):
+        hpcuser = self.factory(user=self.user)
+        self.assertTrue(user_active(hpcuser))
+
+    def test_user_inactive_disabled(self):
+        self.user.is_active = False
+        self.user.save()
+        hpcuser = self.factory(user=self.user)
+        self.assertFalse(user_active(hpcuser))
+
+    def test_user_inactive_expired(self):
+        hpcuser = self.factory(user=self.user, status="EXPIRED")
+        self.assertFalse(user_active(hpcuser))
+
+    def test_user_inactive_nologin(self):
+        hpcuser = self.factory(user=self.user, login_shell="/usr/sbin/nologin")
+        self.assertFalse(user_active(hpcuser))
 
     def test_get_user_email(self):
         user = self.factory()
         self.assertEqual(user.get_user_email(), user.user.email)
+
+    def test_get_user_email_inactive(self):
+        user = self.factory()
+        user.user.is_active = False
+        user.user.save()
+        self.assertIsNone(user.get_user_email())
+
+    def test_get_user_active(self):
+        user = self.factory()
+        self.assertTrue(user.get_user_active())
+
+    def test_get_manager_active(self):
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for Hpc{Group,Project} objects"
+        ):
+            self.factory().get_manager_active()
+
+    def test_get_manager_emails(self):
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for Hpc{Group,Project} objects"
+        ):
+            self.factory().get_manager_emails()
+
+    def test_get_manager_contact(self):
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for Hpc{Group,Project} objects"
+        ):
+            self.factory().get_manager_contact()
 
 
 class TestHpcGroup(VersionTesterMixin, TestCase):
@@ -733,6 +780,58 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
                 "owner": {"name": "Owner", "email": "owner@example.com"},
             },
         )
+
+    def test_get_manager_active(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), ["delegate"])
+
+    def test_get_manager_active_no_delegate(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        obj = self.factory(owner=hpcuser_owner)
+        self.assertEqual(obj.get_manager_active(), ["owner"])
+
+    def test_get_manager_active_slim_false(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(slim=False), ["delegate", "owner"])
+
+    def test_get_manager_active_delegate_inactive(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate, status="EXPIRED")
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), ["owner"])
+
+    def test_get_manager_active_all_inactive(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner, status="EXPIRED")
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate, status="EXPIRED")
+        obj = self.factory(owner=hpcuser_owner, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), [])
+
+    def test_get_user_email(self):
+        obj = self.factory()
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for HpcUser objects"
+        ):
+            obj.get_user_email()
+
+    def test_get_user_active(self):
+        obj = self.factory()
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for HpcUser objects"
+        ):
+            obj.get_user_active()
 
 
 class TestHpcProject(VersionTesterMixin, TestCase):
@@ -959,6 +1058,63 @@ class TestHpcProject(VersionTesterMixin, TestCase):
                 "owner": {"name": "Owner", "email": "owner@example.com"},
             },
         )
+
+    def test_get_manager_active(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), ["delegate"])
+
+    def test_get_manager_active_no_delegate(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup)
+        self.assertEqual(obj.get_manager_active(), ["owner"])
+
+    def test_get_manager_active_slim_false(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate)
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(slim=False), ["delegate", "owner"])
+
+    def test_get_manager_active_delegate_inactive(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner)
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate, status="EXPIRED")
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), ["owner"])
+
+    def test_get_manager_active_all_inactive(self):
+        user_owner = self.make_user("owner")
+        hpcuser_owner = HpcUserFactory(user=user_owner, status="EXPIRED")
+        user_delegate = self.make_user("delegate")
+        hpcuser_delegate = HpcUserFactory(user=user_delegate, status="EXPIRED")
+        hpcgroup = HpcGroupFactory(owner=hpcuser_owner)
+        obj = self.factory(group=hpcgroup, delegate=hpcuser_delegate)
+        self.assertEqual(obj.get_manager_active(), [])
+
+    def test_get_user_email(self):
+        obj = self.factory()
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for HpcUser objects"
+        ):
+            obj.get_user_email()
+
+    def test_get_user_active(self):
+        obj = self.factory()
+        with self.assertRaisesRegex(
+            NotImplementedError, "Method only implemented for HpcUser objects"
+        ):
+            obj.get_user_active()
 
 
 class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
