@@ -339,12 +339,12 @@ SUBJECT_QUOTA = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
 NOTIFICATION_QUOTA_PLAIN = r"""
 {greeting}
 
-one or more of your {entity} storage quotas for `{name}` are nearly full or already have reached the
-limit. Please consider cleaning up your files to avoid running into issues with your storage quota.
+one or more of your {entity} storage quotas for `{name}` are approaching or have reached their
+limits. Please consider cleaning up your files to avoid running into issues.
 
 {table}
 
-For more information, please follow this link:
+For more information and cleanup tips, please follow this link:
 https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-email
 
 {footer}
@@ -354,9 +354,8 @@ NOTIFICATION_QUOTA_HTML = r"""
 <body>
 <p>{greeting}</p>
 <p>
-one or more of your {entity} storage quotas for <strong>{name}</strong> are nearly full or already
-have reached the limit. Please consider cleaning up your files to avoid running into issues with
-your storage quota.
+one or more of your {entity} storage quotas for <strong>{name}</strong> are approaching or have
+reached their limits. Please consider cleaning up your files to avoid running into issues.
 </p>
 
 <table>
