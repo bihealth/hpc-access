@@ -506,6 +506,40 @@ class TestHpcUser(VersionTesterMixin, TestCase):
 
         self.assertDictEqual(user.generate_quota_report(), expected)
 
+    def test_generate_quota_report_zero_quota(self):
+        user = self.factory(
+            resources_requested={TIER_USER_HOME: 0},
+            resources_used={TIER_USER_HOME: 0},
+            home_directory="/home/users",
+        )
+        expected = {
+            "used": {TIER_USER_HOME: 0},
+            "requested": {TIER_USER_HOME: 0},
+            "percentage": {TIER_USER_HOME: 0},
+            "status": {TIER_USER_HOME: HpcQuotaStatus.GREEN},
+            "folders": {TIER_USER_HOME: "/home/users"},
+            "warnings": [],
+        }
+
+        self.assertDictEqual(user.generate_quota_report(), expected)
+
+    def test_generate_quota_report_no_resources(self):
+        user = self.factory(
+            resources_requested={},
+            resources_used={},
+            home_directory="/home/users",
+        )
+        expected = {
+            "used": {},
+            "requested": {},
+            "percentage": {},
+            "status": {},
+            "folders": {},
+            "warnings": ["No resources available."],
+        }
+
+        self.assertDictEqual(user.generate_quota_report(), expected)
+
     def test_parse_email(self):
         email = parse_email("valid@example.com")
         self.assertEqual(email, "valid@example.com")

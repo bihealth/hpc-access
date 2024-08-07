@@ -353,6 +353,60 @@ class TestSendQuotaEmail(TestCase):
         send_quota_email_yellow()
         self.assertEqual(len(mail.outbox), 1)
 
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_red_quota_zero(self):
+        # From 100% to 0% used -> one email less expected
+        self.hpc_owner.resources_requested = {TIER_USER_HOME: 0}
+        self.hpc_owner.resources_used = {TIER_USER_HOME: 0}
+        self.hpc_owner.save()
+        send_quota_email_red()
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_yellow_quota_zero(self):
+        # From 100% to 0% used -> not affected
+        self.hpc_owner.resources_requested = {TIER_USER_HOME: 0}
+        self.hpc_owner.resources_used = {TIER_USER_HOME: 0}
+        self.hpc_owner.save()
+        send_quota_email_yellow()
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_green_quota_zero(self):
+        # From 100% to 0% used -> one email more expected
+        self.hpc_owner.resources_requested = {TIER_USER_HOME: 0}
+        self.hpc_owner.resources_used = {TIER_USER_HOME: 0}
+        self.hpc_owner.save()
+        _send_quota_email(HpcQuotaStatus.GREEN)
+        self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_red_quota_missing(self):
+        # From 100% to missing -> one email less expected
+        self.hpc_owner.resources_requested = {}
+        self.hpc_owner.resources_used = {}
+        self.hpc_owner.save()
+        send_quota_email_red()
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_yellow_quota_missing(self):
+        # From 100% to missing -> not affected
+        self.hpc_owner.resources_requested = {}
+        self.hpc_owner.resources_used = {}
+        self.hpc_owner.save()
+        send_quota_email_yellow()
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(SEND_QUOTA_EMAILS=True)
+    def test_send_quota_email_green_quota_missing(self):
+        # From 100% to missing -> not affected
+        self.hpc_owner.resources_requested = {}
+        self.hpc_owner.resources_used = {}
+        self.hpc_owner.save()
+        _send_quota_email(HpcQuotaStatus.GREEN)
+        self.assertEqual(len(mail.outbox), 1)
+
 
 class DisableUsersWithoutConsent(TestCase):
     """Tests for disable_users_without_consent."""
