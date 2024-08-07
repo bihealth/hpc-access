@@ -304,6 +304,15 @@ class CheckQuotaMixin:
         requested = set((self.resources_requested or {}).keys())
         used = set((self.resources_used or {}).keys())
         available = requested & used
+        if not available:
+            return {
+                "used": {},
+                "requested": {},
+                "percentage": {},
+                "status": {},
+                "folders": {},
+                "warnings": ["No resources available."],
+            }
         folders = (
             {TIER_USER_HOME: self.home_directory}
             if isinstance(self, get_model(APP_NAME, "HpcUser"))
@@ -331,9 +340,15 @@ class CheckQuotaMixin:
         for key in available:
             used_val = self.resources_used.get(key)
             requested_val = self.resources_requested.get(key)
-            result["percentage"][key] = round(
-                (100 * used_val / requested_val) if not requested_val == 0 else 0
-            )
+
+            if requested_val == 0 or used_val == 0:
+                # if requested_val is 0, CEPHFS provides unlimited quota => status always green
+                # if used_val is 0, the user has not used any resources => cut short
+                result["percentage"][key] = 0
+                result["status"][key] = HpcQuotaStatus.GREEN
+                continue
+
+            result["percentage"][key] = round(100 * used_val / requested_val)
 
             if used_val >= requested_val:
                 result["status"][key] = HpcQuotaStatus.RED
