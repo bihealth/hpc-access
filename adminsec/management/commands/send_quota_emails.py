@@ -31,7 +31,13 @@ class Command(BaseCommand):
             "red": HpcQuotaStatus.RED,
         }
 
-        response = _send_quota_email(level_map[options["level"]], dry_run=not options["no_dry_run"])
+        response = [
+            e
+            for e in _send_quota_email(
+                level_map[options["level"]], dry_run=not options["no_dry_run"]
+            )
+            if isinstance(e, str)
+        ]
 
         if options["no_dry_run"]:
             self.stderr.write("Quota emails sent.")
