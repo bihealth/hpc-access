@@ -112,12 +112,13 @@ def _generate_quota_reports():
     }
 
 
-def _send_quota_email(status):
-    if not settings.SEND_QUOTA_EMAILS:
+def _send_quota_email(status, dry_run=False):
+    if not settings.SEND_QUOTA_EMAILS and not dry_run:
         logger.info("Quota emails are disabled ... aborting.")
         return
 
     reports = _generate_quota_reports()
+    response = []
 
     for data in reports.values():
         for hpc_obj, report in data.items():
@@ -127,7 +128,9 @@ def _send_quota_email(status):
                 continue
 
             if any([s == status for s in report["status"].values()]):
-                send_notification_storage_quota(hpc_obj, report)
+                response.append(send_notification_storage_quota(hpc_obj, report, dry_run=dry_run))
+
+    return response
 
 
 @app.task(bind=True)
