@@ -396,7 +396,7 @@ Agreeing to the updated terms and conditions is a requirement for the continued 
 # ------------------------------------------------------------------------------
 
 
-def send_mail(subject, message, recipient_list, alternative=None):
+def send_mail(subject, message, recipient_list, alternative=None, dry_run=False):
     """
     Wrapper for send_mail() with logging and error messaging.
 
@@ -423,7 +423,16 @@ def send_mail(subject, message, recipient_list, alternative=None):
         )
         if alternative:
             m.attach_alternative(alternative, "text/html")
-        ret = m.send(fail_silently=False)
+        if dry_run:
+            # Write email message to a file instead of sending it
+            return f"""
+Subject: {subject}
+To: {','.join(recipient_list)}
+
+{message}
+""".lstrip()
+        else:
+            ret = m.send(fail_silently=False)
         logger.debug("Notification email sent")
         return ret
 
@@ -586,7 +595,7 @@ def send_notification_manager_request_denied(request):
     return send_mail(subject, message, [request.requester.email])
 
 
-def send_notification_storage_quota(hpc_obj, report):
+def send_notification_storage_quota(hpc_obj, report, dry_run=False):
     if isinstance(hpc_obj, HpcUser):
         email = hpc_obj.get_user_email()
         name = hpc_obj.user.name
@@ -652,7 +661,7 @@ def send_notification_storage_quota(hpc_obj, report):
         footer=FOOTER,
     )
     logger.info(f"Sending quota email: {emails}, '{subject}'")
-    return send_mail(subject, message_text, emails, alternative=message_html)
+    return send_mail(subject, message_text, emails, alternative=message_html, dry_run=dry_run)
 
 
 # ------------------------------------------------------------------------------
