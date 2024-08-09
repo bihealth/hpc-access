@@ -80,14 +80,14 @@ MANUAL_LINK_PIS = "https://hpc-access.readthedocs.io/en/latest/usersec_pis.html"
 HPC_ACCESS_LINK = "https://hpc-access.cubi.bihealth.org"
 
 #: Email footer
-FOOTER = r"""
+FOOTER = """
 Best regards,
 The BIH HPC Team
 
 (This email has been automatically generated.)
 """.lstrip()
 
-FOOTER_HTML = r"""
+FOOTER_HTML = """
 <p>
 Best regards,<br />
 The BIH HPC Team
@@ -101,7 +101,7 @@ The BIH HPC Team
 
 #: Notification text for admins upon new request or request change
 SUBJECT_ADMIN_REQUEST = SUBJECT_PREFIX + "Request submitted - {request_type}"
-NOTIFICATION_ADMIN_REQUEST = r"""
+NOTIFICATION_ADMIN_REQUEST = """
 {greeting}
 
 a {request_type} request has been submitted by {username}. Please visit the
@@ -118,7 +118,7 @@ following link to review the request:
 #: Notification text for visitors requesting a group.
 SUBJECT_MANAGER_GROUP_REQUEST = SUBJECT_PREFIX + "Your group request"
 SUBJECT_MANAGER_PROJECT_REQUEST = SUBJECT_PREFIX + "Your project request for {name}"
-NOTIFICATION_MANAGER_REQUEST = r"""
+NOTIFICATION_MANAGER_REQUEST = """
 {greeting}
 
 you have successfully requested a {project_or_group} on the BIH HPC cluster. It
@@ -132,7 +132,7 @@ your request by visiting the following link:
 
 #: Notification text for managers upon group creation
 SUBJECT_MANAGER_GROUP_CREATED = SUBJECT_PREFIX + "Your group {group} has been created"
-NOTIFICATION_MANAGER_GROUP_CREATED = r"""
+NOTIFICATION_MANAGER_GROUP_CREATED = """
 {greeting}
 
 your group request has been approved and the group has been created.
@@ -151,7 +151,7 @@ Your group folder is located at
 
 #: Notification text for managers upon group creation
 SUBJECT_MANAGER_PROJECT_CREATED = SUBJECT_PREFIX + "Your project {project} has been created"
-NOTIFICATION_MANAGER_PROJECT_CREATED = r"""
+NOTIFICATION_MANAGER_PROJECT_CREATED = """
 {greeting}
 
 your project request has been approved and the project has been created.
@@ -172,7 +172,7 @@ Your project folder is located at
 SUBJECT_MANAGER_USER_DECIDED_INVITATION = (
     SUBJECT_PREFIX + "User {decision} {project_or_group} invitation"
 )
-NOTIFICATION_MANAGER_USER_DECIDED_INVITATION = r"""
+NOTIFICATION_MANAGER_USER_DECIDED_INVITATION = """
 {greeting}
 
 the user {username} {decision} your invitation to join {project_or_group} "{identifier}".
@@ -181,14 +181,14 @@ the user {username} {decision} your invitation to join {project_or_group} "{iden
 """.lstrip()
 
 #: Notification text for managers upon group invitation acceptance
-NOTIFICATION_PART_USER_ACCOUNT_CREATED = r"""
+NOTIFICATION_PART_USER_ACCOUNT_CREATED = """
 The user account has been created and the user was added to the group.
 
 """.lstrip()
 
 #: Notification text for managers for revising a request
 SUBJECT_MANAGER_REVISE_REQUEST = SUBJECT_PREFIX + "Your {request_type} request needs revision"
-NOTIFICATION_MANAGER_REVISE_REQUEST = r"""
+NOTIFICATION_MANAGER_REVISE_REQUEST = """
 {greeting}
 
 there is an update on your {request_type} request.
@@ -203,7 +203,7 @@ the link below to revise your request:
 
 #: Notification text for managers for a declined request
 SUBJECT_MANAGER_REQUEST_DENIED = SUBJECT_PREFIX + "Your {request_type} request has been declined"
-NOTIFICATION_MANAGER_REQUEST_DENIED = r"""
+NOTIFICATION_MANAGER_REQUEST_DENIED = """
 {greeting}
 
 there is an update on your {request_type} request. Unfortunately, it has been
@@ -218,7 +218,7 @@ declined. Please find more information by following the link below:
 SUBJECT_MANAGER_CHANGE_REQUEST_APPROVED = (
     SUBJECT_PREFIX + "Your {request_type} request has been approved"
 )
-NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED = r"""
+NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED = """
 {greeting}
 
 your {request_type} request has been approved. Please see the active changes
@@ -234,7 +234,7 @@ by following the link below:
 
 #: Invitation text for new users
 SUBJECT_USER_GROUP_INVITATION = SUBJECT_PREFIX + "You've been invited to join group '{identifier}'"
-NOTIFICATION_USER_GROUP_INVITATION = r"""
+NOTIFICATION_USER_GROUP_INVITATION = """
 {greeting}
 
 You've been invited by {inviter} to become member of group {identifier} with
@@ -252,7 +252,7 @@ Please read the text carefully. You can then accept or decline the invitation.
 SUBJECT_USER_PROJECT_INVITATION = (
     SUBJECT_PREFIX + "You've been invited to join project '{identifier}'"
 )
-NOTIFICATION_USER_PROJECT_INVITATION = r"""
+NOTIFICATION_USER_PROJECT_INVITATION = """
 {greeting}
 
 You've been invited by {inviter} to become member of project {identifier} on
@@ -267,7 +267,7 @@ and accept or deny the invitation.
 
 #: Welcome text for new users
 SUBJECT_USER_WELCOME_MAIL = SUBJECT_PREFIX + "Welcome to the BIH HPC cluster"
-NOTIFICATION_USER_WELCOME_MAIL = r"""
+NOTIFICATION_USER_WELCOME_MAIL = """
 {greeting}
 
 You have accepted the invitation to join the BIH HPC cluster. A cluster account
@@ -335,12 +335,20 @@ https://hpc-talk.cubi.bihealth.org
 """.lstrip()
 
 #: Notification for a quota report of an HPC object
-SUBJECT_QUOTA = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
-NOTIFICATION_QUOTA_PLAIN = r"""
+SUBJECT_QUOTA_USER = SUBJECT_PREFIX + "Quota warning"
+SUBJECT_QUOTA_GROUP_PROJECT = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
+FRAGMENT_QUOTA_USER = """
+your home folder storage quota is approaching or has reached its limit.
+Please consider cleaning up your files to avoid running into issues.
+""".lstrip()
+FRAGMENT_QUOTA_GROUP_PROJECT = """
+one or more of your {entity} storage quotas are approaching or have reached their
+limits. Please consider cleaning up your files to avoid running into issues.
+""".lstrip()
+NOTIFICATION_QUOTA_PLAIN = """
 {greeting}
 
-one or more of your {entity} storage quotas for `{name}` are approaching or have reached their
-limits. Please consider cleaning up your files to avoid running into issues.
+{fragment}
 
 {table}
 
@@ -349,13 +357,12 @@ https://hpc-docs.cubi.bihealth.org/help/faq/#help-im-getting-a-quota-warning-ema
 
 {footer}
 """.lstrip()
-NOTIFICATION_QUOTA_HTML = r"""
+NOTIFICATION_QUOTA_HTML = """
 <html>
 <body>
 <p>{greeting}</p>
 <p>
-one or more of your {entity} storage quotas for <strong>{name}</strong> are approaching or have
-reached their limits. Please consider cleaning up your files to avoid running into issues.
+{fragment}
 </p>
 
 <table>
@@ -377,7 +384,7 @@ please consult our documentation.
 
 #: Notification for a pending consent
 SUBJECT_CONSENT = SUBJECT_PREFIX + "Consent required for BIH HPC cluster"
-NOTIFICATION_CONSENT = r"""
+NOTIFICATION_CONSENT = """
 {greeting}
 
 there have been changes in the terms and conditions for using the BIH HPC cluster. Please visit
@@ -603,8 +610,9 @@ def send_notification_storage_quota(hpc_obj, report, dry_run=False):
             logger.warning(f"User {name} has no valid email address: {hpc_obj.user.email}")
             return 0
         greeting = USER_GREETING.format(user=name)
+        subject = SUBJECT_QUOTA_USER
+        fragment = FRAGMENT_QUOTA_USER
         emails = [email]
-        entity = "user"
         unit = "GB"
         folders = {TIER_USER_HOME: hpc_obj.home_directory}
     else:
@@ -613,6 +621,8 @@ def send_notification_storage_quota(hpc_obj, report, dry_run=False):
         emails = [c["email"] for c in contacts.values()]
         entity = "project" if isinstance(hpc_obj, HpcProject) else "group"
         name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
+        subject = SUBJECT_QUOTA_GROUP_PROJECT.format(entity=entity, name=name)
+        fragment = FRAGMENT_QUOTA_GROUP_PROJECT.format(entity=entity)
         unit = "TB"
         folders = hpc_obj.folders
 
@@ -628,35 +638,34 @@ def send_notification_storage_quota(hpc_obj, report, dry_run=False):
         warning = ""
         style = ""
         if status == HpcQuotaStatus.RED:
-            warning = "QUOTA REACHED"
+            warning = "LIMIT REACHED"
             style = "background-color: red; color: white"
         elif status == HpcQuotaStatus.YELLOW:
-            warning = f"STORAGE OVER {settings.QUOTA_WARNING_THRESHOLD}%"
+            warning = "APPROACHING LIMIT"
             style = "background-color: yellow"
-        table_text += "{folder} | {requested} | {used} | {percent}% | {warning}\n".format(
+        table_text += "{folder} | {requested:.1f} | {used:.1f} | {percent}% | {warning}\n".format(
             **data, warning=warning
         )
         table_html += (
             "<tr style='{style}'>"
             "<td>{folder}</td>"
-            "<td style='text-align: right'>{requested}</td>"
-            "<td style='text-align: right'>{used}</td>"
+            "<td style='text-align: right'>{requested:.1f}</td>"
+            "<td style='text-align: right'>{used:.1f}</td>"
             "<td style='text-align: right'>{percent}%</td>"
             "</tr>\n"
         ).format(**data, style=style)
 
-    subject = SUBJECT_QUOTA.format(entity=entity, name=name)
     message_html = NOTIFICATION_QUOTA_HTML.format(
         greeting=greeting,
-        entity=entity,
         name=name,
+        fragment=fragment,
         table=table_html,
         footer=FOOTER_HTML,
     )
     message_text = NOTIFICATION_QUOTA_PLAIN.format(
         greeting=greeting,
-        entity=entity,
         name=name,
+        fragment=fragment,
         table=table_text,
         footer=FOOTER,
     )
