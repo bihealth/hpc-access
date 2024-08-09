@@ -338,7 +338,7 @@ https://hpc-talk.cubi.bihealth.org
 SUBJECT_QUOTA_USER = SUBJECT_PREFIX + "Quota warning"
 SUBJECT_QUOTA_GROUP_PROJECT = SUBJECT_PREFIX + "Quota warning for {entity} {name}"
 FRAGMENT_QUOTA_USER = """
-your user storage quota is approaching or has reached its limit.
+your home folder storage quota is approaching or has reached its limit.
 Please consider cleaning up your files to avoid running into issues.
 """.lstrip()
 FRAGMENT_QUOTA_GROUP_PROJECT = """
