@@ -8,9 +8,9 @@
   <div class="row">
     <h2>
       {% if update %}
-        Update HPC Project Change Request &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
+        Update Project Change Request &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
       {% else %}
-        Request HPC Project Change &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
+        Request Project Change &mdash; {{ project.name }} ({{ project.group.owner.user.name }})
       {% endif %}
     </h2>
   </div>
@@ -97,6 +97,13 @@
           {% else %}
            href="{% url 'usersec:hpcprojectchangerequest-detail' hpcprojectchangerequest=object.uuid %}"
           {% endif %}
+        >
+          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+          Cancel
+        </a>
+      {% else %}
+        <a class="btn btn-secondary"
+          href="{% url 'home' %}"
         >
           <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
           Cancel

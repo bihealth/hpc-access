@@ -1,11 +1,11 @@
 import re
+from datetime import datetime
 
 import rules
 from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.datetime_safe import datetime
 
 from adminsec.constants import (
     DEFAULT_GROUP_RESOURCES,
@@ -280,6 +280,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         fields = [
             "name_requested",
             "members",
+            "delegate",
             "description",
             "comment",
             "resources_requested",
@@ -289,25 +290,45 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, group=None, **kwargs):
         super().__init__(*args, **kwargs)
+        instance = kwargs['instance']
 
-        if hasattr(self.instance, "group"):
-            group = self.instance.group
-
-        # Set dummy delegate field for user information
-        self.fields["delegate"] = forms.CharField(
-            label="Delegate",
-            help_text="The delegate is responsible for the project and can manage its members.",
-            widget=forms.TextInput(
-                attrs={
-                    "placeholder": "You can select a delegate from the members once the project is "
-                    "set up."
-                }
-            ),
-            disabled=True,
-            required=False,
-        )
+        def build_option(member, group):
+            return (
+                str(member.id),
+                "{} {} ({}, AG {})".format(member.user.first_name, member.user.last_name, member.username, group.name),
+            )
+        
+        def get_resource(resource, instance):
+            if instance:
+                return instance.resources_requested.get(resource, DEFAULT_PROJECT_RESOURCES[resource])
+            return DEFAULT_PROJECT_RESOURCES[resource]
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
+        self.fields["delegate"].choices = [("", "Select Delegate ...")]
+
+        if instance:
+            self.fields["members"].choices = [
+                build_option(member, instance.group)
+                for member in instance.members.all()
+            ]
+            self.fields["members"].initial = kwargs['instance'].members.all()
+            self.fields["delegate"].choices += [
+                build_option(member, instance.group)
+                for member in instance.members.all()
+                if not member == instance.group.owner
+            ]
+        else:
+            name = "{} {} ({}, AG {})".format(
+                group.owner.user.first_name,
+                group.owner.user.last_name,
+                group.owner.username,
+                group.name,
+            )
+            self.fields["members"].choices = [(str(group.owner.id), name)]
+            self.fields["members"].initial = [group.owner.id]
+
+        self.fields["members"].widget.attrs["class"] = "d-none"
+        self.fields["delegate"].widget.attrs["class"] = "form-select"
 
         if not user.is_hpcadmin:
             self.fields["expiration"].disabled = True
@@ -319,18 +340,6 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 "period. It can be extended on request."
             )
 
-            # Exclude users from member selection that have no User associated
-            self.fields["members_dropdown"] = forms.ModelChoiceField(
-                queryset=self.fields["members"]
-                .queryset.filter(status="ACTIVE")
-                .exclude(user__isnull=True)
-                .exclude(id=group.owner.id),
-                label="Select Members",
-                help_text="Select members one by one and click add",
-                required=False,
-            )
-            self.fields["members_dropdown"].widget.attrs["class"] = "form-control"
-
             # Add fields for storage. Will be merged into resources_requested field.
             self.fields["tier1_scratch"] = forms.IntegerField(
                 required=True,
@@ -340,7 +349,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
-            self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
+            self.fields["tier1_scratch"].initial = get_resource("tier1_scratch", instance)
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier1_work"] = forms.IntegerField(
@@ -351,7 +360,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
-            self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
+            self.fields["tier1_work"].initial = get_resource("tier1_work", instance)
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
@@ -364,7 +373,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
-            self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
+            self.fields["tier2_unmirrored"].initial = get_resource("tier2_unmirrored", instance)
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_mirrored"] = forms.IntegerField(
@@ -377,11 +386,10 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )
-            self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
+            self.fields["tier2_mirrored"].initial = get_resource("tier2_mirrored", instance)
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
-            self.fields["delegate"].widget = forms.HiddenInput()
             self.fields["name_requested"].widget = forms.HiddenInput()
             self.fields["description"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()
@@ -392,7 +400,6 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
         self.fields["name_requested"].label = "Name"
         self.fields["description"].widget.attrs["class"] = "form-control"
         self.fields["expiration"].widget.attrs["class"] = "form-control"
-        self.fields["delegate"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
 

@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 
-from usersec import views
+from usersec import views, views_api
 
 app_name = "usersec"
 
@@ -124,7 +124,7 @@ urlpatterns = [
         view=views.HpcUserView.as_view(),
         name="hpcuser-overview",
     ),
-    path(
+    path(  # TODO OBSOLETE
         "hpcuser/<uuid:hpcuser>/detail/",
         view=views.HpcUserDetailView.as_view(),
         name="hpcuser-detail",
@@ -365,5 +365,13 @@ urlpatterns = [
         "hpcprojectinvitation/<uuid:hpcprojectinvitation>/reject/",
         view=views.HpcProjectInvitationRejectView.as_view(),
         name="hpcprojectinvitation-reject",
+    ),
+    # ------------------------------------------------------------------------------
+    # API
+    # ------------------------------------------------------------------------------
+    path(
+        "api/hpcuser/lookup/",
+        view=views_api.HpcUserLookupApiView.as_view(),
+        name="api-hpcuser-lookup",
     ),
 ]

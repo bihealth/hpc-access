@@ -82,7 +82,7 @@
         <h5 class="card-title lead">Manage Group</h5>
       </div>
       <div class="card-body d-grid gap-2">
-        {% if has_pending_group_change_request %}
+        <!-- {% if has_pending_group_change_request %}
           <a class="btn btn-secondary disabled" href="#">
             Group Update Request Pending
           </a>
@@ -100,7 +100,7 @@
           >
             Update Group <span class="small">(Resources, Delegate, Expiration)</span>
           </a>
-        {% endif %}
+        {% endif %} -->
         <a
           class="btn btn-secondary"
           href="{% url 'usersec:hpcusercreaterequest-create' hpcgroup=object.primary_group.uuid %}"
@@ -126,7 +126,7 @@
         <a class="btn btn-secondary" href="{% url 'usersec:hpcprojectcreaterequest-create' hpcgroup=object.primary_group.uuid %}">
           Request New Project
         </a>
-        <div class="input-group">
+        <!-- <div class="input-group">
           <button
             type="button"
             class="btn btn-secondary"
@@ -138,7 +138,7 @@
             Update Project
           </button>
           {{ form_project_select.projects }}
-        </div>
+        </div> -->
         <!-- <a class="btn btn-outline-danger disabled">
           <i class="iconify" data-icon="mdi:trash-can"></i>
           Delete Project

@@ -7,9 +7,9 @@
   <div class="row">
     <h2>
       {% if update %}
-        Update HPC User Change Request
+        Update User Change Request
       {% else %}
-        Request HPC User Change
+        Request User Change
       {% endif %}
     </h2>
   </div>
@@ -63,10 +63,17 @@
       {% if update %}
         <a class="btn btn-secondary"
           {% if admin %}
-           href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+           href="{% url 'adminsec:hpcuserchangerequest-detail' hpcuserchangerequest=object.uuid %}"
           {% else %}
-           href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+           href="{% url 'usersec:hpcuserchangerequest-detail' hpcuserchangerequest=object.uuid %}"
           {% endif %}
+        >
+          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+          Cancel
+        </a>
+      {% else %}
+        <a class="btn btn-secondary"
+          href="{% url 'home' %}"
         >
           <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
           Cancel

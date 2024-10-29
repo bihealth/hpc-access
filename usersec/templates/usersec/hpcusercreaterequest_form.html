@@ -6,9 +6,9 @@
 
   <h2 class="mt-5">
     {% if update %}
-      Update HPC User Request
+      Update User Request
     {% else %}
-      Request HPC User
+      Request User
     {% endif %}
   </h2>
 
@@ -73,12 +73,25 @@
       </div>
     {% endfor %}
 
-    <a class="btn btn-secondary"
-        href="{% url 'home' %}"
-    >
-      <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-      Cancel
-    </a>
+    {% if update %}
+      <a class="btn btn-secondary"
+        {% if admin %}
+          href="{% url 'adminsec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+        {% else %}
+          href="{% url 'usersec:hpcusercreaterequest-detail' hpcusercreaterequest=object.uuid %}"
+        {% endif %}
+      >
+        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+        Cancel
+      </a>
+    {% else %}
+      <a class="btn btn-secondary"
+          href="{% url 'home' %}"
+      >
+        <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+        Cancel
+      </a>
+    {% endif %}
     <button class="btn btn-primary" type="submit">
       {% if update %}
         {% if admin %}

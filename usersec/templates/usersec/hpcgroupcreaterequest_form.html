@@ -6,9 +6,9 @@
 
 <h1 class="mt-5">
   {% if update %}
-    Update HPC group request
+    Update group request
   {% else %}
-    Request HPC group
+    Request group
   {% endif %}
 </h1>
 {% if not admin %}
@@ -113,6 +113,13 @@
           {% else %}
            href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
           {% endif %}
+        >
+          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+          Cancel
+        </a>
+      {% else %}
+        <a class="btn btn-secondary"
+          href="{% url 'home' %}"
         >
           <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
           Cancel

@@ -1,6 +1,7 @@
+from datetime import datetime
+
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.datetime_safe import datetime
 from test_plus.test import TestCase
 
 from usersec.forms import (

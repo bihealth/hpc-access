@@ -1,4 +1,5 @@
 import unicodedata
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
@@ -9,7 +10,6 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.utils.datetime_safe import datetime
 from django.views import View
 from django.views.generic import (
     CreateView,

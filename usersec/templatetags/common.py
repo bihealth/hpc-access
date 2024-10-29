@@ -49,13 +49,13 @@ OBJECT_STATUS_COLOR_MAPPING = {
 
 REQUEST_STATUS_COLOR_MAPPING = {
     # Request statuses
-    REQUEST_STATUS_INITIAL: "secondary",
-    REQUEST_STATUS_ACTIVE: "secondary",
+    REQUEST_STATUS_INITIAL: "info",
+    REQUEST_STATUS_ACTIVE: "info",
     REQUEST_STATUS_REVISION: "warning",
     REQUEST_STATUS_REVISED: "secondary",
     REQUEST_STATUS_APPROVED: "success",
-    REQUEST_STATUS_DENIED: "danger",
-    REQUEST_STATUS_RETRACTED: "danger",
+    REQUEST_STATUS_DENIED: "secondary",
+    REQUEST_STATUS_RETRACTED: "secondary",
 }
 
 

@@ -78,6 +78,7 @@ MSG_PART_RETRACT = "retract"
 MSG_PART_RETRACTED = "retracted"
 MSG_PART_REACTIVATE = "re-activate"
 MSG_PART_REACTIVATED = "re-activated"
+MSG_PART_DELETED = "deleted"
 MSG_PART_GROUP_CREATION = "group creation"
 MSG_PART_GROUP_UPDATE = "group update"
 MSG_PART_GROUP_DELETION = "group deletion"
@@ -359,6 +360,9 @@ class HpcGroupCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
     slug_field = "uuid"
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "usersec.manage_hpcgroupcreaterequest"
+
+    def get_success_url(self):
+        return reverse("home")
 
 
 class HpcUserView(HpcPermissionMixin, DetailView):
@@ -692,10 +696,16 @@ class HpcUserCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
     """HPC user create request delete view."""
 
     template_name_suffix = "_delete_confirm"
-    model = HpcGroupCreateRequest
+    model = HpcUserCreateRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcusercreaterequest"
     permission_required = "usersec.manage_hpcusercreaterequest"
+
+    def get_success_url(self):
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_USER_CREATION)
+        )
+        return reverse("home")
 
 
 class HpcGroupDeleteRequestCreateView(View):
@@ -929,6 +939,12 @@ class HpcGroupChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
     slug_url_kwarg = "hpcgroupchangerequest"
     permission_required = "usersec.manage_hpcgroupchangerequest"
 
+    def get_success_url(self):
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_GROUP_UPDATE)
+        )
+        return reverse("home")
+
 
 class HpcUserDeleteRequestCreateView(View):
     pass
@@ -1151,7 +1167,19 @@ class HpcUserChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
 
 
 class HpcUserChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
-    pass
+    """HPC user change request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcUserChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "usersec.manage_hpcuserchangerequest"
+
+    def get_success_url(self):
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_USER_UPDATE)
+        )
+        return reverse("home")
 
 
 class HpcProjectDetailView(HpcPermissionMixin, DetailView):
@@ -1373,7 +1401,19 @@ class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
 
 
 class HpcProjectCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
-    pass
+    """HPC project create request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcProjectCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectcreaterequest"
+    permission_required = "usersec.manage_hpcprojectcreaterequest"
+
+    def get_success_url(self):
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_PROJECT_CREATION)
+        )
+        return reverse("home")
 
 
 class HpcProjectDeleteRequestCreateView(View):
@@ -1603,7 +1643,19 @@ class HpcProjectChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
 
 
 class HpcProjectChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
-    pass
+    """HPC project change request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcProjectChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "usersec.manage_hpcprojectchangerequest"
+
+    def get_success_url(self):
+        messages.success(
+            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_PROJECT_UPDATE)
+        )
+        return reverse("home")
 
 
 class HpcGroupInvitationDetailView(HpcPermissionMixin, DetailView):

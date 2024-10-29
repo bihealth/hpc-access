@@ -5,10 +5,7 @@
 {% block content %}
 
 <h2 class="mt-5">
-  HPC Project Request
-  <span class="badge bg-{{ object.status|colorize_request_status }}">
-    {{ object.display_status }}
-  </span>
+  Request to Create a Project
   <span class="float-end">
     {% if admin %}
       {% include "usersec/modules/request_buttons_admin.html" %}
@@ -19,7 +16,7 @@
 </h2>
 
 {% if admin %}
-<div class="row" id="folder-name-warning">
+<div class="row mt-4" id="folder-name-warning">
   <div class="col-12 alert alert-warning">
     Note that you explicitly need to set the POSIX project name and the folder path for the project before approval.
     <ul>
@@ -29,28 +26,49 @@
   </div>
 </div>
 {% endif %}
-<div class="row">
+{% if not admin %}
+<div class="mt-4 card bg-{{ object.status|colorize_request_status }}">
+  <div class="card-body lead text-light">
+    {% if object.status == "ACTIVE" %}
+      You've requested a new project with the name <strong>{{ object.name_requested }}</strong>.
+      We are working on your request and you will receive an email once we approve it.
+    {% elif object.status == "RETRACTED" %}
+      You have retracted your request to create a project. Click <strong>Re-activate</strong> to activate the request.
+    {% elif object.status == "REVISION" %}
+      We have asked for you to revise your request to create a project. See our comment and please answer any question.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="row mt-4">
   <div class="col-sm-7">
-    <dl class="row">
+    <dl class="row">    
       {% include "usersec/modules/resources_requested.html" with object=object %}
 
-      <dt class="col-sm-4">Requester</dt>
-      <dd class="col-sm-8">
+      <dt class="col-sm-6">Requested Name</dt>
+      <dd class="col-sm-6">{{ object.name_requested }}</dd>
+
+      {% if admin %}
+      <dt class="col-sm-6">Requester</dt>
+      <dd class="col-sm-6">
         {{ object.requester.name }}
         <span class="small fw-light">({{ object.requester.hpcuser_user.first.username }})</span>
       </dd>
 
-      <dt class="col-sm-4">Requested Name</dt>
-      <dd class="col-sm-8">{{ object.name_requested }}</dd>
+      <dt class="col-sm-6">Associated Group</dt>
+      <dd class="col-sm-6">
+        AG {{ object.group.name.capitalize }}
+        &mdash; {{ object.group.owner.user.name }}
+        <span class="fw-light">({{ object.group.owner.username }})</span>
+      </dd>
 
-      {% if admin %}
-      <dt class="col-sm-4">
+      <dt class="col-sm-6">
         POSIX Name
         <span class="text-success" id="name-submitted-icon">
           <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
         </span>
       </dt>
-      <dd class="col-sm-8">
+      <dd class="col-sm-6">
         <div class="input-group">
           <input
                 type="text"
@@ -65,13 +83,13 @@
         </div>
       </dd>
 
-      <dt class="col-sm-4">
+      <dt class="col-sm-6">
         Folders
         <span class="text-success" id="folder-submitted-icon">
           <i class="iconify" data-icon="mdi:check-bold" class="text-success"></i>
         </span>
       </dt>
-      <dd class="col-sm-8">
+      <dd class="col-sm-6">
         <h6><strong>Tier 1</strong></h6>
         <div class="input-group">
           <span class="input-group-text">Work</span>
@@ -128,50 +146,33 @@
         </div>
         <div>
           <button class="btn btn-outline-secondary" type="button" id="set-values-button">Submit</button>
-        </div>            </dd>
+        </div>          
+      </dd>
       {% endif %}
 
-      <dt class="col-sm-4">Delegate</dt>
-      <dd class="col-sm-8">
+      <dt class="col-sm-6">Delegate</dt>
+      <dd class="col-sm-6">
         {% if object.delegate %}
-          <a href="{{ object.delegate|get_detail_url:user }}">{{ object.delegate.user.name }}</a>
-          <strong class="small text-muted">{{ object.delegate.username }}</strong>
+          {{ object.delegate.user.name }}
+          <span class="fw-light">({{ object.delegate.username }})</span>
         {% else %}
           <em class="text-muted">No delegate.</em>
         {% endif %}
       </dd>
 
-      <dt class="col-sm-4">Members</dt>
-      <dd class="col-sm-8">
+      <dt class="col-sm-6">Members</dt>
+      <dd class="col-sm-6">
         <ul class="list-unstyled">
           {% for member in object.members.all %}
             <li>
-              {{ member.user.name }} <span class="fw-light">({{ member.username }})</span>
+              {{ member.user.name }} <span class="fw-light">({{ member.username }}, AG {{ member.primary_group.name }})</span>
             </li>
           {% endfor %}
         </ul>
       </dd>
 
-      <dt class="col-sm-4">Associated Group</dt>
-      <dd class="col-sm-8">
-        AG {{ object.group.name.capitalize }}
-        <dl class="row small">
-          <dt class="col-sm-3">Owner</dt>
-          <dd class="col-sm-9">
-            {{ object.group.owner.user.name }}
-            <span class="fw-light">({{ object.group.owner.username }})</span>
-          </dd>
-          {% if object.group.delegate %}
-            <dt class="col-sm-3">Delegate</dt>
-            <dd class="col-sm-9">
-              {{ object.group.delegate.user.name }}
-              <span class="fw-light">({{ object.group.delegate.username }})</span>
-            </dd>
-          {% endif %}
-        </dl>
-      </dd>
-      <dt class="col-sm-4">Expiration</dt>
-      <dd class="col-sm-8">{{ object.expiration|date:"Y-m-d" }}</dd>
+      <dt class="col-sm-6">Expiration</dt>
+      <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
     </dl>
   </div>
   <div class="col-sm-5">

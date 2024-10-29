@@ -274,6 +274,10 @@ class RequestManagerMixin:
         class_name = self.__class__.__name__.lower()
         return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
 
+    def get_delete_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-delete".format(class_name), kwargs={class_name: self.uuid})
+
 
 @unique
 class HpcQuotaStatus(Enum):
@@ -1522,6 +1526,16 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         related_name="%(class)s",
         help_text="Group the request belongs to",
         on_delete=models.CASCADE,
+    )
+
+    #: Delegate of the project, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="The optional delegate can act on behalf of the project owner",
+        on_delete=models.SET_NULL,
     )
 
     #: Members of the project.
