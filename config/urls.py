@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import include, path
 from django.views import defaults as default_views
+from django.views.generic import RedirectView
 from django.views.generic.base import TemplateView
 from sentry_sdk import last_event_id
 
@@ -39,11 +40,11 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     # Login and logout
     path(
-        r"login/",
+        "login/",
         auth_views.LoginView.as_view(template_name="pages/login.html"),
         name="login",
     ),
-    path(r"logout/", auth_views.logout_then_login, name="logout"),
+    path("logout/", auth_views.logout_then_login, name="logout"),
     path("impersonate/", include("impersonate.urls")),
     path(
         "admin_landing/",
@@ -52,6 +53,7 @@ urlpatterns = [
         ),
         name="admin-landing",
     ),
+    path("favicon.ico", RedirectView.as_view(url="/static/images/favicon.ico")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
