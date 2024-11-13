@@ -7,36 +7,32 @@
 
   <h2 class="mt-5">
     {% if update %}
-      Update group change request
+      {% if admin %}
+        Request Revision
+      {% else %}
+        Update Group Request
+      {% endif %}
     {% else %}
-      Request group change
+      Change Group Request
     {% endif %}
   </h2>
 
   {% include "usersec/modules/comments.html" %}
 
-  <form method="post" id="submit" data-is-admin="{{ admin }}">
+  <form method="post" class="mt-3 mb-3" id="submit" data-is-admin="{{ admin }}">
     {% csrf_token %}
     {% if admin %}
       <dl class="row">
-        <dt class="col-sm-3">Resource Quotas</dt>
-        <dd class="col-sm-9">
-          <dl class="row">
-            {% for key, value in object.resources_requested.items %}
-              <dt class="col-sm-3 text-muted">{{ key }}</dt>
-              <dd class="col-sm-9">{{ value }}</dd>
-            {% endfor %}
-          </dl>
-        </dd>
+        {% include "usersec/modules/resources_requested.html" with object=object %}
 
-        <dt class="col-sm-3">Requester</dt>
-        <dd class="col-sm-9">{{ object.requester.username }}</dd>
+        <dt class="col-sm-6">Requester</dt>
+        <dd class="col-sm-6">{{ object.requester.username }}</dd>
 
-        <dt class="col-sm-3">Description</dt>
-        <dd class="col-sm-9">{{ object.description }}</dd>
+        <dt class="col-sm-6">Description</dt>
+        <dd class="col-sm-6">{{ object.description }}</dd>
 
-        <dt class="col-sm-3">Expiration</dt>
-        <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
+        <dt class="col-sm-6">Expiration</dt>
+        <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
       </dl>
     {% endif %}
 
@@ -44,46 +40,52 @@
       {{ field }}
     {% endfor %}
 
-    {% for field in form.visible_fields %}
-      <div class="fieldWrapper">
-        {% if field.errors %}
-          <div class="alert alert-danger" role="alert">
-            {{ field.errors }}
-          </div>
-        {% endif %}
-        <div class="input-group mb-3">
-          <span class="input-group-text">
-            {% if field.field.required %}
-              <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
-            {% else %}
-              {{ field.label }}
-            {% endif %}
-          </span>
-          {{ field }}
-        </div>
-        {% if field.help_text %}
-          <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
-        {% endif %}
-      </div>
-    {% endfor %}
+    {% if admin %}
+    <div class="d-none">
+    {% endif %}
 
-    <a class="btn btn-secondary"
-        href="{% url 'home' %}"
-    >
-      <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
+    {% include "usersec/form_field.html" with field=form.description %}
+    {% include "usersec/form_field.html" with field=form.delegate %}
+    {% include "usersec/form_field.html" with field=form.expiration %}
+
+    <h4 class="mt-4">Resources</h4>
+
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <h5>Tier 1</h5>
+        {% include "usersec/form_field.html" with field=form.tier1_scratch %}
+      </div>
+      <div class="col-md-6">
+        <h5>Tier 2</h5>
+        {% include "usersec/form_field.html" with field=form.tier2_unmirrored %}
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        {% include "usersec/form_field.html" with field=form.tier1_work %}
+      </div>
+      <div class="col-md-6">
+        {% include "usersec/form_field.html" with field=form.tier2_mirrored %}
+      </div>
+    </div>
+
+    {% if admin %}
+    </div>
+    {% endif %}
+
+    {% include "usersec/form_field.html" with field=form.comment %}
+
+    <a class="btn btn-secondary" href="{% url 'home' %}">
       Cancel
     </a>
     <button class="btn btn-primary" type="submit" id="id_submit_button">
       {% if update %}
         {% if admin %}
-          <i class="iconify" data-icon="mdi:comment"></i>
           Request Revision
         {% else %}
-          <i class="iconify" data-icon="mdi:refresh"></i>
           Update
         {% endif %}
       {% else %}
-        <i class="iconify" data-icon="mdi:upload"></i>
         Submit
       {% endif %}
     </button>

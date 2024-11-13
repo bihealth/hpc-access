@@ -4,7 +4,7 @@
 function mergeToJson() {
     var content = []
     $(".mergeToJson").each(function () {
-        content.push('"' + $(this).attr("name") + '": "' + $(this).val() + '"');
+        content.push('"' + $(this).attr("name") + '": ' + $(this).val());
     });
     $("#id_resources_requested").val("{" + content.join(", ") + "}")
 }

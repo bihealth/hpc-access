@@ -1,5 +1,4 @@
-{% if object.get_comment_history %}
-<div class="card bg-light mb-3">
+<div class="card bg-light mb-4">
   <h5 class="card-header">Comments</h5>
   <div class="card-body">
     <ul class="card-text list-unstyled">
@@ -11,8 +10,9 @@
           </span>
           {{ comment.2 }}
         </li>
+      {% empty %}
+        <li class="text-muted">No comments.</li>
       {% endfor %}
     </ul>
   </div>
 </div>
-{% endif %}

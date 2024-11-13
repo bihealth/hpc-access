@@ -18,41 +18,27 @@
 <div class="row mt-4">
   <div class="col-sm-6">
     {% if admin %}
-    <dl class="row">
-      <dt class="col-sm-3">Status</dt>
-        <dd class="col-sm-9"><span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.display_status }}
-        </span>
-      </dd>
-    
-      <dt class="col-sm-3">Invitee</dt>
-      <dd class="col-sm-9">{{ object.email }}</dd>
+      <dl class="row">
+        <dt class="col-sm-3">Status</dt>
+          <dd class="col-sm-9"><span class="badge bg-{{ object.status|colorize_request_status }}">
+            {{ object.display_status }}
+          </span>
+        </dd>
+      
+        <dt class="col-sm-3">Invitee</dt>
+        <dd class="col-sm-9">{{ object.email }}</dd>
 
-      <dt class="col-sm-3">Requester</dt>
-      <dd class="col-sm-9">{{ object.requester }}</dd>
+        <dt class="col-sm-3">Requester</dt>
+        <dd class="col-sm-9">{{ object.requester }}</dd>
 
-      <dt class="col-sm-3">Group</dt>
-      <dd class="col-sm-9">{{ object.group.name }}</dd>
+        <dt class="col-sm-3">Group</dt>
+        <dd class="col-sm-9">{{ object.group.name }}</dd>
 
-      <dt class="col-sm-3">Expiration</dt>
-      <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
-    </dl>
+        <dt class="col-sm-3">Expiration</dt>
+        <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
+      </dl>
     {% else %}
-    <div class="card bg-{{ object.status|colorize_request_status }}">
-      <div class="card-body lead text-light">
-        {% if object.status == "ACTIVE" %}
-          You've invited the user <strong>{{ object.email }}</strong> to your group.
-          We are working on your request and you will receive an email once we approve it.
-        {% elif object.status == "RETRACTED" %}
-          You have retracted your request to invite <strong class="text-nowrap">{{ object.email }}</strong> to your
-          group. Click <strong>Re-activate</strong> to re-activate the request for invitation.
-        {% elif object.status == "REVISION" %}
-          We have asked for you to revise your request to invite
-          <strong>{{ object.email }}</strong> to your group. See our comment and please answer any
-          question.
-        {% endif %}
-      </div>
-    </div>
+      {% include "usersec/modules/request_detail.html" %}
   {% endif %}
   </div>
   <div class="col-sm-6">

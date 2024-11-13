@@ -44,7 +44,11 @@ from usersec.models import (
     INVITATION_STATUS_REJECTED,
     OBJECT_STATUS_ACTIVE,
     REQUEST_STATUS_ACTIVE,
+    REQUEST_STATUS_APPROVED,
+    REQUEST_STATUS_ARCHIVED,
+    REQUEST_STATUS_DENIED,
     REQUEST_STATUS_RETRACTED,
+    REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
     TERMS_AUDIENCE_ALL,
     TERMS_AUDIENCE_PI,
@@ -74,11 +78,8 @@ MSG_PART_SUBMIT = "submit"
 MSG_PART_SUBMITTED = "submitted"
 MSG_PART_UPDATE = "update"
 MSG_PART_UPDATED = "updated"
-MSG_PART_RETRACT = "retract"
-MSG_PART_RETRACTED = "retracted"
-MSG_PART_REACTIVATE = "re-activate"
-MSG_PART_REACTIVATED = "re-activated"
 MSG_PART_DELETED = "deleted"
+MSG_PART_ARCHIVED = "archived"
 MSG_PART_GROUP_CREATION = "group creation"
 MSG_PART_GROUP_UPDATE = "group update"
 MSG_PART_GROUP_DELETION = "group deletion"
@@ -102,14 +103,6 @@ MSG_INVITATION_PROJECT_USER_ADD_FAILURE = "Could not add user to project: {}"
 MSG_INVITATION_PROJECT_USER_ADD_SUCCESS = "Successfully joined the project."
 
 MSG_TERMS_CONSENT = "Consented successfully to terms and conditions."
-
-
-# -----------------------------------------------------------------------------
-# Object comments
-# -----------------------------------------------------------------------------
-
-COMMENT_REACTIVATED = "Request re-activated"
-COMMENT_RETRACTED = "Request retracted"
 
 
 class HpcPermissionMixin(LoginRequiredMixin, PermissionRequiredMixin):
@@ -211,9 +204,6 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
             send_notification_manager_group_request(obj)
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_GROUP_CREATION)
-        )
         return HttpResponseRedirect(self.get_success_url(obj.uuid))
 
 
@@ -236,6 +226,8 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
+        context["is_hpc_group_create_request"] = True
         return context
 
 
@@ -288,32 +280,22 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
             )
             return HttpResponseRedirect(reverse("usersec:orphan-user"))
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_GROUP_CREATION)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcGroupCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcGroupCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC group create request update view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcGroupCreateRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcgroupcreaterequest"
     permission_required = "usersec.manage_hpcgroupcreaterequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
-
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_GROUP_CREATION)
-        )
 
         return HttpResponseRedirect(
             reverse(
@@ -334,22 +316,14 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_GROUP_CREATION)
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcgroupcreaterequest-detail",
-                kwargs={"hpcgroupcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcGroupCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -363,6 +337,23 @@ class HpcGroupCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
 
     def get_success_url(self):
         return reverse("home")
+
+
+class HpcGroupCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user change request archive view."""
+
+    model = HpcGroupCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupcreaterequest"
+    permission_required = "usersec.manage_hpcgroupcreaterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserView(HpcPermissionMixin, DetailView):
@@ -434,9 +425,16 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             context["hpcgroupdeleterequests"] = None
             context["hpcuserdeleterequests"] = None
             context["hpcprojectdeleterequests"] = None
-            context["pending_requests"] = get_requests_by_status(REQUEST_STATUS_ACTIVE)
-            context["revision_requests"] = get_requests_by_status(REQUEST_STATUS_REVISION)
-            context["retracted_requests"] = get_requests_by_status(REQUEST_STATUS_RETRACTED)
+            context["requests"] = list(
+                chain(
+                    get_requests_by_status(REQUEST_STATUS_ACTIVE),
+                    get_requests_by_status(REQUEST_STATUS_REVISED),
+                    get_requests_by_status(REQUEST_STATUS_REVISION),
+                    get_requests_by_status(REQUEST_STATUS_RETRACTED),
+                    get_requests_by_status(REQUEST_STATUS_APPROVED),
+                    get_requests_by_status(REQUEST_STATUS_DENIED),
+                )
+            )
             context["has_pending_group_change_request"] = HpcGroupChangeRequest.objects.filter(
                 group=group, status=REQUEST_STATUS_ACTIVE
             ).exists()
@@ -458,19 +456,14 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             context["pending_requests"] += list(
                 HpcProjectChangeRequest.objects.filter(
                     Q(project__group=group) | Q(project__delegate=context["object"]),
-                    status=REQUEST_STATUS_ACTIVE,
-                )
-            )
-            context["revision_requests"] += list(
-                HpcProjectChangeRequest.objects.filter(
-                    Q(project__group=group) | Q(project__delegate=context["object"]),
-                    status=REQUEST_STATUS_REVISION,
-                )
-            )
-            context["retracted_requests"] += list(
-                HpcProjectChangeRequest.objects.filter(
-                    Q(project__group=group) | Q(project__delegate=context["object"]),
-                    status=REQUEST_STATUS_RETRACTED,
+                    status__in=(
+                        REQUEST_STATUS_ACTIVE,
+                        REQUEST_STATUS_REVISION,
+                        REQUEST_STATUS_REVISED,
+                        REQUEST_STATUS_RETRACTED,
+                        REQUEST_STATUS_APPROVED,
+                        REQUEST_STATUS_DENIED,
+                    ),
                 )
             )
             projects_available |= context["object"].hpcproject_delegate.exists()
@@ -551,9 +544,6 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMITTED, MSG_PART_USER_CREATION)
-        )
         return HttpResponseRedirect(reverse("home"))
 
 
@@ -576,6 +566,7 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         return context
 
 
@@ -630,31 +621,23 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_USER_CREATION)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcUserCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcUserCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC user create request update view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcUserCreateRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcusercreaterequest"
     permission_required = "usersec.manage_hpcusercreaterequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_USER_CREATION)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcusercreaterequest-detail",
@@ -674,22 +657,14 @@ class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_USER_CREATION)
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcusercreaterequest-detail",
-                kwargs={"hpcusercreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -702,10 +677,24 @@ class HpcUserCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
     permission_required = "usersec.manage_hpcusercreaterequest"
 
     def get_success_url(self):
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_USER_CREATION)
-        )
         return reverse("home")
+
+
+class HpcUserCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user create request archive view."""
+
+    model = HpcUserCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcusercreaterequest"
+    permission_required = "usersec.manage_hpcusercreaterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcGroupDeleteRequestCreateView(View):
@@ -729,6 +718,10 @@ class HpcGroupDeleteRequestReactivateView(View):
 
 
 class HpcGroupDeleteRequestDeleteView(View):
+    pass
+
+
+class HpcGroupDeleteRequestArchiveView(View):
     pass
 
 
@@ -767,6 +760,21 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
         context.update({"group": self.get_object()})
         return context
 
+    def get(self, request, *args, **kwargs):
+        if HpcGroupChangeRequest.objects.filter(
+            group=self.get_object(),
+            status__in=(
+                REQUEST_STATUS_ACTIVE,
+                REQUEST_STATUS_REVISION,
+                REQUEST_STATUS_RETRACTED,
+                REQUEST_STATUS_REVISED,
+            ),
+        ).exists():
+            messages.error(request, "There already exists an ongoing request to create the group.")
+            return HttpResponseRedirect(reverse("home"))
+
+        return super().get(request, *args, **kwargs)
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.requester = self.request.user
@@ -786,9 +794,6 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_GROUP_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupchangerequest-detail",
@@ -816,6 +821,7 @@ class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         return context
 
 
@@ -867,32 +873,23 @@ class HpcGroupChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             )
             return HttpResponseRedirect(reverse("home"))
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_GROUP_UPDATE)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcGroupChangeRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcGroupChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC group change request retract view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcGroupChangeRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcgroupchangerequest"
     permission_required = "usersec.manage_hpcgroupchangerequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_GROUP_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupchangerequest-detail",
@@ -912,22 +909,14 @@ class HpcGroupChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_GROUP_UPDATE)
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcgroupchangerequest-detail",
-                kwargs={"hpcgroupchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcGroupChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -940,10 +929,24 @@ class HpcGroupChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
     permission_required = "usersec.manage_hpcgroupchangerequest"
 
     def get_success_url(self):
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_GROUP_UPDATE)
-        )
         return reverse("home")
+
+
+class HpcGroupChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC group change request archive view."""
+
+    model = HpcGroupChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcgroupchangerequest"
+    permission_required = "usersec.manage_hpcgroupchangerequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserDeleteRequestCreateView(View):
@@ -967,6 +970,10 @@ class HpcUserDeleteRequestReactivateView(View):
 
 
 class HpcUserDeleteRequestDeleteView(View):
+    pass
+
+
+class HpcUserDeleteRequestArchiveView(View):
     pass
 
 
@@ -1022,9 +1029,6 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_USER_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuserchangerequest-detail",
@@ -1052,6 +1056,7 @@ class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         return context
 
 
@@ -1103,32 +1108,23 @@ class HpcUserChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             )
             return HttpResponseRedirect(reverse("home"))
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_USER_UPDATE)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcUserChangeRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcUserChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC user change request update view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcUserChangeRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcuserchangerequest"
     permission_required = "usersec.manage_hpcuserchangerequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_USER_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuserchangerequest-detail",
@@ -1148,22 +1144,14 @@ class HpcUserChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_USER_UPDATE)
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcuserchangerequest-detail",
-                kwargs={"hpcuserchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -1176,10 +1164,24 @@ class HpcUserChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
     permission_required = "usersec.manage_hpcuserchangerequest"
 
     def get_success_url(self):
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_USER_UPDATE)
-        )
         return reverse("home")
+
+
+class HpcUserChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user change request archive view."""
+
+    model = HpcUserChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserchangerequest"
+    permission_required = "usersec.manage_hpcuserchangerequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectDetailView(HpcPermissionMixin, DetailView):
@@ -1224,7 +1226,7 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update({"group": self.get_object()})
+        context.update({"owner_id": self.get_object().owner.id})
         return context
 
     def form_valid(self, form):
@@ -1251,9 +1253,6 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
             send_notification_admin_request(obj)
             send_notification_manager_project_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_PROJECT_CREATION)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectcreaterequest-detail",
@@ -1281,6 +1280,7 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         return context
 
 
@@ -1297,6 +1297,7 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["update"] = True
+        context["owner_id"] = self.get_object().group.owner.id
         return context
 
     def get_form_kwargs(self):
@@ -1335,32 +1336,22 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.members.set(form.cleaned_data["members"])
         obj.version_history.last().members.set(form.cleaned_data["members"])
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_PROJECT_CREATION)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcProjectCreateRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcProjectCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC project create request update view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcProjectCreateRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcprojectcreaterequest"
     permission_required = "usersec.manage_hpcprojectcreaterequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
-
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_PROJECT_CREATION)
-        )
 
         return HttpResponseRedirect(
             reverse(
@@ -1381,23 +1372,14 @@ class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request,
-            MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_PROJECT_CREATION),
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -1410,10 +1392,24 @@ class HpcProjectCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
     permission_required = "usersec.manage_hpcprojectcreaterequest"
 
     def get_success_url(self):
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_PROJECT_CREATION)
-        )
         return reverse("home")
+
+
+class HpcProjectCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC project create request archive view."""
+
+    model = HpcProjectCreateRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectcreaterequest"
+    permission_required = "usersec.manage_hpcprojectcreaterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectDeleteRequestCreateView(View):
@@ -1440,6 +1436,10 @@ class HpcProjectDeleteRequestDeleteView(View):
     pass
 
 
+class HpcProjectDeleteRequestArchiveView(View):
+    pass
+
+
 class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
     """HPC project create request create view.
 
@@ -1450,7 +1450,7 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
     # Required for permission checks, usually the CreateView doesn't have the current object
     # available
     model = HpcProject
-    template_name = "usersec/hpcprojectchangerequest_form.html"
+    template_name = "usersec/hpcprojectcreaterequest_form.html"
     slug_field = "uuid"
     slug_url_kwarg = "hpcproject"
     # Check permission based on HpcProject object
@@ -1472,7 +1472,7 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update({"project": self.get_object()})
+        context["owner_id"] = self.get_object().group.owner.id
         return context
 
     def form_valid(self, form):
@@ -1498,9 +1498,6 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_SUBMITTED, MSG_PART_PROJECT_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectchangerequest-detail",
@@ -1528,13 +1525,14 @@ class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         return context
 
 
 class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     """HPC project change request update view."""
 
-    template_name = "usersec/hpcprojectchangerequest_form.html"
+    template_name = "usersec/hpcprojectcreaterequest_form.html"
     form_class = HpcProjectChangeRequestForm
     model = HpcProjectChangeRequest
     slug_field = "uuid"
@@ -1544,7 +1542,7 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["update"] = True
-        context["project"] = self.get_object().project
+        context["owner_id"] = self.get_object().project.group.owner.id
         return context
 
     def get_form_kwargs(self):
@@ -1579,32 +1577,23 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
             )
             return HttpResponseRedirect(reverse("home"))
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_UPDATED, MSG_PART_PROJECT_UPDATE)
-        )
         return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcProjectChangeRequestRetractView(HpcPermissionMixin, DeleteView):
+class HpcProjectChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
     """HPC project change request retract view."""
 
-    template_name_suffix = "_retract_confirm"
     model = HpcProjectChangeRequest
     slug_field = "uuid"
     slug_url_kwarg = "hpcprojectchangerequest"
     permission_required = "usersec.manage_hpcprojectchangerequest"
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.comment = COMMENT_RETRACTED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.retract_with_version()
 
-        # No email notification required
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_RETRACTED, MSG_PART_PROJECT_UPDATE)
-        )
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcprojectchangerequest-detail",
@@ -1624,22 +1613,14 @@ class HpcProjectChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ACTIVE
-        obj.comment = COMMENT_REACTIVATED
         obj.editor = self.request.user
+        obj.comment = ""
         obj.save_with_version()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_REACTIVATED, MSG_PART_PROJECT_UPDATE)
-        )
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcprojectchangerequest-detail",
-                kwargs={"hpcprojectchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -1652,10 +1633,24 @@ class HpcProjectChangeRequestDeleteView(HpcPermissionMixin, DeleteView):
     permission_required = "usersec.manage_hpcprojectchangerequest"
 
     def get_success_url(self):
-        messages.success(
-            self.request, MSG_REQUEST_SUCCESS.format(MSG_PART_DELETED, MSG_PART_PROJECT_UPDATE)
-        )
         return reverse("home")
+
+
+class HpcProjectChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC project change request archive view."""
+
+    model = HpcProjectChangeRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcprojectchangerequest"
+    permission_required = "usersec.manage_hpcprojectchangerequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcGroupInvitationDetailView(HpcPermissionMixin, DetailView):
@@ -1728,7 +1723,6 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
             send_notification_manager_user_decided_invitation(obj)
             send_notification_user_welcome_mail(hpcuser)
 
-        messages.success(request, MSG_INVITATION_GROUP_USER_CREATE_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
@@ -1753,7 +1747,6 @@ class HpcGroupInvitationRejectView(HpcPermissionMixin, DeleteView):
         if settings.SEND_EMAIL:
             send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(request, MSG_INVITATION_REJECTED_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcgroupinvitation-detail",
@@ -1801,7 +1794,6 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
         if settings.SEND_EMAIL:
             send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(request, MSG_INVITATION_PROJECT_USER_ADD_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
@@ -1826,7 +1818,6 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
         if settings.SEND_EMAIL:
             send_notification_manager_user_decided_invitation(obj)
 
-        messages.success(self.request, MSG_INVITATION_REJECTED_SUCCESS)
         return HttpResponseRedirect(
             reverse(
                 "usersec:hpcuser-overview",
@@ -1857,5 +1848,4 @@ class TermsAndConditionsView(ListView):
         request.user.consented_to_terms = True
         request.user.save()
 
-        messages.success(self.request, MSG_TERMS_CONSENT)
         return HttpResponseRedirect(reverse("home"))

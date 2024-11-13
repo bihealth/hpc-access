@@ -4,146 +4,128 @@
 
 {% block content %}
 
-<h1 class="mt-5">
+<h2 class="mt-5">
   {% if update %}
-    Update group request
+    {% if admin %}
+      Request Revision
+    {% else %}
+      Update Group Request
+    {% endif %}
   {% else %}
-    Request group
+    Create Group Request
   {% endif %}
-</h1>
+</h2>
+
 {% if not admin %}
-  <p>
-    As the first step is for <strong>principal investigators and group leaders</strong> to create a <strong>group</strong> on the cluster which gives their group/lab members a primary entity on the cluster.
-  </p>
-  <p>
-    <strong>Only &quot;group leaders&quot; can do this.</strong>
-    Example of group leaders are principal investigators, leaders of scientific or technical units, and junior group leaders.
+  <p class="lead">
+    The first step for <strong>principal investigators and group leaders</strong> is to create a
+    <strong>group</strong> on the cluster.
+    <strong>Only &quot;group leaders&quot; can do this!</strong>
+    Example of group leaders are principal investigators, leaders of scientific or technical units,
+    and junior group leaders.
     As a group leader, you take responsibility for the action of your users on the cluster.
     Please provide a link to your group at Charite/MDC in the comment field for verification.
-  </p>
-  <p>
     You can add members to your groups and designate a delegate later on in the process.
   </p>
 {% endif %}
 
-  {% include "usersec/modules/comments.html" %}
+{% include "usersec/modules/comments.html" %}
 
-  <div class="container-fluid">
-    <form method="post" id="submit" data-is-admin="{{ admin }}">
-      {% csrf_token %}
-      {% if admin %}
-        <dl class="row" style="max-width: 50%;">
-          {% include "usersec/modules/resources_requested.html" with object=object %}
+<form method="post" class="mt-3 mb-3" id="submit" data-is-admin="{{ admin }}">
+  {% csrf_token %}
+  {% if admin %}
+    <dl class="row">
+      {% include "usersec/modules/resources_requested.html" with object=object %}
 
-          <dt class="col-sm-6">Requester</dt>
-          <dd class="col-sm-6">{{ object.requester.username }}</dd>
+      <dt class="col-sm-6">Requester</dt>
+      <dd class="col-sm-6">{{ object.requester.username }}</dd>
 
-          <dt class="col-sm-6">Description</dt>
-          <dd class="col-sm-6">{{ object.description }}</dd>
+      <dt class="col-sm-6">Description</dt>
+      <dd class="col-sm-6">{{ object.description }}</dd>
 
-          <dt class="col-sm-6">Expiration</dt>
-          <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
-        </dl>
-      {% endif %}
+      <dt class="col-sm-6">Expiration</dt>
+      <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
+    </dl>
+  {% endif %}
 
-      {% for field in form.hidden_fields %}
-        {{ field }}
-      {% endfor %}
+  {% for field in form.hidden_fields %}
+    {{ field }}
+  {% endfor %}
 
-      {% for field in form.visible_fields %}
-        <div class="fieldWrapper">
-          {% if field.errors %}
-            <div class="alert alert-danger" role="alert">
-              {{ field.errors }}
-            </div>
-          {% endif %}
-          <div class="input-group mb-3">
-            <span class="input-group-text">
-              {% if field.field.required %}
-                <strong>{{ field.label }}<sup class="text-danger">*</sup></strong>
-              {% else %}
-                {{ field.label }}
-              {% endif %}
+  {% if admin %}
+  <div class="d-none">
+  {% endif %}
+
+  {% include "usersec/form_field.html" with field=form.description %}
+
+  {% if not admin %}
+    <div class="fieldWrapper">
+      <div class="input-group mb-3">
+        <span class="input-group-text">
+          <input type="checkbox" class="form-check-input m-0" name="consent" id="id_i_am_pi">
+        </span>
+        <label for="id_i_am_pi">
+          <span class="form-control fw-bold">
+            I confirm that I am a group leader and provided some information/link in the comment field.<sup class="text-danger">*</sup>
+          </span>
+        </label>
+      </div>
+      <p class="help small text-muted fst-italic">
+        You must confirm that you are a group leader before you can submit the form.
+      </p>
+    </div>
+    {% if terms_list %}
+      <h3 class="mt-4">Terms &amp; Conditions</h3>
+      {% for obj in terms_list %}
+        <h4 class="mt-4">{{ obj.title }}</h4>
+        <p>{{ obj.text }}</p>
+        <div class="input-group mb-4">
+          <span class="input-group-text">
+            <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
+          </span>
+          <label for="id_consent{{ forloop.counter }}">
+            <span class="form-control fw-bold">
+              I consent to <em>{{ obj.title }}</em>.
             </span>
-            {{ field }}
-          </div>
-          {% if field.help_text %}
-            <p class="help small text-muted fst-italic">{{ field.help_text|safe }}</p>
-          {% endif %}
+          </label>
         </div>
       {% endfor %}
-
-      {% if not admin %}
-        <div class="fieldWrapper">
-          <div class="input-group mb-3">
-            <span class="input-group-text">
-              <input type="checkbox" class="form-check-input m-0" name="consent" id="id_i_am_pi">
-            </span>
-            <label for="id_i_am_pi">
-              <span class="form-control fw-bold">
-                I confirm that I am a group leader and provided some information/link in the comment field.<sup class="text-danger">*</sup>
-              </span>
-            </label>
-          </div>
-          <p class="help small text-muted fst-italic">
-            You must confirm that you are a group leader before you can submit the form.
-          </p>
-        </div>
-        <h3 class="mt-4">Terms &amp; Conditions</h3>
-        {% for obj in terms_list %}
-          <h4 class="mt-4">{{ obj.title }}</h4>
-          <p>{{ obj.text }}</p>
-          <div class="input-group mb-4">
-            <span class="input-group-text">
-              <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
-            </span>
-            <label for="id_consent{{ forloop.counter }}">
-              <span class="form-control fw-bold">
-                I consent to <em>{{ obj.title }}</em>.
-              </span>
-            </label>
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      {% if update %}
-        <a class="btn btn-secondary"
-          {% if admin %}
-           href="{% url 'adminsec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
-          {% else %}
-           href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
-          {% endif %}
-        >
-          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-          Cancel
-        </a>
-      {% else %}
-        <a class="btn btn-secondary"
-          href="{% url 'home' %}"
-        >
-          <i class="iconify" data-icon="mdi:arrow-left-bold"></i>
-          Cancel
-        </a>
-      {% endif %}
-      <button class="btn btn-primary {% if not admin %}disabled{% endif %}" type="submit" id="id_submit_button">
-        {% if update %}
-          {% if admin %}
-            <i class="iconify" data-icon="mdi:comment"></i>
-            Request Revision
-          {% else %}
-            <i class="iconify" data-icon="mdi:refresh"></i>
-            Update
-          {% endif %}
-        {% else %}
-          <i class="iconify" data-icon="mdi:upload"></i>
-          Submit
-        {% endif %}
-      </button>
-    </form>
+    {% endif %}
+  {% endif %}
+  {% if admin %}
   </div>
+  {% endif %}
+
+  {% include "usersec/form_field.html" with field=form.comment %}
+
+
+  {% if admin or update %}
+    <a class="btn btn-secondary"
+      {% if admin %}
+        href="{% url 'adminsec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
+      {% else %}
+        href="{% url 'usersec:hpcgroupcreaterequest-detail' hpcgroupcreaterequest=object.uuid %}"
+      {% endif %}
+    >
+      Cancel
+    </a>
+  {% endif %}
+  <button class="btn btn-primary {% if not admin %}disabled{% endif %}" type="submit" id="id_submit_button">
+    {% if update %}
+      {% if admin %}
+        Request Revision
+      {% else %}
+        Update
+      {% endif %}
+    {% else %}
+      Submit
+    {% endif %}
+  </button>
+</form>
 {% endblock content %}
 
 {% block inline_javascript %}
+  {% if not admin %} 
   {{ block.super }}
   <script>
     function consents() {
@@ -165,4 +147,5 @@
       consents();
     });
   </script>
+  {% endif %}
 {% endblock inline_javascript %}

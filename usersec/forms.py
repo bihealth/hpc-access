@@ -25,6 +25,32 @@ from usersec.models import (
 )
 
 
+def build_option(member):
+    return (
+        str(member.id),
+        "{} {} ({}, AG {})".format(
+            member.user.first_name,
+            member.user.last_name,
+            member.username,
+            member.primary_group.name,
+        ),
+    )
+
+
+def get_project_resource(resource, instance, project=None):
+    default = DEFAULT_PROJECT_RESOURCES[resource]
+
+    if project:
+        project_resources = project.resources_requested.get(resource, default)
+    else:
+        project_resources = default
+
+    if instance:
+        return instance.resources_requested.get(resource, project_resources)
+
+    return project_resources
+
+
 class HpcGroupCreateRequestForm(forms.ModelForm):
     """Form for HpcGroupCreateRequest."""
 
@@ -57,7 +83,6 @@ class HpcGroupCreateRequestForm(forms.ModelForm):
             )
 
         else:
-            print("hiding description and expiration fields because user is hpcadmin")
             self.fields["description"].widget = forms.HiddenInput()
             self.fields["expiration"].widget = forms.HiddenInput()
             self.fields["comment"].required = True
@@ -91,7 +116,6 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
-        self.fields["resources_requested"].initial = group.resources_requested
         self.fields["description"].initial = group.description
         self.fields["delegate"].initial = group.delegate
         self.fields["delegate"].queryset = HpcUser.objects.filter(
@@ -290,30 +314,18 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, group=None, **kwargs):
         super().__init__(*args, **kwargs)
-        instance = kwargs['instance']
-
-        def build_option(member, group):
-            return (
-                str(member.id),
-                "{} {} ({}, AG {})".format(member.user.first_name, member.user.last_name, member.username, group.name),
-            )
-        
-        def get_resource(resource, instance):
-            if instance:
-                return instance.resources_requested.get(resource, DEFAULT_PROJECT_RESOURCES[resource])
-            return DEFAULT_PROJECT_RESOURCES[resource]
+        instance = kwargs["instance"]
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
         self.fields["delegate"].choices = [("", "Select Delegate ...")]
 
         if instance:
             self.fields["members"].choices = [
-                build_option(member, instance.group)
-                for member in instance.members.all()
+                build_option(member) for member in instance.members.all()
             ]
-            self.fields["members"].initial = kwargs['instance'].members.all()
+            self.fields["members"].initial = instance.members.all()
             self.fields["delegate"].choices += [
-                build_option(member, instance.group)
+                build_option(member)
                 for member in instance.members.all()
                 if not member == instance.group.owner
             ]
@@ -349,7 +361,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
-            self.fields["tier1_scratch"].initial = get_resource("tier1_scratch", instance)
+            self.fields["tier1_scratch"].initial = get_project_resource("tier1_scratch", instance)
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier1_work"] = forms.IntegerField(
@@ -360,7 +372,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
-            self.fields["tier1_work"].initial = get_resource("tier1_work", instance)
+            self.fields["tier1_work"].initial = get_project_resource("tier1_work", instance)
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
@@ -373,7 +385,9 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
-            self.fields["tier2_unmirrored"].initial = get_resource("tier2_unmirrored", instance)
+            self.fields["tier2_unmirrored"].initial = get_project_resource(
+                "tier2_unmirrored", instance
+            )
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_mirrored"] = forms.IntegerField(
@@ -386,7 +400,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )
-            self.fields["tier2_mirrored"].initial = get_resource("tier2_mirrored", instance)
+            self.fields["tier2_mirrored"].initial = get_project_resource("tier2_mirrored", instance)
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:
@@ -444,20 +458,38 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, project=None, **kwargs):
         super().__init__(*args, **kwargs)
+        instance = kwargs["instance"]
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
-        self.fields["resources_requested"].initial = project.resources_requested
-        self.fields["description"].initial = project.description
-        self.fields["delegate"].initial = project.delegate
-        self.fields["delegate"].queryset = project.members.all()
-        self.fields["members"].initial = project.members.all().order_by("user__last_name")
+        self.fields["delegate"].choices = [("", "Select Delegate ...")]
 
-        # Exclude users from delegate selection that have no User associated
-        self.fields["delegate"].queryset = (
-            self.fields["delegate"]
-            .queryset.exclude(user__isnull=True)
-            .exclude(id=project.group.owner.id)
-        )
+        if instance:
+            self.fields["members"].choices = [
+                build_option(member) for member in instance.members.all()
+            ]
+            self.fields["members"].initial = instance.members.all()
+            self.fields["delegate"].choices += [
+                build_option(member)
+                for member in instance.members.all()
+                if not member == instance.project.group.owner
+            ]
+        elif project:
+            self.fields["resources_requested"].initial = project.resources_requested
+            self.fields["description"].initial = project.description
+
+            self.fields["members"].choices = [
+                build_option(member) for member in project.members.all().order_by("user__name")
+            ]
+            self.fields["members"].initial = project.members.all()
+            self.fields["delegate"].choices += [
+                build_option(member)
+                for member in project.members.all()
+                if not member == project.group.owner
+            ]
+            self.fields["delegate"].initial = project.delegate
+
+        self.fields["members"].widget.attrs["class"] = "d-none"
+        self.fields["delegate"].widget.attrs["class"] = "form-select"
 
         if not user.is_hpcadmin:
             if project.delegate == user.hpcuser_user.first():
@@ -491,7 +523,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Scratch) [TB]",
             )
-            self.fields["tier1_scratch"].initial = DEFAULT_PROJECT_RESOURCES["tier1_scratch"]
+            self.fields["tier1_scratch"].initial = get_project_resource(
+                "tier1_scratch", instance, project
+            )
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier1_work"] = forms.IntegerField(
@@ -502,7 +536,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                 ),
                 label="Fast Active Storage (Work) [TB]",
             )
-            self.fields["tier1_work"].initial = DEFAULT_PROJECT_RESOURCES["tier1_work"]
+            self.fields["tier1_work"].initial = get_project_resource(
+                "tier1_work", instance, project
+            )
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_unmirrored"] = forms.IntegerField(
@@ -515,7 +551,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Unmirrored) [TB]",
             )
-            self.fields["tier2_unmirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_unmirrored"]
+            self.fields["tier2_unmirrored"].initial = get_project_resource(
+                "tier2_unmirrored", instance, project
+            )
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
             self.fields["tier2_mirrored"] = forms.IntegerField(
@@ -528,7 +566,9 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                 ),
                 label="Long-Term Storage (Mirrored) [TB]",
             )
-            self.fields["tier2_mirrored"].initial = DEFAULT_PROJECT_RESOURCES["tier2_mirrored"]
+            self.fields["tier2_mirrored"].initial = get_project_resource(
+                "tier2_mirrored", instance, project
+            )
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
 
         else:

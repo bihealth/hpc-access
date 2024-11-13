@@ -52,9 +52,9 @@ REQUEST_STATUS_COLOR_MAPPING = {
     REQUEST_STATUS_INITIAL: "info",
     REQUEST_STATUS_ACTIVE: "info",
     REQUEST_STATUS_REVISION: "warning",
-    REQUEST_STATUS_REVISED: "secondary",
+    REQUEST_STATUS_REVISED: "info",
     REQUEST_STATUS_APPROVED: "success",
-    REQUEST_STATUS_DENIED: "secondary",
+    REQUEST_STATUS_DENIED: "danger",
     REQUEST_STATUS_RETRACTED: "secondary",
 }
 
@@ -63,6 +63,16 @@ REQUEST_STATUS_COLOR_MAPPING = {
 def colorize_request_status(status):
     """Return the color for a given status."""
     return REQUEST_STATUS_COLOR_MAPPING.get(status, "dark")
+
+
+@register.filter
+def colorize_text(status):
+    """Return the color for a given status."""
+    color = REQUEST_STATUS_COLOR_MAPPING.get(status, "dark")
+    if color in ("warning", "info"):
+        return "dark"
+    else:
+        return "light"
 
 
 @register.filter

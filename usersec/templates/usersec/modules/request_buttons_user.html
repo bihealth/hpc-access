@@ -5,7 +5,21 @@
 {% endif %}
 
 <span class="btn-group">
-  {% if not is_decided %}
+  {% if is_decided %}
+    {% if is_hpc_group_create_request %}
+      <a class="btn btn-danger"
+          href="{{ object.get_delete_url }}"
+      >
+        Delete
+      </a>
+    {% else %}
+      <a class="btn btn-secondary"
+         href="{{ object.get_archive_url }}"
+      >
+        Archive
+      </a>
+    {% endif %}
+  {% else %}
     {% if not is_active %}
       <a class="btn btn-secondary"
          href="{{ object.get_update_url }}"
@@ -19,16 +33,19 @@
       >
         Re-activate
       </a>
-      <a class="btn btn-danger"
-         href="{{ object.get_delete_url }}"
-      >
-        Delete
-      </a>
-    {% else %}
+    {% endif %}
+    {% if is_active %}
       <a class="btn btn-danger"
          href="{{ object.get_retract_url }}"
       >
         Retract
+      </a>
+    {% endif %}
+    {% if not is_active %}
+      <a class="btn btn-danger"
+          href="{{ object.get_delete_url }}"
+      >
+        Delete
       </a>
     {% endif %}
   {% endif %}

@@ -16,21 +16,10 @@
 </h2>
 
 {% if not admin %}
-<div class="mt-4 card bg-{{ object.status|colorize_request_status }}">
-  <div class="card-body lead text-light">
-    {% if object.status == "ACTIVE" %}
-      You've requested a change for your group.
-      We are working on your request and you will receive an email once we approve it.
-    {% elif object.status == "RETRACTED" %}
-      You have retracted your request to change your group. Click <strong>Re-activate</strong> to activate the request.
-    {% elif object.status == "REVISION" %}
-      We have asked for you to revise your request to change your group. See our comment and please answer any question.
-    {% endif %}
-  </div>
-</div>
+  {% include "usersec/modules/request_status_card.html" %}
 {% endif %}
   <div class="row mt-4">
-    <div class="col-sm-6">
+    <div class="col-sm-7">
       <dl class="row">
         {% include "usersec/modules/resources_requested.html" with object=object %}
 
@@ -47,7 +36,7 @@
         <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
       </dl>
     </div>
-    <div class="col-sm-6">
+    <div class="col-sm-5">
       {% include "usersec/modules/comments.html" %}
     </div>
   </div>

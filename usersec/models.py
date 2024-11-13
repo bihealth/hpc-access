@@ -53,6 +53,9 @@ REQUEST_STATUS_DENIED = "DENIED"
 #: Request retracted by requester.
 REQUEST_STATUS_RETRACTED = "RETRACTED"
 
+#: Request archived.
+REQUEST_STATUS_ARCHIVED = "ARCHIVED"
+
 #: Request statuses.
 REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_INITIAL, REQUEST_STATUS_INITIAL),
@@ -62,6 +65,7 @@ REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_APPROVED, REQUEST_STATUS_APPROVED),
     (REQUEST_STATUS_DENIED, REQUEST_STATUS_DENIED),
     (REQUEST_STATUS_RETRACTED, REQUEST_STATUS_RETRACTED),
+    (REQUEST_STATUS_ARCHIVED, REQUEST_STATUS_ARCHIVED),
 ]
 
 #: Invitation created and waiting for decision.
@@ -277,6 +281,10 @@ class RequestManagerMixin:
     def get_delete_url(self):
         class_name = self.__class__.__name__.lower()
         return reverse("usersec:{}-delete".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_archive_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-archive".format(class_name), kwargs={class_name: self.uuid})
 
 
 @unique
@@ -807,7 +815,6 @@ class HpcGroupVersion(HpcGroupAbstract):
             f"delegate={self.delegate.username if self.delegate else None},"
             f"gid={self.gid},"
             f"status={self.status},"
-            f"members={self.hpcuser.count()},"
             f"creator={self.creator.username if self.creator else None},"
             f"version={self.version})"
         )
@@ -1054,6 +1061,9 @@ class HpcRequestAbstract(HpcObjectAbstract):
     def is_revision(self):
         return self.status == REQUEST_STATUS_REVISION
 
+    def is_archived(self):
+        return self.status == REQUEST_STATUS_ARCHIVED
+
     def display_status(self):
         mapping = {
             REQUEST_STATUS_INITIAL: "initial",
@@ -1067,13 +1077,13 @@ class HpcRequestAbstract(HpcObjectAbstract):
 
         return mapping.get(self.status, "unknown status")
 
-    def get_request_type(self):
-        cls_name = self.__class__.__name__
-        name = cls_name.replace("Request", "").replace("Hpc", "")
-        ret = re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", name)
-        if ret:
-            return " ".join(ret)
-        return self.__class__.__name__
+    # def get_request_type(self):
+    #     cls_name = self.__class__.__name__
+    #     name = cls_name.replace("Request", "").replace("Hpc", "")
+    #     ret = re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", name)
+    #     if ret:
+    #         return " ".join(ret)
+    #     return self.__class__.__name__
 
 
 # HpcGroupRequest related

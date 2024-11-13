@@ -1,5 +1,6 @@
 import unicodedata
 from datetime import datetime
+from itertools import chain
 
 from django.conf import settings
 from django.contrib import messages
@@ -174,32 +175,16 @@ class AdminView(HpcPermissionMixin, TemplateView):
         # Used as switch in template
         context["admin"] = True
 
-        # Add open HpcGroupCreateRequest
-        context["hpcgroupcreaterequests"] = HpcGroupCreateRequest.objects.active()
-
-        # Add open HpcUserCreateRequest
-        context["hpcusercreaterequests"] = HpcUserCreateRequest.objects.active()
-
-        # Add open HpcProjectCreateRequest
-        context["hpcprojectcreaterequests"] = HpcProjectCreateRequest.objects.active()
-
-        # Add open HpcUserChangeRequest
-        context["hpcuserchangerequests"] = HpcUserChangeRequest.objects.active()
-
-        # Add open HpcGroupChangeRequest
-        context["hpcgroupchangerequests"] = HpcGroupChangeRequest.objects.active()
-
-        # Add open HpcProjectChangeRequest
-        context["hpcprojectchangerequests"] = HpcProjectChangeRequest.objects.active()
-
-        # Add open HpcGroupDeleteRequest
-        context["hpcgroupdeleterequests"] = None
-
-        # Add open HpcUserDeleteRequest
-        context["hpcuserdeleterequests"] = None
-
-        # Add open HpcProjectDeleteRequest
-        context["hpcprojectdeleterequests"] = None
+        context["pending_requests"] = list(
+            chain(
+                HpcGroupCreateRequest.objects.active(),
+                HpcGroupChangeRequest.objects.active(),
+                HpcProjectCreateRequest.objects.active(),
+                HpcProjectChangeRequest.objects.active(),
+                HpcUserCreateRequest.objects.active(),
+                HpcUserChangeRequest.objects.active(),
+            )
+        )
 
         return context
 
@@ -240,6 +225,7 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["hpc_group_name_suggestion"] = obj.name if obj.name else name
         tier1_work = folders.get("tier1_work")
         tier1_scratch = folders.get("tier1_scratch")
@@ -490,6 +476,7 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
 
@@ -659,6 +646,7 @@ class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
 
@@ -822,6 +810,7 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["hpc_project_name_suggestion"] = name
         tier1_work = folders.get("tier1_work")
         tier1_scratch = folders.get("tier1_scratch")
@@ -970,12 +959,14 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                 creator=self.request.user,
                 status=OBJECT_STATUS_ACTIVE,
                 expiration=obj.expiration,
+                delegate=obj.delegate,
             )
-            project.members.add(obj.group.owner)
-            project.version_history.last().members.add(obj.group.owner)
+            members = list(obj.members.all())
+            project.members.add(*members)
+            project.get_latest_version().members.add(*members)
 
             # Create invitations for users
-            for member in obj.members.all():
+            for member in members:
                 if member == obj.group.owner:
                     continue
 
@@ -1084,6 +1075,7 @@ class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
 
@@ -1237,6 +1229,7 @@ class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
         context["is_revised"] = obj.is_revised()
+        context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
 
@@ -1244,7 +1237,7 @@ class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
 class HpcProjectChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
     """HPC project change request revision view."""
 
-    template_name = "usersec/hpcprojectchangerequest_form.html"
+    template_name = "usersec/hpcprojectcreaterequest_form.html"
     model = HpcProjectChangeRequest
     form_class = HpcProjectChangeRequestForm
     slug_field = "uuid"

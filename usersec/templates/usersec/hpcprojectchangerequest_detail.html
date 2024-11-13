@@ -4,63 +4,65 @@
 
 {% block content %}
 
-  <div class="card mt-5">
-    <div class="card-header">
-      <h4 class="card-title">
-        HPC Project Change Request
-        <span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.display_status }}
-        </span>
-        <span class="float-end">
-          {% if admin %}
-            {% include "usersec/modules/request_buttons_admin.html" %}
-          {% else %}
-            {% include "usersec/modules/request_buttons_user.html" %}
-          {% endif %}
-        </span>
-      </h4>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-sm-6">
-          <dl class="row">
-            {% include "usersec/modules/resources_requested.html" with object=object %}
+<h2 class="mt-5">
+  Request Project
+  <span class="float-end">
+    {% if admin %}
+      {% include "usersec/modules/request_buttons_admin.html" %}
+    {% else %}
+      {% include "usersec/modules/request_buttons_user.html" %}
+    {% endif %}
+  </span>
+</h2>
 
-            <dt class="col-sm-6">Requester</dt>
-            <dd class="col-sm-6">
-              <a href="{{ object.requester.hpcuser_user.first|get_detail_url:user }}">{{ object.requester.name }}</a>
-              <strong class="small text-muted">{{ object.requester.hpcuser_user.first.username }}</strong>
-            </dd>
+<div class="row mt-4">
+  <div class="col-sm-7">
+    <dl class="row">    
+      {% include "usersec/modules/resources_requested.html" with object=object %}
 
-            <dt class="col-sm-6">Delegate</dt>
-            <dd class="col-sm-6">
-              {% if object.delegate %}
-                <a href="{{ object.delegate|get_detail_url:user }}">{{ object.delegate.user.name }}</a> <strong class="small text-muted">{{ object.delegate.username }}</strong>
-              {% else %}
-                <em class="text-muted">No delegate.</em>
-              {% endif %}
-            </dd>
+      {% if admin %}
+      <dt class="col-sm-6">Requester</dt>
+      <dd class="col-sm-6">
+        {{ object.requester.name }}
+        <span class="small fw-light">({{ object.requester.hpcuser_user.first.username }})</span>
+      </dd>
 
-            <dt class="col-sm-6">Members</dt>
-            <dd class="col-sm-6">
-              <ul class="list-unstyled">
-                {% for member in object.members.all %}
-                  <li>
-                    <a href="{{ member|get_detail_url:user }}">{{ member.user.name }}</a> <strong class="small text-muted">{{ member.username }}</strong>
-                  </li>
-                {% endfor %}
-              </ul>
-            </dd>
+      <dt class="col-sm-6">Associated Group</dt>
+      <dd class="col-sm-6">
+        AG {{ object.project.group.name.capitalize }}
+        &mdash; {{ object.project.group.owner.user.name }}
+        <span class="fw-light">({{ object.project.group.owner.username }})</span>
+      </dd>
+      {% endif %}
 
-            <dt class="col-sm-6">Expiration</dt>
-            <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
-          </dl>
-        </div>
-        <div class="col-sm-6">
-          {% include "usersec/modules/comments.html" %}
-        </div>
-      </div>
-    </div>
+      <dt class="col-sm-6">Delegate</dt>
+      <dd class="col-sm-6">
+        {% if object.delegate %}
+          {{ object.delegate.user.name }}
+          <span class="fw-light">({{ object.delegate.username }}, AG {{ object.delegate.primary_group.name }})</span>
+        {% else %}
+          <em class="text-muted">No delegate.</em>
+        {% endif %}
+      </dd>
+
+      <dt class="col-sm-6">Members</dt>
+      <dd class="col-sm-6">
+        <ul class="list-unstyled">
+          {% for member in object.members.all %}
+            <li>
+              {{ member.user.name }} <span class="fw-light">({{ member.username }}, AG {{ member.primary_group.name }})</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </dd>
+
+      <dt class="col-sm-6">Expiration</dt>
+      <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
+    </dl>
   </div>
+  <div class="col-sm-5">
+    {% include "usersec/modules/comments.html" %}
+  </div>
+</div>
 
 {% endblock content %}

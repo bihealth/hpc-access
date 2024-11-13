@@ -4,16 +4,13 @@
 
   <h2 class="mb-5 mt-5">
     <span class="fw-light">
-      Welcome {% if user.first_name or user.last_name %} {{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
-      &mdash;
+      Welcome {% if user.first_name or user.last_name %} {{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}!
     </span>
-    Open Requests
     <a href="{% url 'adminsec:termsandconditions-list' %}" class="btn btn-secondary float-end">
-      <i class="iconify" data-icon="mdi:format-list-bulleted"></i>
       Terms &amp; Conditions
     </a>
   </h2>
 
-  {% include "usersec/modules/request_grid.html" %}
+  {% include "adminsec/requests.html" %}
 
 {% endblock content %}
