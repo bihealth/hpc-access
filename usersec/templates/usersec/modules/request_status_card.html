@@ -1,0 +1,27 @@
+{% load common %}
+
+<div class="mt-4 card bg-{{ object.status|colorize_request_status }}">
+  <div class="card-body lead text-{{ object.status|colorize_text }}">
+    {% if object.status == "ACTIVE" or object.status == "REVISED" %}
+      We are working on your request and you will receive an email once we approve it.
+    {% elif object.status == "RETRACTED" %}
+      You have retracted your request. Click <strong>Re-activate</strong> to activate the request.
+    {% elif object.status == "REVISION" %}
+      We have asked you to revise your request with the following comment:
+      <p>
+        {% with object.get_comment_history|last as comment %}
+          &quot;{{ comment.2 }}&quot;
+        {% endwith %}
+      </p>
+    {% elif object.status == "APPROVED" %}
+      We have approved your request.
+    {% elif object.status == "DENIED" %}
+      We have denied your request with the following comment:
+      <p>
+        {% with object.get_comment_history|last as comment %}
+          &quot;{{ comment.2 }}&quot;
+        {% endwith %}
+      </p>
+    {% endif %}
+  </div>
+</div>

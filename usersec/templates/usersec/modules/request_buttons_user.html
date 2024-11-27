@@ -1,33 +1,51 @@
 {% if not omit_home_button %}
   <a class="btn btn-secondary" href="{% url 'home' %}">
     <i class="iconify" data-icon="mdi:home"></i>
-    Go to Overview
   </a>
 {% endif %}
 
 <span class="btn-group">
-  {% if not is_decided %}
+  {% if is_decided %}
+    {% if is_hpc_group_create_request %}
+      <a class="btn btn-danger"
+          href="{{ object.get_delete_url }}"
+      >
+        Delete
+      </a>
+    {% else %}
+      <a class="btn btn-secondary"
+         href="{{ object.get_archive_url }}"
+      >
+        Archive
+      </a>
+    {% endif %}
+  {% else %}
     {% if not is_active %}
-      <a class="btn btn-primary"
+      <a class="btn btn-secondary"
          href="{{ object.get_update_url }}"
       >
-        <i class="iconify" data-icon="mdi:refresh"></i>
         Update
       </a>
     {% endif %}
     {% if is_retracted %}
-      <a class="btn btn-success"
+      <a class="btn btn-secondary"
          href="{{ object.get_reactivate_url }}"
       >
-        <i class="iconify" data-icon="mdi:check-bold"></i>
         Re-activate
       </a>
-    {% else %}
+    {% endif %}
+    {% if is_active %}
       <a class="btn btn-danger"
          href="{{ object.get_retract_url }}"
       >
-        <i class="iconify" data-icon="mdi:backspace"></i>
         Retract
+      </a>
+    {% endif %}
+    {% if not is_active %}
+      <a class="btn btn-danger"
+          href="{{ object.get_delete_url }}"
+      >
+        Delete
       </a>
     {% endif %}
   {% endif %}

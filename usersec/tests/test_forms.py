@@ -1,6 +1,7 @@
+from datetime import datetime
+
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.datetime_safe import datetime
 from test_plus.test import TestCase
 
 from usersec.forms import (
@@ -84,9 +85,6 @@ class TestHpcGroupChangeRequestForm(TestCase):
         expiration_expected = datetime(year=timezone.now().year + 1, month=1, day=31)
         self.assertEqual(form.fields["expiration"].initial, expiration_expected)
         self.assertEqual(form.fields["delegate"].initial, self.hpc_group.delegate)
-        self.assertEqual(
-            form.fields["resources_requested"].initial, self.hpc_group.resources_requested
-        )
         self.assertEqual(
             form.fields["tier1_scratch"].initial,
             self.hpc_group.resources_requested.get("tier1_scratch"),

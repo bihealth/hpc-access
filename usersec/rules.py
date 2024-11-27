@@ -2,7 +2,7 @@ import rules
 from django.conf import settings
 
 from adminsec.rules import is_hpcadmin
-from usersec.models import HpcGroupInvitation
+from usersec.models import REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED, HpcGroupInvitation
 
 # ------------------------------------------------------------------------------
 # Predicates
@@ -20,7 +20,9 @@ def is_cluster_user(user):
 
 @rules.predicate
 def _has_pending_group_request(user):
-    return user.hpcgroupcreaterequest_requester.exists()
+    return user.hpcgroupcreaterequest_requester.filter(
+        status__in=[REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED]
+    ).exists()
 
 
 @rules.predicate
@@ -36,8 +38,8 @@ def _view_mode_enabled(_user):
 has_pending_group_request = (
     ~is_hpcadmin & ~is_cluster_user & ~_has_group_invitation & _has_pending_group_request
 )
-is_orphan = ~is_hpcadmin & ~is_cluster_user & ~_has_group_invitation & ~_has_pending_group_request
 has_group_invitation = ~is_hpcadmin & ~is_cluster_user & _has_group_invitation
+is_orphan = ~is_hpcadmin & ~is_cluster_user & ~_has_group_invitation & ~_has_pending_group_request
 view_mode_enabled = _view_mode_enabled
 
 can_create_hpcgroupcreaterequest = is_orphan & ~view_mode_enabled
@@ -50,7 +52,7 @@ can_create_hpcgroupcreaterequest = is_orphan & ~view_mode_enabled
 @rules.predicate
 def _is_hpcuser(user, hpcuser):
     if hpcuser is None:
-        return False
+        raise ValueError("HpcUser is None")
 
     return hpcuser.user == user
 
@@ -58,20 +60,27 @@ def _is_hpcuser(user, hpcuser):
 @rules.predicate
 def _is_pi_of_hpcuser(user, hpcuser):
     if hpcuser is None:
-        return False
+        raise ValueError("HpcUser is None")
+
+    if hpcuser.primary_group is None:
+        raise ValueError("HpcUser has no primary group")
+
+    if hpcuser.primary_group.owner is None:
+        raise ValueError("Primary group of HpcUser has no owner")
 
     owner = hpcuser.primary_group.owner
 
     if owner:
         return owner.user == user
 
-    return False
-
 
 @rules.predicate
 def _is_delegate_of_hpcuser(user, hpcuser):
     if hpcuser is None:
-        return False
+        raise ValueError("HpcUser is None")
+
+    if hpcuser.primary_group is None:
+        raise ValueError("HpcUser has no primary group")
 
     delegate = hpcuser.primary_group.delegate
 
@@ -96,12 +105,12 @@ can_create_hpcuserchangerequest = (is_pi_of_hpcuser | is_delegate_of_hpcuser) & 
 @rules.predicate
 def _is_group_requester(user, hpcgroupcreaterequest):
     if hpcgroupcreaterequest is None:
-        return False
+        raise ValueError("HpcGroupCreateRequest is None")
 
     return hpcgroupcreaterequest.requester == user
 
 
-is_group_requester = ~is_hpcadmin & ~is_cluster_user & _is_group_requester
+is_group_requester = ~is_hpcadmin & _is_group_requester
 
 can_view_hpcgroupcreaterequest = is_group_requester & ~view_mode_enabled
 can_manage_hpcgroupcreaterequest = is_group_requester & ~view_mode_enabled
@@ -114,7 +123,7 @@ can_manage_hpcgroupcreaterequest = is_group_requester & ~view_mode_enabled
 @rules.predicate
 def _is_group_owner_by_hpcgroupchangerequest(user, hpcgroupchangerequest):
     if hpcgroupchangerequest is None:
-        return False
+        raise ValueError("HpcGroupChangeRequest is None")
 
     owner = hpcgroupchangerequest.group.owner
 
@@ -127,7 +136,7 @@ def _is_group_owner_by_hpcgroupchangerequest(user, hpcgroupchangerequest):
 @rules.predicate
 def _is_group_delegate_by_hpcgroupchangerequest(user, hpcgroupchangerequest):
     if hpcgroupchangerequest is None:
-        return False
+        raise ValueError("HpcGroupChangeRequest is None")
 
     delegate = hpcgroupchangerequest.group.delegate
 
@@ -159,7 +168,7 @@ can_manage_hpcgroupchangerequest = (
 @rules.predicate
 def _is_group_owner_by_hpcprojectcreaterequest(user, hpcprojectcreaterequest):
     if hpcprojectcreaterequest is None:
-        return False
+        raise ValueError("HpcProjectCreateRequest is None")
 
     owner = hpcprojectcreaterequest.group.owner
 
@@ -172,7 +181,7 @@ def _is_group_owner_by_hpcprojectcreaterequest(user, hpcprojectcreaterequest):
 @rules.predicate
 def _is_group_delegate_by_hpcprojectcreaterequest(user, hpcprojectcreaterequest):
     if hpcprojectcreaterequest is None:
-        return False
+        raise ValueError("HpcProjectCreateRequest is None")
 
     delegate = hpcprojectcreaterequest.group.delegate
 
@@ -204,7 +213,7 @@ can_manage_hpcprojectcreaterequest = (
 @rules.predicate
 def _is_project_owner_by_hpcprojectchangerequest(user, hpcprojectchangerequest):
     if hpcprojectchangerequest is None:
-        return False
+        raise ValueError("HpcProjectChangeRequest is None")
 
     owner = hpcprojectchangerequest.project.group.owner
 
@@ -217,7 +226,7 @@ def _is_project_owner_by_hpcprojectchangerequest(user, hpcprojectchangerequest):
 @rules.predicate
 def _is_project_delegate_by_hpcprojectchangerequest(user, hpcprojectchangerequest):
     if hpcprojectchangerequest is None:
-        return False
+        raise ValueError("HpcProjectChangeRequest is None")
 
     delegate = hpcprojectchangerequest.project.delegate
 
@@ -230,7 +239,7 @@ def _is_project_delegate_by_hpcprojectchangerequest(user, hpcprojectchangereques
 @rules.predicate
 def _is_group_delegate_by_hpcprojectchangerequest(user, hpcprojectchangerequest):
     if hpcprojectchangerequest is None:
-        return False
+        raise ValueError("HpcProjectChangeRequest is None")
 
     delegate = hpcprojectchangerequest.project.group.delegate
 
@@ -269,7 +278,7 @@ can_manage_hpcprojectchangerequest = (
 @rules.predicate
 def _is_group_owner_by_hpcusercreaterequest(user, hpcusercreaterequest):
     if hpcusercreaterequest is None:
-        return False
+        raise ValueError("HpcUserCreateRequest is None")
 
     owner = hpcusercreaterequest.group.owner
 
@@ -282,7 +291,7 @@ def _is_group_owner_by_hpcusercreaterequest(user, hpcusercreaterequest):
 @rules.predicate
 def _is_group_delegate_by_hpcusercreaterequest(user, hpcusercreaterequest):
     if hpcusercreaterequest is None:
-        return False
+        raise ValueError("HpcUserCreateRequest is None")
 
     delegate = hpcusercreaterequest.group.delegate
 
@@ -314,7 +323,7 @@ can_manage_hpcusercreaterequest = (
 @rules.predicate
 def _is_group_owner_by_hpcuserchangerequest(user, hpcuserchangerequest):
     if hpcuserchangerequest is None:
-        return False
+        raise ValueError("HpcUserChangeRequest is None")
 
     owner = hpcuserchangerequest.user.primary_group.owner
 
@@ -327,7 +336,7 @@ def _is_group_owner_by_hpcuserchangerequest(user, hpcuserchangerequest):
 @rules.predicate
 def _is_group_delegate_by_hpcuserchangerequest(user, hpcuserchangerequest):
     if hpcuserchangerequest is None:
-        return False
+        raise ValueError("HpcUserChangeRequest is None")
 
     delegate = hpcuserchangerequest.user.primary_group.delegate
 
@@ -359,7 +368,7 @@ can_manage_hpcuserchangerequest = (
 @rules.predicate
 def _is_group_member(user, group):
     if group is None:
-        return False
+        raise ValueError("HpcGroup is None")
 
     return group.hpcuser.filter(user=user).exists()
 
@@ -367,7 +376,7 @@ def _is_group_member(user, group):
 @rules.predicate
 def _is_group_owner(user, group):
     if group is None:
-        return False
+        raise ValueError("HpcGroup is None")
 
     return user.hpcuser_user.filter(hpcgroup_owner=group).exists()
 
@@ -375,7 +384,7 @@ def _is_group_owner(user, group):
 @rules.predicate
 def _is_group_delegate(user, group):
     if group is None:
-        return False
+        raise ValueError("HpcGroup is None")
 
     return user.hpcuser_user.filter(hpcgroup_delegate=group).exists()
 
@@ -398,7 +407,7 @@ can_create_hpcgroupchangerequest = is_group_manager & ~view_mode_enabled
 @rules.predicate
 def _is_project_member(user, project):
     if project is None:
-        return False
+        raise ValueError("HpcProject is None")
 
     return project.members.contains(user.hpcuser_user.first())
 
@@ -406,7 +415,7 @@ def _is_project_member(user, project):
 @rules.predicate
 def _is_project_owner(user, project):
     if project is None:
-        return False
+        raise ValueError("HpcProject is None")
 
     return project.group.owner == user.hpcuser_user.first()
 
@@ -414,7 +423,7 @@ def _is_project_owner(user, project):
 @rules.predicate
 def _is_project_delegate(user, project):
     if project is None:
-        return False
+        raise ValueError("HpcProject is None")
 
     return user.hpcuser_user.filter(hpcproject_delegate=project).exists()
 
@@ -422,7 +431,7 @@ def _is_project_delegate(user, project):
 @rules.predicate
 def _is_associated_group_delegate(user, project):
     if project is None:
-        return False
+        raise ValueError("HpcProject is None")
 
     return user.hpcuser_user.filter(hpcgroup_delegate=project.group).exists()
 
@@ -444,7 +453,7 @@ can_create_hpcprojectchangerequest = is_project_manager & ~view_mode_enabled
 @rules.predicate
 def _is_group_invited_user(user, hpcgroupinvitation):
     if hpcgroupinvitation is None:
-        return False
+        raise ValueError("HpcGroupInvitation is None")
 
     return hpcgroupinvitation.username == user.username
 
@@ -459,7 +468,7 @@ can_manage_hpcgroupinvitation = ~is_hpcadmin & ~is_cluster_user & _is_group_invi
 @rules.predicate
 def _is_project_invited_user(user, hpcprojectinvitation):
     if hpcprojectinvitation is None:
-        return False
+        raise ValueError("HpcProjectInvitation is None")
 
     return user.hpcuser_user.filter(id=hpcprojectinvitation.user.id).exists()
 
@@ -477,6 +486,17 @@ rules.add_rule("usersec.has_pending_group_request", has_pending_group_request)
 rules.add_rule("usersec.has_group_invitation", has_group_invitation)
 rules.add_rule("usersec.is_group_manager", is_group_manager)
 rules.add_rule("usersec.is_project_manager", is_project_manager)
+
+# Rules exposed solely for tests
+# ------------------------------------------------------------------------------
+
+rules.add_rule("usersec_tests._view_mode_enabled", _view_mode_enabled)
+rules.add_rule("usersec_tests._has_group_invitation", _has_group_invitation)
+rules.add_rule("usersec_tests._has_pending_group_request", _has_pending_group_request)
+rules.add_rule("usersec_tests._is_hpcuser", _is_hpcuser)
+rules.add_rule("usersec_tests._is_pi_of_hpcuser", _is_pi_of_hpcuser)
+rules.add_rule("usersec_tests._is_delegate_of_hpcuser", _is_delegate_of_hpcuser)
+rules.add_rule("usersec_tests.is_orphan", is_orphan)
 
 
 # ------------------------------------------------------------------------------

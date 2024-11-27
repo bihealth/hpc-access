@@ -4,7 +4,9 @@
   <div class="card-header">
     <h4 class="card-title">
       Projects
-      <span class="badge rounded-pill bg-dark" id="projectCount">{{ object.hpcproject_members.count }}</span>
+      <span class="badge rounded-pill bg-secondary fw-light" id="projectCount">
+        {{ object.hpcproject_members.count }}
+      </span>
     </h4>
     <h6 class="card-subtitle text-muted">
       <div class="btn-group btn-group-sm" role="group" id="toggleInactiveProjectsGroup" aria-label="Toggle inactive projects">
@@ -80,7 +82,7 @@
           <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter0 }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter0 }}">
             <span {% if project.status != 'ACTIVE' %}class="text-muted text-decoration-line-through"{% endif %}>{{ project.name }}</span>
             {% if object|is_project_owner:project %}
-              <span class="badge rounded-pill bg-warning ms-1">Owner</span>
+              <span class="badge rounded-pill bg-dark ms-1">Owner</span>
             {% elif object|is_project_delegate:project %}
               <span class="badge rounded-pill bg-secondary ms-1">Delegate</span>
             {% else %}
@@ -118,7 +120,7 @@
 
             <h6>
               <strong>Members</strong>
-              <span class="badge rounded-pill bg-dark">{{ project.members.count }}</span>
+              <span class="badge rounded-pill bg-secondary">{{ project.members.count }}</span>
               <span class="badge rounded-pill bg-secondary" id="inactiveProject{{ forloop.counter0 }}MembersText">
                 <span id="inactiveProject{{ forloop.counter0 }}Members">0</span> inactive
               </span>

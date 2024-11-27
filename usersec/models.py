@@ -53,6 +53,9 @@ REQUEST_STATUS_DENIED = "DENIED"
 #: Request retracted by requester.
 REQUEST_STATUS_RETRACTED = "RETRACTED"
 
+#: Request archived.
+REQUEST_STATUS_ARCHIVED = "ARCHIVED"
+
 #: Request statuses.
 REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_INITIAL, REQUEST_STATUS_INITIAL),
@@ -62,6 +65,7 @@ REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_APPROVED, REQUEST_STATUS_APPROVED),
     (REQUEST_STATUS_DENIED, REQUEST_STATUS_DENIED),
     (REQUEST_STATUS_RETRACTED, REQUEST_STATUS_RETRACTED),
+    (REQUEST_STATUS_ARCHIVED, REQUEST_STATUS_ARCHIVED),
 ]
 
 #: Invitation created and waiting for decision.
@@ -273,6 +277,14 @@ class RequestManagerMixin:
     def get_retract_url(self):
         class_name = self.__class__.__name__.lower()
         return reverse("usersec:{}-retract".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_delete_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-delete".format(class_name), kwargs={class_name: self.uuid})
+
+    def get_archive_url(self):
+        class_name = self.__class__.__name__.lower()
+        return reverse("usersec:{}-archive".format(class_name), kwargs={class_name: self.uuid})
 
 
 @unique
@@ -503,6 +515,9 @@ class HpcObjectAbstract(models.Model):
 
     #: Date created
     date_created = models.DateTimeField(auto_now_add=True, help_text="DateTime of creation")
+
+    #: Date modified
+    date_modified = models.DateTimeField(auto_now=True, help_text="DateTime of last modification")
 
 
 # ------------------------------------------------------------------------------
@@ -800,7 +815,6 @@ class HpcGroupVersion(HpcGroupAbstract):
             f"delegate={self.delegate.username if self.delegate else None},"
             f"gid={self.gid},"
             f"status={self.status},"
-            f"members={self.hpcuser.count()},"
             f"creator={self.creator.username if self.creator else None},"
             f"version={self.version})"
         )
@@ -1047,6 +1061,9 @@ class HpcRequestAbstract(HpcObjectAbstract):
     def is_revision(self):
         return self.status == REQUEST_STATUS_REVISION
 
+    def is_archived(self):
+        return self.status == REQUEST_STATUS_ARCHIVED
+
     def display_status(self):
         mapping = {
             REQUEST_STATUS_INITIAL: "initial",
@@ -1059,6 +1076,14 @@ class HpcRequestAbstract(HpcObjectAbstract):
         }
 
         return mapping.get(self.status, "unknown status")
+
+    # def get_request_type(self):
+    #     cls_name = self.__class__.__name__
+    #     name = cls_name.replace("Request", "").replace("Hpc", "")
+    #     ret = re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", name)
+    #     if ret:
+    #         return " ".join(ret)
+    #     return self.__class__.__name__
 
 
 # HpcGroupRequest related
@@ -1513,6 +1538,16 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         on_delete=models.CASCADE,
     )
 
+    #: Delegate of the project, optional.
+    delegate = models.ForeignKey(
+        HpcUser,
+        related_name="%(class)s_delegate",
+        null=True,
+        blank=True,
+        help_text="The optional delegate can act on behalf of the project owner",
+        on_delete=models.SET_NULL,
+    )
+
     #: Members of the project.
     members = models.ManyToManyField(
         HpcUser,
@@ -1541,7 +1576,7 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
         max_length=512,
         help_text=(
             "Concise description of what kind of computations are required for the project on the "
-            "cluster",
+            "cluster"
         ),
         null=True,
         blank=True,
