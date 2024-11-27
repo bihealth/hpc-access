@@ -4,67 +4,42 @@
 
 {% block content %}
 
-  <div class="card mt-5">
-    <div class="card-header">
-      <h4 class="card-title">
-        HPC Group Change Request
-        <span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.display_status }}
-        </span>
-        <span class="float-end">
-          {% if admin %}
-            {% include "usersec/modules/request_buttons_admin.html" %}
-          {% else %}
-            {% include "usersec/modules/request_buttons_user.html" %}
-          {% endif %}
-        </span>
-      </h4>
+<h2 class="mt-5">
+  Request to Change the Group
+  <span class="float-end">
+    {% if admin %}
+      {% include "usersec/modules/request_buttons_admin.html" %}
+    {% else %}
+      {% include "usersec/modules/request_buttons_user.html" %}
+    {% endif %}
+  </span>
+</h2>
+
+{% if not admin %}
+  {% include "usersec/modules/request_status_card.html" %}
+{% endif %}
+  <div class="row mt-4">
+    <div class="col-sm-7">
+      <dl class="row">
+        {% include "usersec/modules/resources_requested.html" with object=object %}
+
+        <dt class="col-sm-6">Requester</dt>
+        <dd class="col-sm-6">{{ object.requester }}</dd>
+
+        <dt class="col-sm-6">Description</dt>
+        <dd class="col-sm-6">{{ object.description }}</dd>
+
+        <dt class="col-sm-6">Delegate</dt>
+        <dd class="col-sm-6">{{ object.delegate|default:"<em class='text-muted'>No delegate</em>" }}</dd>
+
+        <dt class="col-sm-6">Expiration</dt>
+        <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
+      </dl>
     </div>
-    <div class="card-body">
-      {% if object.status == "ACTIVE" %}
-      <div class="row">
-        <div class="col-12 alert alert-info">
-          We are working on your request and you will receive an email once we approve it.
-        </div>
-      </div>
-      {% elif object.status == "RETRACTED" %}
-      <div class="row">
-        <div class="col-12 alert alert-warning">
-          You have retracted your group change request.
-          Click &quot;Re-activate&quot; to re-apply for the change.
-        </div>
-      </div>
-      {% elif object.status == "REVISION" %}
-      <div class="row">
-        <div class="col-12 alert alert-warning">
-          We have asked for you to revise your group change request.
-          See our comment and please answer any question.
-        </div>
-      </div>
-      {% endif %}
-      <div class="row">
-        <div class="col-sm-6">
-          <dl class="row">
-            {% include "usersec/modules/resources_requested.html" with object=object %}
-
-            <dt class="col-sm-6">Requester</dt>
-            <dd class="col-sm-6">{{ object.requester }}</dd>
-
-            <dt class="col-sm-6">Description</dt>
-            <dd class="col-sm-6">{{ object.description }}</dd>
-
-            <dt class="col-sm-6">Delegate</dt>
-            <dd class="col-sm-6">{{ object.delegate|default:"<em class='text-muted'>No delegate</em>" }}</dd>
-
-            <dt class="col-sm-6">Expiration</dt>
-            <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
-          </dl>
-        </div>
-        <div class="col-sm-6">
-          {% include "usersec/modules/comments.html" %}
-        </div>
-      </div>
+    <div class="col-sm-5">
+      {% include "usersec/modules/comments.html" %}
     </div>
   </div>
+</div>
 
 {% endblock content %}

@@ -4,11 +4,10 @@
 
 {% block content %}
 <div class="container-fluid">
-
-  <p>
-    Welcome to <hb>HPC Access</hb>.
-  </p>
-  <p>
+  <h2 class="mt-5">
+    Welcome to <strong>HPC Access</strong>!
+  </h2>
+  <p class="mt-4">
     This website allows users of the <strong>BIH HPC cluster</strong> to
   </p>
   <ul>
@@ -24,8 +23,8 @@
     <li>create projects with dedicated and collaborative storage resources,</li>
     <li>and make requests for additional group/project resources.</li>
   </ul>
-  <hr />
-  <p>
+  <hr class="mt-4" />
+  <p class="mt-4">
     Please log in using your Charité or MDC account.
   </p>
 
@@ -40,7 +39,6 @@
       <select id="login-domain" name="domain" class="form-select">
         <option value="CHARITE">Charité</option>
         <option value="MDC-BERLIN">MDC</option>
-        <option value=""></option>
       </select>
     </div>
     <input type="password" name="password" id="login-password"

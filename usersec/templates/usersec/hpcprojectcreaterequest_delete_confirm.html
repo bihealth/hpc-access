@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block content %}
+
+  {% include "usersec/modules/confirm.html" with action="Delete" object_type="request to create a project" %}
+
+{% endblock content %}

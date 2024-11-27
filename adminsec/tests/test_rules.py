@@ -62,7 +62,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_detail_view(self):
         url = reverse(
@@ -79,7 +81,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_detail_view(self):
         url = reverse(
@@ -96,7 +100,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_detail_view(self):
         url = reverse(
@@ -113,7 +119,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_approve_view_get(self):
         self.hpc_group_create_request.name = "new_group"
@@ -133,7 +141,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_approve_view_post(self):
         self.hpc_group_create_request.name = "new_group"
@@ -166,8 +176,11 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully approved request for group creation."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_deny_view_get(self):
         url = reverse(
@@ -184,7 +197,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_deny_view_post(self):
         url = reverse(
@@ -214,8 +229,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully denied request for group creation."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_revision_view_get(self):
         url = reverse(
@@ -232,7 +250,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_create_request_revision_view_post(self):
         url = reverse(
@@ -262,6 +282,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully requested revision for group creation."],
         )
         self.assert_permissions_on_url(
             bad_users,
@@ -270,6 +291,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_group_create_request_detail_view(self):
@@ -287,7 +309,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_approve_view_get(self):
         url = reverse(
@@ -304,7 +328,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_approve_view_post(self):
         url = reverse(
@@ -332,8 +358,11 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully approved request for group update."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_deny_view_get(self):
         url = reverse(
@@ -350,7 +379,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_deny_view_post(self):
         url = reverse(
@@ -380,8 +411,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully denied request for group update."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_revision_view_get(self):
         url = reverse(
@@ -398,7 +432,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_group_change_request_revision_view_post(self):
         url = reverse(
@@ -428,6 +464,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully requested revision for group update."],
         )
         self.assert_permissions_on_url(
             bad_users,
@@ -436,6 +473,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_group_change_request_detail_view(self):
@@ -453,7 +491,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_create_request_approve_view_get(self):
         url = reverse(
@@ -470,7 +510,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     @patch("adminsec.ldap.LdapConnector.connect")
     @patch("adminsec.ldap.LdapConnector.get_ldap_username_domain_by_mail")
@@ -509,8 +551,11 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Request approved and invitation created."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_create_request_deny_view_get(self):
         url = reverse(
@@ -527,7 +572,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_create_request_deny_view_post(self):
         url = reverse(
@@ -557,8 +604,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully denied request for user creation."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_create_request_revision_view_get(self):
         url = reverse(
@@ -575,7 +625,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_create_request_revision_view_post(self):
         url = reverse(
@@ -605,6 +657,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully requested revision for user creation."],
         )
         self.assert_permissions_on_url(
             bad_users,
@@ -613,6 +666,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_user_create_request_detail_view(self):
@@ -630,7 +684,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_approve_view_get(self):
         url = reverse(
@@ -647,7 +703,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_approve_view_post(self):
         url = reverse(
@@ -675,8 +733,11 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully approved request for user update."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_deny_view_get(self):
         url = reverse(
@@ -693,7 +754,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_deny_view_post(self):
         url = reverse(
@@ -723,8 +786,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully denied request for user update."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_revision_view_get(self):
         url = reverse(
@@ -741,7 +807,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_user_change_request_revision_view_post(self):
         url = reverse(
@@ -771,6 +839,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully requested revision for user update."],
         )
         self.assert_permissions_on_url(
             bad_users,
@@ -779,6 +848,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_user_change_request_detail_view(self):
@@ -796,7 +866,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_approve_view_get(self):
         self.hpc_project_create_request.name = "new_project"
@@ -816,7 +888,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_approve_view_post(self):
         self.hpc_project_create_request.name = "new_project"
@@ -848,8 +922,11 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully approved request for project creation."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_deny_view_get(self):
         url = reverse(
@@ -866,7 +943,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_deny_view_post(self):
         url = reverse(
@@ -896,8 +975,11 @@ class TestPermissionsInViews(TestRulesBase):
             redirect_url=reverse("adminsec:overview"),
             req_kwargs=data,
             rollback_callback=rollback_callback,
+            messages_exp=["Request successfully denied."],
         )
-        self.assert_permissions_on_url(bad_users, url, "POST", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_revision_view_get(self):
         url = reverse(
@@ -914,7 +996,9 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
 
     def test_hpc_project_create_request_revision_view_post(self):
         url = reverse(
@@ -945,6 +1029,7 @@ class TestPermissionsInViews(TestRulesBase):
             req_kwargs=data,
             redirect_url=reverse("adminsec:overview"),
             rollback_callback=rollback_callback,
+            messages_exp=["Successfully requested revision for project creation."],
         )
         self.assert_permissions_on_url(
             bad_users,
@@ -953,6 +1038,7 @@ class TestPermissionsInViews(TestRulesBase):
             302,
             req_kwargs=data,
             redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_project_create_request_detail_view(self):
@@ -970,4 +1056,6 @@ class TestPermissionsInViews(TestRulesBase):
         ]
 
         self.assert_permissions_on_url(good_users, url, "GET", 200)
-        self.assert_permissions_on_url(bad_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )

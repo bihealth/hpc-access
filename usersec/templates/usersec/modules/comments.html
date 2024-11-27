@@ -1,16 +1,18 @@
-{% if object.get_comment_history %}
-<div class="card bg-light mb-3">
+<div class="card bg-light mb-4">
   <h5 class="card-header">Comments</h5>
   <div class="card-body">
     <ul class="card-text list-unstyled">
       {% for comment in object.get_comment_history %}
         <li>
-          <span class="fw-light small">{{ comment.1|date:"Y-d-m H:i" }}</span>
-          <span class="fw-bold">{{ comment.0 }}</span>
+          <span class="fw-light small">
+            {{ comment.1|date:"Y-m-d H:i" }}
+            {{ comment.0 }}
+          </span>
           {{ comment.2 }}
         </li>
+      {% empty %}
+        <li class="text-muted">No comments.</li>
       {% endfor %}
     </ul>
   </div>
 </div>
-{% endif %}

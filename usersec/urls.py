@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 
-from usersec import views
+from usersec import views, views_api
 
 app_name = "usersec"
 
@@ -45,6 +45,16 @@ urlpatterns = [
         view=views.HpcGroupCreateRequestReactivateView.as_view(),
         name="hpcgroupcreaterequest-reactivate",
     ),
+    path(
+        "hpcgroupcreaterequest/<uuid:hpcgroupcreaterequest>/delete/",
+        view=views.HpcGroupCreateRequestDeleteView.as_view(),
+        name="hpcgroupcreaterequest-delete",
+    ),
+    path(
+        "hpcgroupcreaterequest/<uuid:hpcgroupcreaterequest>/archive/",
+        view=views.HpcGroupCreateRequestArchiveView.as_view(),
+        name="hpcgroupcreaterequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcGroupChangeRequest related
     # ------------------------------------------------------------------------------
@@ -72,6 +82,16 @@ urlpatterns = [
         "hpcgroupchangerequest/<uuid:hpcgroupchangerequest>/reactivate/",
         view=views.HpcGroupChangeRequestReactivateView.as_view(),
         name="hpcgroupchangerequest-reactivate",
+    ),
+    path(
+        "hpcgroupchangerequest/<uuid:hpcgroupchangerequest>/delete/",
+        view=views.HpcGroupChangeRequestDeleteView.as_view(),
+        name="hpcgroupchangerequest-delete",
+    ),
+    path(
+        "hpcgroupchangerequest/<uuid:hpcgroupchangerequest>/archive/",
+        view=views.HpcGroupChangeRequestArchiveView.as_view(),
+        name="hpcgroupchangerequest-archive",
     ),
     # ------------------------------------------------------------------------------
     # HpcGroupDeleteRequest related
@@ -101,6 +121,16 @@ urlpatterns = [
         view=views.HpcGroupDeleteRequestReactivateView.as_view(),
         name="hpcgroupdeleterequest-reactivate",
     ),
+    path(
+        "hpcgroupdeleterequest/<uuid:hpcgroupdeleterequest>/delete/",
+        view=views.HpcGroupDeleteRequestDeleteView.as_view(),
+        name="hpcgroupdeleterequest-delete",
+    ),
+    path(
+        "hpcgroupdeleterequest/<uuid:hpcgroupdeleterequest>/archive/",
+        view=views.HpcGroupDeleteRequestArchiveView.as_view(),
+        name="hpcgroupdeleterequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcUser related
     # ------------------------------------------------------------------------------
@@ -109,7 +139,7 @@ urlpatterns = [
         view=views.HpcUserView.as_view(),
         name="hpcuser-overview",
     ),
-    path(
+    path(  # TODO OBSOLETE
         "hpcuser/<uuid:hpcuser>/detail/",
         view=views.HpcUserDetailView.as_view(),
         name="hpcuser-detail",
@@ -142,6 +172,16 @@ urlpatterns = [
         view=views.HpcUserCreateRequestReactivateView.as_view(),
         name="hpcusercreaterequest-reactivate",
     ),
+    path(
+        "hpcusercreaterequest/<uuid:hpcusercreaterequest>/delete/",
+        view=views.HpcUserCreateRequestDeleteView.as_view(),
+        name="hpcusercreaterequest-delete",
+    ),
+    path(
+        "hpcusercreaterequest/<uuid:hpcusercreaterequest>/archive/",
+        view=views.HpcUserCreateRequestArchiveView.as_view(),
+        name="hpcusercreaterequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcUserChangeRequest related
     # ------------------------------------------------------------------------------
@@ -170,6 +210,16 @@ urlpatterns = [
         view=views.HpcUserChangeRequestReactivateView.as_view(),
         name="hpcuserchangerequest-reactivate",
     ),
+    path(
+        "hpcuserchangerequest/<uuid:hpcuserchangerequest>/delete/",
+        view=views.HpcUserChangeRequestDeleteView.as_view(),
+        name="hpcuserchangerequest-delete",
+    ),
+    path(
+        "hpcuserchangerequest/<uuid:hpcuserchangerequest>/archive/",
+        view=views.HpcUserChangeRequestArchiveView.as_view(),
+        name="hpcuserchangerequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcUserDeleteRequest related
     # ------------------------------------------------------------------------------
@@ -197,6 +247,16 @@ urlpatterns = [
         "hpcuserdeleterequest/<uuid:hpcuserdeleterequest>/reactivate/",
         view=views.HpcUserDeleteRequestReactivateView.as_view(),
         name="hpcuserdeleterequest-reactivate",
+    ),
+    path(
+        "hpcuserdeleterequest/<uuid:hpcuserdeleterequest>/delete/",
+        view=views.HpcUserDeleteRequestDeleteView.as_view(),
+        name="hpcuserdeleterequest-delete",
+    ),
+    path(
+        "hpcuserdeleterequest/<uuid:hpcuserdeleterequest>/archive/",
+        view=views.HpcUserDeleteRequestArchiveView.as_view(),
+        name="hpcuserdeleterequest-archive",
     ),
     # ------------------------------------------------------------------------------
     # HpcProject related
@@ -234,6 +294,16 @@ urlpatterns = [
         view=views.HpcProjectCreateRequestReactivateView.as_view(),
         name="hpcprojectcreaterequest-reactivate",
     ),
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/delete/",
+        view=views.HpcProjectCreateRequestDeleteView.as_view(),
+        name="hpcprojectcreaterequest-delete",
+    ),
+    path(
+        "hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/archive/",
+        view=views.HpcProjectCreateRequestArchiveView.as_view(),
+        name="hpcprojectcreaterequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcProjectChangeRequest related
     # ------------------------------------------------------------------------------
@@ -262,6 +332,16 @@ urlpatterns = [
         view=views.HpcProjectChangeRequestReactivateView.as_view(),
         name="hpcprojectchangerequest-reactivate",
     ),
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/delete/",
+        view=views.HpcProjectChangeRequestDeleteView.as_view(),
+        name="hpcprojectchangerequest-delete",
+    ),
+    path(
+        "hpcprojectchangerequest/<uuid:hpcprojectchangerequest>/archive/",
+        view=views.HpcProjectChangeRequestArchiveView.as_view(),
+        name="hpcprojectchangerequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcProjectDeleteRequest related
     # ------------------------------------------------------------------------------
@@ -289,6 +369,16 @@ urlpatterns = [
         "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/reactivate/",
         view=views.HpcProjectDeleteRequestReactivateView.as_view(),
         name="hpcprojectdeleterequest-reactivate",
+    ),
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/delete/",
+        view=views.HpcProjectDeleteRequestDeleteView.as_view(),
+        name="hpcprojectdeleterequest-delete",
+    ),
+    path(
+        "hpcprojectdeleterequest/<uuid:hpcprojectdeleterequest>/archive/",
+        view=views.HpcProjectDeleteRequestArchiveView.as_view(),
+        name="hpcprojectdeleterequest-archive",
     ),
     # ------------------------------------------------------------------------------
     # HpcGroupInvitation related
@@ -320,5 +410,13 @@ urlpatterns = [
         "hpcprojectinvitation/<uuid:hpcprojectinvitation>/reject/",
         view=views.HpcProjectInvitationRejectView.as_view(),
         name="hpcprojectinvitation-reject",
+    ),
+    # ------------------------------------------------------------------------------
+    # API
+    # ------------------------------------------------------------------------------
+    path(
+        "api/hpcuser/lookup/",
+        view=views_api.HpcUserLookupApiView.as_view(),
+        name="api-hpcuser-lookup",
     ),
 ]

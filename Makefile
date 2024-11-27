@@ -57,3 +57,16 @@ _migrate: migrations
 
 .PHONY: migrate
 migrate: _migrate format
+
+
+.PHONY: test-coverage
+test-coverage:
+	coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test -v2 --settings=config.settings.test
+	coverage report
+	coverage html
+
+.PHONY: test-coverage-keepdb
+test-coverage-keepdb:
+	coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test -v2 --settings=config.settings.test --keepdb
+	coverage report
+	coverage html

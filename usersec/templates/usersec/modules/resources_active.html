@@ -16,7 +16,7 @@
     </dd>
 
     <dt class="col-sm-7">
-      <div class="progress">
+      <div class="progress mt-1">
         {% with percentage=object.generate_quota_report.percentage.tier1_work status=object.generate_quota_report.status.tier1_work %}
         <div class="progress-bar bg-{{ status|storage_progress_color }}" role="progressbar" style='width: {{ percentage }}%' aria-valuenow='{{ percentage }}' aria-valuemin="0" aria-valuemax="100">
           {{ percentage }}%
@@ -34,7 +34,7 @@
     <dd class="col-sm-12"><code class="text-dark">{{ object.folders.tier1_scratch|highlight_folder:"scratch" }}</code></dd>
 
     <dt class="col-sm-7">
-      <div class="progress">
+      <div class="progress mt-1">
         {% with percentage=object.generate_quota_report.percentage.tier1_scratch status=object.generate_quota_report.status.tier1_scratch %}
         <div class="progress-bar bg-{{ status|storage_progress_color }}" role="progressbar" style='width: {{ percentage }}%' aria-valuenow='{{ percentage }}' aria-valuemin="0" aria-valuemax="100">
           {{ percentage }}%
@@ -56,7 +56,7 @@
     <dd class="col-sm-12"><code class="text-dark">{{ object.folders.tier2_unmirrored|highlight_folder:"unmirrored" }}</code></dd>
 
     <dt class="col-sm-7">
-      <div class="progress">
+      <div class="progress mt-1">
         {% with percentage=object.generate_quota_report.percentage.tier2_unmirrored status=object.generate_quota_report.status.tier2_unmirrored %}
         <div class="progress-bar bg-{{ status|storage_progress_color }}" role="progressbar" style='width: {{ percentage }}%' aria-valuenow='{{ percentage }}' aria-valuemin="0" aria-valuemax="100">
           {{ percentage }}%
@@ -74,7 +74,7 @@
     <dd class="col-sm-12"><code class="text-dark">{{ object.folders.tier2_mirrored|highlight_folder:"mirrored" }}</code></dd>
 
     <dt class="col-sm-7">
-      <div class="progress">
+      <div class="progress mt-1">
         {% with percentage=object.generate_quota_report.percentage.tier2_mirrored status=object.generate_quota_report.status.tier2_mirrored %}
         <div class="progress-bar bg-{{ status|storage_progress_color }}" role="progressbar" style='width: {{ percentage }}%' aria-valuenow='{{ percentage }}' aria-valuemin="0" aria-valuemax="100">
           {{ percentage }}%

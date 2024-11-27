@@ -4,41 +4,35 @@
 
 {% block content %}
 
-  <div class="card mt-5">
-    <div class="card-header">
-      <h4 class="card-title">
-        HPC User Change Request
-        <span class="badge bg-{{ object.status|colorize_request_status }}">
-          {{ object.display_status }}
-        </span>
-        <span class="float-end">
-          {% if admin %}
-            {% include "usersec/modules/request_buttons_admin.html" %}
-          {% else %}
-            {% include "usersec/modules/request_buttons_user.html" %}
-          {% endif %}
-        </span>
-      </h4>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-sm-6">
-          <dl class="row">
-            <dt class="col-sm-3">User</dt>
-            <dd class="col-sm-9">{{ object.user }}</dd>
+<h2 class="mt-5">
+  Extend User Expiration
+  <span class="float-end">
+    {% if admin %}
+      {% include "usersec/modules/request_buttons_admin.html" %}
+    {% else %}
+      {% include "usersec/modules/request_buttons_user.html" %}
+    {% endif %}
+  </span>
+</h2>
 
-            <dt class="col-sm-3">Requester</dt>
-            <dd class="col-sm-9">{{ object.requester }}</dd>
+<div class="row mt-4">
+  <div class="col-sm-7">
+    <dl class="row">    
+      {% if admin %}
+      <dt class="col-sm-6">Requester</dt>
+      <dd class="col-sm-6">{{ object.requester }}</dd>
+      {% endif %}
 
-            <dt class="col-sm-3">Expiration</dt>
-            <dd class="col-sm-9">{{ object.expiration|date:"Y-m-d" }}</dd>
-          </dl>
-        </div>
-        <div class="col-sm-6">
-          {% include "usersec/modules/comments.html" %}
-        </div>
-      </div>
-    </div>
+      <dt class="col-sm-6">User</dt>
+      <dd class="col-sm-6">{{ object.user }}</dd>
+
+      <dt class="col-sm-6">Expiration</dt>
+      <dd class="col-sm-6">{{ object.expiration|date:"Y-m-d" }}</dd>
+    </dl>
   </div>
+  <div class="col-sm-5">
+    {% include "usersec/modules/comments.html" %}
+  </div>
+</div>
 
 {% endblock content %}

@@ -102,6 +102,26 @@ class HpcUserSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
         ]
 
 
+class HpcUserLookupSerializer(serializers.ModelSerializer):
+    """Serializer for HpcUser model for lookup purposes."""
+
+    primary_group = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    username = serializers.CharField(read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj) -> str:
+        return obj.user.name
+
+    class Meta:
+        model = HpcUser
+        fields = [
+            "id",
+            "username",
+            "primary_group",
+            "full_name",
+        ]
+
+
 class HpcUserVersionSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
     """Serializer for HpcUserVersion model."""
 

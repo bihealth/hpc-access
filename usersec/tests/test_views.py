@@ -13,11 +13,13 @@ from usersec.models import (
     INVITATION_STATUS_REJECTED,
     REQUEST_STATUS_ACTIVE,
     REQUEST_STATUS_APPROVED,
+    REQUEST_STATUS_ARCHIVED,
     REQUEST_STATUS_DENIED,
     REQUEST_STATUS_INITIAL,
     REQUEST_STATUS_RETRACTED,
     TERMS_AUDIENCE_PI,
     TERMS_AUDIENCE_USER,
+    HpcGroupChangeRequest,
     HpcGroupCreateRequest,
     HpcProjectChangeRequest,
     HpcProjectCreateRequest,
@@ -94,6 +96,9 @@ class TestViewBase(TestCase):
         self.hpc_project.members.add(self.hpc_owner)
         self.hpc_project.get_latest_version().members.add(self.hpc_owner)
 
+    def assertNoMessages(self, response):
+        self.assertEqual(list(get_messages(response.wsgi_request)), [])
+
 
 class TestHomeView(TestViewBase):
     """Tests for HomeView."""
@@ -107,12 +112,14 @@ class TestHomeView(TestViewBase):
     def test_get_no_cluster_user(self):
         with self.login(self.user):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertRedirects(response, reverse("usersec:orphan-user"))
 
     def test_get_cluster_user(self):
         HpcUserFactory(user=self.user, primary_group=self.hpc_group)
         with self.login(self.user):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(response.status_code, 200)
             self.assertIsInstance(response.context_data["view"], HpcUserView)
             self.assertEqual(response.context_data["object"], self.user.hpcuser_user.first())
@@ -120,11 +127,13 @@ class TestHomeView(TestViewBase):
     def test_get_admin_user(self):
         with self.login(self.user_hpcadmin):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertRedirects(response, reverse("adminsec:overview"))
 
     def test_get_superuser(self):
         with self.login(self.superuser):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertRedirects(response, reverse("admin-landing"))
 
     def test_get_not_consented_empty_terms(self):
@@ -133,6 +142,7 @@ class TestHomeView(TestViewBase):
 
         with self.login(self.user):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertRedirects(response, reverse("usersec:orphan-user"))
 
     def test_get_not_consented(self):
@@ -142,7 +152,39 @@ class TestHomeView(TestViewBase):
 
         with self.login(self.user):
             response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
             self.assertRedirects(response, reverse("usersec:terms"))
+
+    def test_has_invitation(self):
+        create_request = HpcUserCreateRequestFactory(
+            requester=self.user_owner, group=self.hpc_group
+        )
+        invitation = HpcGroupInvitationFactory(
+            hpcusercreaterequest=create_request, username="user@CHARITE"
+        )
+        with self.login(self.user):
+            response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcgroupinvitation-detail",
+                    kwargs={"hpcgroupinvitation": invitation.uuid},
+                ),
+            )
+
+    def test_has_pending_group_request(self):
+        request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        with self.login(self.user):
+            response = self.client.get(reverse("home"))
+            self.assertNoMessages(response)
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcgroupcreaterequest-detail",
+                    kwargs={"hpcgroupcreaterequest": request.uuid},
+                ),
+            )
 
 
 class TestOrphanUserView(TestViewBase):
@@ -178,9 +220,6 @@ class TestOrphanUserView(TestViewBase):
                     kwargs={"hpcgroupcreaterequest": request.uuid},
                 ),
             )
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully submitted request for group creation.")
 
             self.assertEqual(len(mail.outbox), 2)
 
@@ -351,10 +390,6 @@ class TestHpcGroupCreateRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for group creation.")
-
             self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
@@ -400,18 +435,6 @@ class TestHpcGroupCreateRequestRetractView(TestViewBase):
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcgroupcreaterequest-retract",
-                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
@@ -419,10 +442,6 @@ class TestHpcGroupCreateRequestRetractView(TestViewBase):
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
                 ),
             )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully retracted request for group creation.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
@@ -456,16 +475,106 @@ class TestHpcGroupCreateRequestReactivateView(TestViewBase):
                     kwargs={"hpcgroupcreaterequest": self.obj.uuid},
                 ),
             )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully re-activated request for group creation."
-            )
-
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcGroupCreateRequestDeleteView(TestViewBase):
+    """Tests for HpcGroupCreateRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcGroupCreateRequestFactory(requester=self.user)
+
+    def test_get(self):
+        with self.login(self.user):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupcreaterequest-delete",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertNoMessages(response)
+
+    def test_post(self):
+        with self.login(self.user):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcgroupcreaterequest-delete",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                ),
+                follow=True,
+            )
+            self.assertRedirects(response, reverse("usersec:orphan-user"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcGroupCreateRequest.objects.count(), 0)
+
+
+class TestHpcGroupCreateRequestArchiveView(TestViewBase):
+    """Tests for HpcGroupCreateRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcGroupCreateRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_APPROVED
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupcreaterequest-archive",
+                    kwargs={"hpcgroupcreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
+
+
+class TestHpcGroupChangeRequestCreateView(TestViewBase):
+    """Tests for HpcGroupChangeRequestCreateView."""
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupchangerequest-create", kwargs={"hpcgroup": self.hpc_group.uuid}
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post_form_valid(self):
+        with self.login(self.user_owner):
+            data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcgroupchangerequest-create", kwargs={"hpcgroup": self.hpc_group.uuid}
+                ),
+                data=data,
+            )
+            self.assertEqual(HpcGroupChangeRequest.objects.count(), 1)
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(len(mail.outbox), 1)
+
+    def test_post_form_invalid(self):
+        with self.login(self.user_owner):
+            data = dict(HPCGROUPCREATEREQUEST_FORM_DATA_VALID)
+            data["resources_requested"] = ""
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcgroupchangerequest-create", kwargs={"hpcgroup": self.hpc_group.uuid}
+                ),
+                data=data,
+            )
+            self.assertEqual(
+                response.context["form"].errors["resources_requested"][0],
+                "This field is required.",
+            )
 
 
 class TestHpcGroupChangeRequestDetailView(TestViewBase):
@@ -632,10 +741,6 @@ class TestHpcGroupChangeRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for group update.")
-
             self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
@@ -681,18 +786,6 @@ class TestHpcGroupChangeRequestRetractView(TestViewBase):
                     kwargs={"hpcgroupchangerequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user_owner):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcgroupchangerequest-retract",
-                    kwargs={"hpcgroupchangerequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
@@ -700,10 +793,6 @@ class TestHpcGroupChangeRequestRetractView(TestViewBase):
                     kwargs={"hpcgroupchangerequest": self.obj.uuid},
                 ),
             )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully retracted request for group update.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
@@ -730,23 +819,64 @@ class TestHpcGroupChangeRequestReactivateView(TestViewBase):
                 )
             )
 
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcgroupchangerequest-detail",
-                    kwargs={"hpcgroupchangerequest": self.obj.uuid},
-                ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully re-activated request for group update."
-            )
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcGroupChangeRequestDeleteView(TestViewBase):
+    """Tests for HpcGroupChangeRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcGroupChangeRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupchangerequest-delete",
+                    kwargs={"hpcgroupchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcgroupchangerequest-delete",
+                    kwargs={"hpcgroupchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcGroupChangeRequest.objects.count(), 0)
+
+
+class TestHpcGroupChangeRequestArchiveView(TestViewBase):
+    """Tests for HpcGroupChangeRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcGroupChangeRequestFactory(
+            requester=self.user_owner, group=self.hpc_group, status=REQUEST_STATUS_ACTIVE
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcgroupchangerequest-archive",
+                    kwargs={"hpcgroupchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
 
 
 class TestHpcUserView(TestViewBase):
@@ -762,6 +892,30 @@ class TestHpcUserView(TestViewBase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["object"], self.hpc_owner)
+
+    def test_get_no_cluster_user(self):
+        with self.login(self.user):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuser-overview",
+                )
+            )
+            self.assertRedirects(response, reverse("usersec:orphan-user"))
+
+    def test_get_retracted_group_change_request(self):
+        change_request = HpcGroupChangeRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_RETRACTED, group=self.hpc_group
+        )
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuser-overview",
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.context["retracted_group_change_request"], str(change_request.uuid)
+            )
 
 
 class TestHpcUserDetailView(TestViewBase):
@@ -827,18 +981,9 @@ class TestHpcUserCreateRequestCreateView(TestViewBase):
                 ),
                 data=data,
             )
-            request = HpcUserCreateRequest.objects.first()
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcusercreaterequest-detail",
-                    kwargs={"hpcusercreaterequest": request.uuid},
-                ),
-            )
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Couldn't submitted request for user creation.")
-
+            self.assertEqual(HpcUserCreateRequest.objects.count(), 1)
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(len(mail.outbox), 1)
 
     def test_post_form_invalid(self):
@@ -1020,10 +1165,6 @@ class TestHpcUserCreateRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for user creation.")
-
             self.assertEqual(len(mail.outbox), 1)
 
     def test_post_fail(self):
@@ -1069,18 +1210,6 @@ class TestHpcUserCreateRequestRetractView(TestViewBase):
                     kwargs={"hpcusercreaterequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user_owner):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcusercreaterequest-retract",
-                    kwargs={"hpcusercreaterequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
@@ -1089,10 +1218,6 @@ class TestHpcUserCreateRequestRetractView(TestViewBase):
                 ),
             )
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully retracted request for user creation.")
-
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
@@ -1100,7 +1225,7 @@ class TestHpcUserCreateRequestRetractView(TestViewBase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class TestHpcUserCreateRequestRectivateView(TestViewBase):
+class TestHpcUserCreateRequestReactivateView(TestViewBase):
     """Tests for HpcUserCreateRequestReactivateView."""
 
     def setUp(self):
@@ -1118,23 +1243,62 @@ class TestHpcUserCreateRequestRectivateView(TestViewBase):
                 )
             )
 
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcusercreaterequest-detail",
-                    kwargs={"hpcusercreaterequest": self.obj.uuid},
-                ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully re-activated request for user creation."
-            )
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcUserCreateRequestDeleteView(TestViewBase):
+    """Tests for HpcUserCreateRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserCreateRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcusercreaterequest-delete",
+                    kwargs={"hpcusercreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcusercreaterequest-delete",
+                    kwargs={"hpcusercreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcUserCreateRequest.objects.count(), 0)
+
+
+class TestHpcUserCreateRequestArchiveView(TestViewBase):
+    """Tests for HpcUserCreateRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserCreateRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcusercreaterequest-archive",
+                    kwargs={"hpcusercreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
 
 
 class TestHpcUserChangeRequestCreateView(TestViewBase):
@@ -1158,18 +1322,9 @@ class TestHpcUserChangeRequestCreateView(TestViewBase):
                 ),
                 data=data,
             )
-            request = HpcUserChangeRequest.objects.first()
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcuserchangerequest-detail",
-                    kwargs={"hpcuserchangerequest": request.uuid},
-                ),
-            )
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully submitted request for user update.")
-
+            self.assertEqual(HpcUserChangeRequest.objects.count(), 1)
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(len(mail.outbox), 1)
 
     def test_post_form_invalid(self):
@@ -1335,10 +1490,6 @@ class TestHpcUserChangeRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for user update.")
-
             self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
@@ -1379,18 +1530,6 @@ class TestHpcUserChangeRequestRetractView(TestViewBase):
                     kwargs={"hpcuserchangerequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user_owner):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcuserchangerequest-retract",
-                    kwargs={"hpcuserchangerequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
@@ -1399,10 +1538,6 @@ class TestHpcUserChangeRequestRetractView(TestViewBase):
                 ),
             )
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully retracted request for user update.")
-
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
@@ -1410,7 +1545,7 @@ class TestHpcUserChangeRequestRetractView(TestViewBase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class TestHpcUserChangeRequestRectivateView(TestViewBase):
+class TestHpcUserChangeRequestReactivateView(TestViewBase):
     """Tests for HpcUserChangeRequestReactivateView."""
 
     def setUp(self):
@@ -1428,21 +1563,62 @@ class TestHpcUserChangeRequestRectivateView(TestViewBase):
                 )
             )
 
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcuserchangerequest-detail",
-                    kwargs={"hpcuserchangerequest": self.obj.uuid},
-                ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully re-activated request for user update.")
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcUserChangeRequestDeleteView(TestViewBase):
+    """Tests for HpcUserChangeRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserChangeRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserchangerequest-delete",
+                    kwargs={"hpcuserchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcuserchangerequest-delete",
+                    kwargs={"hpcuserchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcUserChangeRequest.objects.count(), 0)
+
+
+class TestHpcUserChangeRequestArchiveView(TestViewBase):
+    """Tests for HpcUserChangeRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserChangeRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserchangerequest-archive",
+                    kwargs={"hpcuserchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
 
 
 class TestHpcProjectCreateRequestCreateView(TestViewBase):
@@ -1470,20 +1646,8 @@ class TestHpcProjectCreateRequestCreateView(TestViewBase):
                 data=data,
             )
             self.assertEqual(HpcProjectCreateRequest.objects.count(), 1)
-            request = HpcProjectCreateRequest.objects.first()
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcprojectcreaterequest-detail",
-                    kwargs={"hpcprojectcreaterequest": request.uuid},
-                ),
-            )
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully submitted request for project creation."
-            )
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(len(mail.outbox), 2)
 
     def test_post_form_invalid(self):
@@ -1693,10 +1857,6 @@ class TestHpcProjectCreateRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for project creation.")
-
             self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
@@ -1741,30 +1901,12 @@ class TestHpcProjectCreateRequestRetractView(TestViewBase):
                     kwargs={"hpcprojectcreaterequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user_owner):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcprojectcreaterequest-retract",
-                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
                     "usersec:hpcprojectcreaterequest-detail",
                     kwargs={"hpcprojectcreaterequest": self.obj.uuid},
                 ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully retracted request for project creation."
             )
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
@@ -1792,23 +1934,62 @@ class TestHpcProjectCreateRequestReactivateView(TestViewBase):
                 )
             )
 
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcprojectcreaterequest-detail",
-                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
-                ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully re-activated request for project creation."
-            )
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcProjectCreateRequestDeleteView(TestViewBase):
+    """Tests for HpcProjectCreateRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectCreateRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectcreaterequest-delete",
+                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectcreaterequest-delete",
+                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcProjectCreateRequest.objects.count(), 0)
+
+
+class TestHpcProjectCreateRequestArchiveView(TestViewBase):
+    """Tests for HpcProjectCreateRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectCreateRequestFactory(requester=self.user_owner, group=self.hpc_group)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectcreaterequest-archive",
+                    kwargs={"hpcprojectcreaterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
 
 
 class TestHpcProjectChangeRequestCreateView(TestViewBase):
@@ -1836,18 +2017,7 @@ class TestHpcProjectChangeRequestCreateView(TestViewBase):
                 data=data,
             )
             self.assertEqual(HpcProjectChangeRequest.objects.count(), 1)
-            request = HpcProjectChangeRequest.objects.first()
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcprojectchangerequest-detail",
-                    kwargs={"hpcprojectchangerequest": request.uuid},
-                ),
-            )
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully submitted request for project update.")
-
+            self.assertRedirects(response, reverse("home"))
             self.assertEqual(len(mail.outbox), 1)
 
     def test_post_form_invalid(self):
@@ -2052,10 +2222,6 @@ class TestHpcProjectChangeRequestUpdateView(TestViewBase):
             # TODO Sort out timezone issue
             # self.assertEqual(self.obj.expiration, update["expiration"])
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully updated request for project update.")
-
             self.assertEqual(len(mail.outbox), 0)
 
     def test_post_fail(self):
@@ -2100,18 +2266,6 @@ class TestHpcProjectChangeRequestRetractView(TestViewBase):
                     kwargs={"hpcprojectchangerequest": self.obj.uuid},
                 )
             )
-            self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.context["form"])
-
-    def test_post(self):
-        with self.login(self.user_owner):
-            response = self.client.post(
-                reverse(
-                    "usersec:hpcprojectchangerequest-retract",
-                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
-                ),
-            )
-
             self.assertRedirects(
                 response,
                 reverse(
@@ -2120,10 +2274,6 @@ class TestHpcProjectChangeRequestRetractView(TestViewBase):
                 ),
             )
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully retracted request for project update.")
-
             self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
@@ -2131,7 +2281,7 @@ class TestHpcProjectChangeRequestRetractView(TestViewBase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class TestHpcProjectChangeRequestRectivateView(TestViewBase):
+class TestHpcProjectChangeRequestReactivateView(TestViewBase):
     """Tests for HpcProjectChangeRequestReactivateView."""
 
     def setUp(self):
@@ -2149,23 +2299,66 @@ class TestHpcProjectChangeRequestRectivateView(TestViewBase):
                 )
             )
 
-            self.assertRedirects(
-                response,
-                reverse(
-                    "usersec:hpcprojectchangerequest-detail",
-                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
-                ),
-            )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(
-                str(messages[0]), "Successfully re-activated request for project update."
-            )
-
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
             self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcProjectChangeRequestDeleteView(TestViewBase):
+    """Tests for HpcProjectChangeRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-delete",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcprojectchangerequest-delete",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcProjectChangeRequest.objects.count(), 0)
+
+
+class TestHpcProjectChangeRequestArchiveView(TestViewBase):
+    """Tests for HpcProjectChangeRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcProjectChangeRequestFactory(
+            requester=self.user_owner, project=self.hpc_project
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcprojectchangerequest-archive",
+                    kwargs={"hpcprojectchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
 
 
 class TestHpcGroupInvitationDetailView(TestViewBase):
@@ -2240,10 +2433,6 @@ class TestHpcGroupInvitationAcceptView(TestViewBase):
                 ),
             )
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Invitation successfully accepted and user created.")
-
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, INVITATION_STATUS_ACCEPTED)
@@ -2295,10 +2484,6 @@ class TestHpcGroupInvitationRejectView(TestViewBase):
                 ),
             )
 
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
-
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, INVITATION_STATUS_REJECTED)
@@ -2338,10 +2523,6 @@ class TestHpcProjectInvitationAcceptView(TestViewBase):
             self.assertEqual(
                 list(self.hpc_project.members.all()), [self.hpc_owner, self.hpc_member]
             )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Successfully joined the project.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
@@ -2390,10 +2571,6 @@ class TestHpcProjectInvitationRejectView(TestViewBase):
                     "usersec:hpcuser-overview",
                 ),
             )
-
-            messages = list(get_messages(response.wsgi_request))
-            self.assertEqual(len(messages), 1)
-            self.assertEqual(str(messages[0]), "Invitation successfully rejected.")
 
             self.assertEqual(self.obj.status, INVITATION_STATUS_PENDING)
             self.obj.refresh_from_db()
@@ -2458,3 +2635,19 @@ class TestTermsAndConditionsView(TestViewBase):
             self.assertListEqual(
                 list(response.context["object_list"]), [self.terms_all, self.terms_pi]
             )
+
+    def test_post(self):
+        self.user_owner.consented_to_terms = False
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse("usersec:terms"),
+                {
+                    "terms": [self.terms_all.id, self.terms_users.id],
+                },
+                follow=True,
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+
+            self.user_owner.refresh_from_db()
+            self.assertTrue(self.user_owner.consented_to_terms)

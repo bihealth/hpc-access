@@ -380,7 +380,7 @@ class HpcGroupInvitationFactory(HpcObjectFactoryBase):
         model = HpcGroupInvitation
 
     hpcusercreaterequest = factory.SubFactory(HpcUserCreateRequestFactory)
-    username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
+    username = factory.Sequence(lambda n: f"user{n}@" + settings.AUTH_LDAP_USERNAME_DOMAIN)
 
 
 class TermsAndConditionsFactory(factory.django.DjangoModelFactory):
