@@ -314,7 +314,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
 
     def __init__(self, *args, user=None, group=None, **kwargs):
         super().__init__(*args, **kwargs)
-        instance = kwargs["instance"]
+        instance = kwargs.get("instance")
 
         self.fields["resources_requested"].widget = forms.HiddenInput()
         self.fields["delegate"].choices = [("", "Select Delegate ...")]

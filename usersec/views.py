@@ -129,9 +129,6 @@ class HomeView(LoginRequiredMixin, View):
         if request.user.is_hpcadmin:
             return redirect(reverse("adminsec:overview"))
 
-        if not request.user.is_active:
-            return redirect(reverse("logout"))
-
         if not request.user.consented_to_terms and get_terms_and_conditions(self.request).exists():
             return redirect(reverse("usersec:terms"))
 
@@ -142,7 +139,9 @@ class HomeView(LoginRequiredMixin, View):
             return redirect(reverse("usersec:view-mode-enabled"))
 
         if rules.test_rule("usersec.has_pending_group_request", request.user):
-            request_uuid = request.user.hpcgroupcreaterequest_requester.first().uuid
+            request_uuid = request.user.hpcgroupcreaterequest_requester.get(
+                status__in=[REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED]
+            ).uuid
             return redirect(
                 reverse(
                     "usersec:hpcgroupcreaterequest-detail",
@@ -323,7 +322,12 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        return HttpResponseRedirect(reverse("home"))
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcgroupcreaterequest-detail",
+                kwargs={"hpcgroupcreaterequest": obj.uuid},
+            )
+        )
 
 
 class HpcGroupCreateRequestDeleteView(HpcPermissionMixin, DeleteView):
@@ -364,9 +368,6 @@ class HpcUserView(HpcPermissionMixin, DetailView):
     permission_required = "usersec.view_hpcuser"
 
     def get(self, request, *args, **kwargs):
-        if not request.user.is_active:
-            return redirect(reverse("logout"))
-
         if not rules.test_rule("usersec.is_cluster_user", request.user):
             return redirect(reverse("home"))
 
@@ -794,12 +795,7 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcgroupchangerequest-detail",
-                kwargs={"hpcgroupchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
@@ -1029,12 +1025,7 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcuserchangerequest-detail",
-                kwargs={"hpcuserchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
@@ -1253,12 +1244,7 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
             send_notification_admin_request(obj)
             send_notification_manager_project_request(obj)
 
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcprojectcreaterequest-detail",
-                kwargs={"hpcprojectcreaterequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
@@ -1498,12 +1484,7 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
 
-        return HttpResponseRedirect(
-            reverse(
-                "usersec:hpcprojectchangerequest-detail",
-                kwargs={"hpcprojectchangerequest": obj.uuid},
-            )
-        )
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):

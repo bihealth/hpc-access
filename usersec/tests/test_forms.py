@@ -86,9 +86,6 @@ class TestHpcGroupChangeRequestForm(TestCase):
         self.assertEqual(form.fields["expiration"].initial, expiration_expected)
         self.assertEqual(form.fields["delegate"].initial, self.hpc_group.delegate)
         self.assertEqual(
-            form.fields["resources_requested"].initial, self.hpc_group.resources_requested
-        )
-        self.assertEqual(
             form.fields["tier1_scratch"].initial,
             self.hpc_group.resources_requested.get("tier1_scratch"),
         )

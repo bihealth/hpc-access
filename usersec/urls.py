@@ -215,6 +215,11 @@ urlpatterns = [
         view=views.HpcUserChangeRequestDeleteView.as_view(),
         name="hpcuserchangerequest-delete",
     ),
+    path(
+        "hpcuserchangerequest/<uuid:hpcuserchangerequest>/archive/",
+        view=views.HpcUserChangeRequestArchiveView.as_view(),
+        name="hpcuserchangerequest-archive",
+    ),
     # ------------------------------------------------------------------------------
     # HpcUserDeleteRequest related
     # ------------------------------------------------------------------------------

@@ -55,7 +55,7 @@ class TestAdminView(TestViewBase):
 
             self.assertEqual(response.status_code, 200)
             self.assertEqual(
-                list(response.context["hpcgroupcreaterequests"]),
+                list(response.context["pending_requests"]),
                 list(HpcGroupCreateRequest.objects.active()),
             )
 
@@ -1477,8 +1477,9 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             status=REQUEST_STATUS_ACTIVE,
             name="new_project",
             folders={"tier1": "/path/new_project"},
+            delegate=self.hpc_delegate,
         )
-        self.obj.members.add(self.hpc_member, self.hpc_delegate)
+        self.obj.members.add(self.hpc_owner, self.hpc_delegate, self.hpc_member)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
@@ -1492,6 +1493,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertIsNotNone(response.context["form"])
 
     def test_post(self):
+        self.maxDiff = None
         with self.login(self.user_hpcadmin):
             response = self.client.post(
                 reverse(
@@ -1521,16 +1523,20 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             hpcproject = HpcProject.objects.get(name=self.obj.name)
             hpcproject_version = hpcproject.version_history.last()
 
-            invitation1 = HpcProjectInvitation.objects.first()
-            invitation2 = HpcProjectInvitation.objects.last()
+            invitation1, invitation2 = list(HpcProjectInvitation.objects.all())
 
             self.assertEqual(invitation1.user, self.hpc_member)
             self.assertEqual(invitation2.user, self.hpc_delegate)
 
             self.assertEqual(hpcproject.group.owner, self.hpc_owner)
             self.assertEqual(hpcproject.name, self.obj.name)
-            self.assertEqual(list(hpcproject.members.all()), [self.hpc_owner])
-            self.assertEqual(list(hpcproject_version.members.all()), [self.hpc_owner])
+            self.assertEqual(
+                list(hpcproject.members.all()), [self.hpc_owner, self.hpc_member, self.hpc_delegate]
+            )
+            self.assertEqual(
+                list(hpcproject_version.members.all()),
+                [self.hpc_owner, self.hpc_member, self.hpc_delegate],
+            )
 
             self.assertEqual(len(mail.outbox), 3)
 
