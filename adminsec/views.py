@@ -224,7 +224,6 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["hpc_group_name_suggestion"] = obj.name if obj.name else name
         tier1_work = folders.get("tier1_work")
@@ -475,7 +474,6 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
@@ -645,7 +643,6 @@ class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
@@ -809,7 +806,6 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["hpc_project_name_suggestion"] = name
         tier1_work = folders.get("tier1_work")
@@ -1074,7 +1070,6 @@ class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context
@@ -1228,7 +1223,6 @@ class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["admin"] = True
         return context

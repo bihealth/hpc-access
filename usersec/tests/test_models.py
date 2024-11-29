@@ -15,7 +15,6 @@ from usersec.models import (
     REQUEST_STATUS_DENIED,
     REQUEST_STATUS_INITIAL,
     REQUEST_STATUS_RETRACTED,
-    REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
     TERMS_AUDIENCE_ALL,
     HpcGroup,
@@ -113,8 +112,6 @@ class RequestTesterMixin:
         self.assertTrue(obj.is_decided())
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
         self.assertFalse(obj.is_decided())
-        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
-        self.assertFalse(obj.is_decided())
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
         self.assertFalse(obj.is_decided())
 
@@ -124,7 +121,6 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_retracted())
         self.assertFalse(obj.is_approved())
         self.assertFalse(obj.is_active())
-        self.assertFalse(obj.is_revised())
         self.assertFalse(obj.is_revision())
 
     def _test_is_retracted(self):
@@ -133,7 +129,6 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_denied())
         self.assertFalse(obj.is_approved())
         self.assertFalse(obj.is_active())
-        self.assertFalse(obj.is_revised())
         self.assertFalse(obj.is_revision())
 
     def _test_is_approved(self):
@@ -142,7 +137,6 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_denied())
         self.assertFalse(obj.is_retracted())
         self.assertFalse(obj.is_active())
-        self.assertFalse(obj.is_revised())
         self.assertFalse(obj.is_revision())
 
     def _test_is_active(self):
@@ -151,16 +145,6 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_denied())
         self.assertFalse(obj.is_retracted())
         self.assertFalse(obj.is_approved())
-        self.assertFalse(obj.is_revised())
-        self.assertFalse(obj.is_revision())
-
-    def _test_is_revised(self):
-        obj = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
-        self.assertTrue(obj.is_revised())
-        self.assertFalse(obj.is_denied())
-        self.assertFalse(obj.is_retracted())
-        self.assertFalse(obj.is_approved())
-        self.assertTrue(obj.is_active())
         self.assertFalse(obj.is_revision())
 
     def _test_is_revision(self):
@@ -170,16 +154,14 @@ class RequestTesterMixin:
         self.assertFalse(obj.is_retracted())
         self.assertFalse(obj.is_approved())
         self.assertFalse(obj.is_active())
-        self.assertFalse(obj.is_revised())
 
     def _test_active(self):
-        obj1 = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
-        obj2 = self.factory(requester=self.user, status=REQUEST_STATUS_REVISED)
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
         self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
         self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
         self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
         self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
-        self.assertEqual(list(self.model.objects.active()), [obj1, obj2])
+        self.assertEqual(list(self.model.objects.active()), [obj])
 
     def _test_get_revision_url(self):
         obj = self.factory(requester=self.user)
@@ -222,7 +204,6 @@ class RequestTesterMixin:
             REQUEST_STATUS_INITIAL: "initial",
             REQUEST_STATUS_ACTIVE: "pending",
             REQUEST_STATUS_REVISION: "revision required",
-            REQUEST_STATUS_REVISED: "pending (revised)",
             REQUEST_STATUS_APPROVED: "approved",
             REQUEST_STATUS_DENIED: "denied",
             REQUEST_STATUS_RETRACTED: "retracted",
@@ -372,12 +353,6 @@ class VersionTesterMixin:
         self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
         obj.revision_with_version()
         self.__assert_save_or_update_base(status=REQUEST_STATUS_REVISION)
-
-    def _test_revised_with_version(self):
-        obj = self.factory()
-        self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
-        obj.revised_with_version()
-        self.__assert_save_or_update_base(status=REQUEST_STATUS_REVISED)
 
     def _test_get_latest_version(self, **update):
         obj = self.factory()
@@ -1187,9 +1162,6 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1221,9 +1193,6 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1289,9 +1258,6 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1323,9 +1289,6 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1391,9 +1354,6 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1425,9 +1385,6 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1493,9 +1450,6 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1527,9 +1481,6 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1595,9 +1546,6 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1629,9 +1577,6 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1697,9 +1642,6 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1731,9 +1673,6 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1799,9 +1738,6 @@ class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1833,9 +1769,6 @@ class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -1905,9 +1838,6 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -1939,9 +1869,6 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()
@@ -2007,9 +1934,6 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_revision_with_version(self):
         self._test_revision_with_version()
 
-    def test_revised_with_version(self):
-        self._test_revised_with_version()
-
     def test_get_latest_version(self):
         update = {"comment": "comment updated"}
         self._test_get_latest_version(**update)
@@ -2041,9 +1965,6 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_is_active(self):
         self._test_is_active()
-
-    def test_is_revised(self):
-        self._test_is_revised()
 
     def test_is_revision(self):
         self._test_is_revision()

@@ -2,7 +2,7 @@ import rules
 from django.conf import settings
 
 from adminsec.rules import is_hpcadmin
-from usersec.models import REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED, HpcGroupInvitation
+from usersec.models import REQUEST_STATUS_ACTIVE, HpcGroupInvitation
 
 # ------------------------------------------------------------------------------
 # Predicates
@@ -20,9 +20,7 @@ def is_cluster_user(user):
 
 @rules.predicate
 def _has_pending_group_request(user):
-    return user.hpcgroupcreaterequest_requester.filter(
-        status__in=[REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED]
-    ).exists()
+    return user.hpcgroupcreaterequest_requester.filter(status=REQUEST_STATUS_ACTIVE).exists()
 
 
 @rules.predicate
