@@ -256,7 +256,6 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
@@ -276,7 +275,6 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_DENIED)
@@ -296,7 +294,6 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcGroupCreateRequestFactory(requester=self.user, status=REQUEST_STATUS_APPROVED)
@@ -316,7 +313,6 @@ class TestHpcGroupCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcGroupCreateRequestUpdateView(TestViewBase):
@@ -600,7 +596,6 @@ class TestHpcGroupChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcGroupChangeRequestFactory(
@@ -622,7 +617,6 @@ class TestHpcGroupChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcGroupChangeRequestFactory(
@@ -644,7 +638,6 @@ class TestHpcGroupChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcGroupChangeRequestFactory(
@@ -666,7 +659,6 @@ class TestHpcGroupChangeRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcGroupChangeRequestUpdateView(TestViewBase):
@@ -1025,7 +1017,6 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcUserCreateRequestFactory(
@@ -1047,7 +1038,6 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcUserCreateRequestFactory(
@@ -1069,7 +1059,6 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcUserCreateRequestFactory(
@@ -1091,7 +1080,6 @@ class TestHpcUserCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcUserCreateRequestUpdateView(TestViewBase):
@@ -1366,7 +1354,6 @@ class TestHpcUserChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcUserChangeRequestFactory(
@@ -1388,7 +1375,6 @@ class TestHpcUserChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcUserChangeRequestFactory(
@@ -1410,7 +1396,6 @@ class TestHpcUserChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcUserChangeRequestFactory(
@@ -1432,7 +1417,6 @@ class TestHpcUserChangeRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcUserChangeRequestUpdateView(TestViewBase):
@@ -1693,7 +1677,6 @@ class TestHpcProjectCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcProjectCreateRequestFactory(
@@ -1715,7 +1698,6 @@ class TestHpcProjectCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcProjectCreateRequestFactory(
@@ -1738,7 +1720,6 @@ class TestHpcProjectCreateRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcProjectCreateRequestFactory(
@@ -1761,7 +1742,6 @@ class TestHpcProjectCreateRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcProjectCreateRequestUpdateView(TestViewBase):
@@ -2061,7 +2041,6 @@ class TestHpcProjectChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertTrue(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_retracted(self):
         request = HpcProjectChangeRequestFactory(
@@ -2083,7 +2062,6 @@ class TestHpcProjectChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_denied(self):
         request = HpcProjectChangeRequestFactory(
@@ -2106,7 +2084,6 @@ class TestHpcProjectChangeRequestDetailView(TestViewBase):
             self.assertFalse(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
     def test_get_approved(self):
         request = HpcProjectChangeRequestFactory(
@@ -2129,7 +2106,6 @@ class TestHpcProjectChangeRequestDetailView(TestViewBase):
             self.assertTrue(response.context["is_approved"])
             self.assertFalse(response.context["is_active"])
             self.assertFalse(response.context["is_revision"])
-            self.assertFalse(response.context["is_revised"])
 
 
 class TestHpcProjectChangeRequestUpdateView(TestViewBase):

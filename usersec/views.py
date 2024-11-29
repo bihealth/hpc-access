@@ -48,7 +48,6 @@ from usersec.models import (
     REQUEST_STATUS_ARCHIVED,
     REQUEST_STATUS_DENIED,
     REQUEST_STATUS_RETRACTED,
-    REQUEST_STATUS_REVISED,
     REQUEST_STATUS_REVISION,
     TERMS_AUDIENCE_ALL,
     TERMS_AUDIENCE_PI,
@@ -140,7 +139,7 @@ class HomeView(LoginRequiredMixin, View):
 
         if rules.test_rule("usersec.has_pending_group_request", request.user):
             request_uuid = request.user.hpcgroupcreaterequest_requester.get(
-                status__in=[REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED]
+                status=REQUEST_STATUS_ACTIVE
             ).uuid
             return redirect(
                 reverse(
@@ -224,7 +223,6 @@ class HpcGroupCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         context["is_hpc_group_create_request"] = True
         return context
@@ -265,13 +263,9 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
-
-        if status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(
@@ -429,7 +423,6 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             context["requests"] = list(
                 chain(
                     get_requests_by_status(REQUEST_STATUS_ACTIVE),
-                    get_requests_by_status(REQUEST_STATUS_REVISED),
                     get_requests_by_status(REQUEST_STATUS_REVISION),
                     get_requests_by_status(REQUEST_STATUS_RETRACTED),
                     get_requests_by_status(REQUEST_STATUS_APPROVED),
@@ -460,7 +453,6 @@ class HpcUserView(HpcPermissionMixin, DetailView):
                     status__in=(
                         REQUEST_STATUS_ACTIVE,
                         REQUEST_STATUS_REVISION,
-                        REQUEST_STATUS_REVISED,
                         REQUEST_STATUS_RETRACTED,
                         REQUEST_STATUS_APPROVED,
                         REQUEST_STATUS_DENIED,
@@ -566,7 +558,6 @@ class HpcUserCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         return context
 
@@ -605,13 +596,9 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
-
-        if status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(
@@ -768,7 +755,6 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
                 REQUEST_STATUS_ACTIVE,
                 REQUEST_STATUS_REVISION,
                 REQUEST_STATUS_RETRACTED,
-                REQUEST_STATUS_REVISED,
             ),
         ).exists():
             messages.error(request, "There already exists an ongoing request to create the group.")
@@ -816,7 +802,6 @@ class HpcGroupChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         return context
 
@@ -855,13 +840,9 @@ class HpcGroupChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
-
-        if status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(
@@ -1046,7 +1027,6 @@ class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         return context
 
@@ -1085,13 +1065,9 @@ class HpcUserChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
-
-        if status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(
@@ -1265,7 +1241,6 @@ class HpcProjectCreateRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         return context
 
@@ -1305,13 +1280,9 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        status = obj.status
-
-        if status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(
@@ -1505,7 +1476,6 @@ class HpcProjectChangeRequestDetailView(HpcPermissionMixin, DetailView):
         context["is_approved"] = obj.is_approved()
         context["is_active"] = obj.is_active()
         context["is_revision"] = obj.is_revision()
-        context["is_revised"] = obj.is_revised()
         context["is_archived"] = obj.is_archived()
         return context
 
@@ -1545,12 +1515,9 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-
         if obj.status == REQUEST_STATUS_REVISION:
-            obj = obj.revised_with_version()
-
-        else:
-            obj = obj.save_with_version()
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
 
         if not obj:
             messages.error(

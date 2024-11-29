@@ -41,9 +41,6 @@ REQUEST_STATUS_ACTIVE = "ACTIVE"
 #: Request needs a revision.
 REQUEST_STATUS_REVISION = "REVISION"
 
-#: Request revision submitted.
-REQUEST_STATUS_REVISED = "REVISED"
-
 #: Request was approved.
 REQUEST_STATUS_APPROVED = "APPROVED"
 
@@ -61,7 +58,6 @@ REQUEST_STATUS_CHOICES = [
     (REQUEST_STATUS_INITIAL, REQUEST_STATUS_INITIAL),
     (REQUEST_STATUS_ACTIVE, REQUEST_STATUS_ACTIVE),
     (REQUEST_STATUS_REVISION, REQUEST_STATUS_REVISION),
-    (REQUEST_STATUS_REVISED, REQUEST_STATUS_REVISED),
     (REQUEST_STATUS_APPROVED, REQUEST_STATUS_APPROVED),
     (REQUEST_STATUS_DENIED, REQUEST_STATUS_DENIED),
     (REQUEST_STATUS_RETRACTED, REQUEST_STATUS_RETRACTED),
@@ -156,7 +152,7 @@ class VersionRequestManager(VersionManager):
     """Custom manager for requests."""
 
     def active(self, **kwargs):
-        kwargs.update({"status__in": (REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISED)})
+        kwargs.update({"status": REQUEST_STATUS_ACTIVE})
         return super().get_queryset().filter(**kwargs)
 
 
@@ -246,12 +242,6 @@ class RequestManagerMixin:
         """Mark object as revision and create new version object."""
 
         self.status = REQUEST_STATUS_REVISION
-        return self.save_with_version()
-
-    def revised_with_version(self):
-        """Mark object as revised and create new version object."""
-
-        self.status = REQUEST_STATUS_REVISED
         return self.save_with_version()
 
     def get_revision_url(self):
@@ -1050,13 +1040,7 @@ class HpcRequestAbstract(HpcObjectAbstract):
         return self.status == REQUEST_STATUS_APPROVED
 
     def is_active(self):
-        return self.status in (
-            REQUEST_STATUS_ACTIVE,
-            REQUEST_STATUS_REVISED,
-        )
-
-    def is_revised(self):
-        return self.status == REQUEST_STATUS_REVISED
+        return self.status == REQUEST_STATUS_ACTIVE
 
     def is_revision(self):
         return self.status == REQUEST_STATUS_REVISION
@@ -1069,7 +1053,6 @@ class HpcRequestAbstract(HpcObjectAbstract):
             REQUEST_STATUS_INITIAL: "initial",
             REQUEST_STATUS_ACTIVE: "pending",
             REQUEST_STATUS_REVISION: "revision required",
-            REQUEST_STATUS_REVISED: "pending (revised)",
             REQUEST_STATUS_APPROVED: "approved",
             REQUEST_STATUS_DENIED: "denied",
             REQUEST_STATUS_RETRACTED: "retracted",

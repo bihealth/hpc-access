@@ -2,7 +2,7 @@
 
 <div class="mt-4 card bg-{{ object.status|colorize_request_status }}">
   <div class="card-body lead text-{{ object.status|colorize_text }}">
-    {% if object.status == "ACTIVE" or object.status == "REVISED" %}
+    {% if object.status == "ACTIVE" %}
       We are working on your request and you will receive an email once we approve it.
     {% elif object.status == "RETRACTED" %}
       You have retracted your request. Click <strong>Re-activate</strong> to activate the request.
