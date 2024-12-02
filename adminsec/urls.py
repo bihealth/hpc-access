@@ -318,6 +318,11 @@ urlpatterns_api = [
         view=views_api.HpcProjectCreateRequestRetrieveUpdateApiView.as_view(),
         name="api-hpcprojectcreaterequest-retrieveupdate",
     ),
+    path(
+        "api/hpcaccess-status/",
+        view=views_api.HpcAccessStatusApiView.as_view(),
+        name="api-hpcaccess-status",
+    ),
 ]
 
 urlpatterns = urlpatterns_ui + urlpatterns_api

@@ -40,9 +40,13 @@ from hpc_access_cli.models import (
     Gecos,
     GroupFolders,
     HpcaccessState,
+    HpcaccessStateV2,
     HpcGroup,
+    HpcGroupV2,
     HpcProject,
+    HpcProjectV2,
     HpcUser,
+    HpcUserV2,
     LdapGroup,
     LdapGroupOp,
     LdapUser,
@@ -99,6 +103,7 @@ def gather_hpcaccess_state(settings: HpcaccessSettings) -> HpcaccessState:
 
 def deploy_hpcaccess_state(settings: HpcaccessSettings, state: HpcaccessState) -> None:
     """Deploy the state."""
+    # TODO add uid/gid
     console_err.log("Deploying hpc-access users, groups, and projects...")
     rest_client = HpcaccessClient(settings)
     for u in state.hpc_users.values():
@@ -495,7 +500,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             primary_group = group_uuids.get(group_by_gid_number[u.gid_number].cn)
         else:
             primary_group = None
-        return HpcUser(
+        return HpcUserV2(
             uuid=user_uuids[u.uid],
             primary_group=primary_group,
             description=None,
@@ -611,6 +616,154 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             if hpc_project:
                 hpc_projects[hpc_project.uuid] = hpc_project
     return HpcaccessState(
+        hpc_users=hpc_users,
+        hpc_groups=hpc_groups,
+        hpc_projects=hpc_projects,
+    )
+
+
+def convert_to_hpcaccess_state_v2(system_state: SystemState) -> HpcaccessStateV2:
+    """Convert hpc-access to system state.
+
+    Note that this will make up the UUIDs.
+    """
+    # create UUID mapping from user/groupnames
+    user_by_uid = {u.uid: u for u in system_state.ldap_users.values()}
+    user_by_dn = {u.dn: u for u in system_state.ldap_users.values()}
+    group_by_name = {strip_prefix(g.cn): g for g in system_state.ldap_groups.values()}
+    group_by_gid_number = {g.gid_number: g for g in system_state.ldap_groups.values()}
+    group_by_owner_dn: Dict[str, LdapGroup] = {}
+    for g in system_state.ldap_groups.values():
+        if g.owner_dn:
+            group_by_owner_dn[user_by_dn[g.owner_dn].dn] = g
+    user_quotas: Dict[str, ResourceDataUser] = {}
+    group_quotas: Dict[str, ResourceData] = {}
+    for fs_data in system_state.fs_directories.values():
+        try:
+            entity, name, resource = fs_validation(fs_data)
+        except ValueError as e:
+            console_err.log(f"WARNING: {e}")
+            continue
+
+        quota_bytes = fs_data.quota_bytes if fs_data.quota_bytes is not None else 0
+
+        if entity == ENTITY_USERS:
+            if name not in user_by_uid:
+                console_err.log(f"WARNING: user {name} not found")
+                continue
+            if name not in user_quotas:
+                user_quotas[name] = {}
+            user_quotas[name][resource] = quota_bytes / 1024**3
+        elif entity in (ENTITY_GROUPS, ENTITY_PROJECTS):
+            if name not in group_by_name:
+                console_err.log(f"WARNING: group {name} not found")
+                continue
+            if name not in group_quotas:
+                group_quotas[name] = {}
+            group_quotas[name][resource] = quota_bytes / 1024**4
+
+    def build_hpcuser(u: LdapUser, quotas: Dict[str, str]) -> HpcUserV2:
+        if u.login_shell != LOGIN_SHELL_DISABLED:
+            status = Status.ACTIVE
+        else:
+            status = Status.EXPIRED
+        if u.gid_number and u.gid_number in group_by_gid_number:
+            primary_group = group_by_gid_number[u.gid_number].cn
+        else:
+            primary_group = None
+        return HpcUserV2(
+            primary_group=primary_group,
+            description=None,
+            full_name=u.cn,
+            first_name=u.given_name,
+            last_name=u.sn,
+            email=u.mail,
+            phone_number=u.gecos.office_phone if u.gecos else None,
+            resources_requested=ResourceDataUser(**quotas),
+            status=status,
+            uid=u.uid_number,
+            username=u.uid,
+            home_directory=u.home_directory,
+            login_shell=u.login_shell,
+        )
+
+    def build_hpcgroup(g: LdapGroup, quotas: Dict[str, str]) -> Optional[HpcGroupV2]:
+        name = strip_prefix(g.cn, POSIX_AG_PREFIX)
+        if not g.owner_dn:
+            console_err.log(f"no owner DN for {g.cn}, skipping")
+            return
+        return HpcGroupV2(
+            name=name,
+            description=g.description,
+            owner=user_by_dn[g.owner_dn].uid,
+            delegate=user_by_dn[g.delegate_dns[0]].uid if g.delegate_dns else None,
+            resources_requested=ResourceData(**quotas),
+            status=Status.ACTIVE,
+            gid=g.gid_number,
+            folders=GroupFolders(
+                tier1_work=f"{BASE_PATH_TIER1}/work/groups/{name}",
+                tier1_scratch=f"{BASE_PATH_TIER1}/scratch/groups/{name}",
+                tier2_mirrored=f"{BASE_PATH_TIER2}/mirrored/groups/{name}",
+                tier2_unmirrored=f"{BASE_PATH_TIER2}/unmirrored/groups/{name}",
+            ),
+        )
+
+    def build_hpcproject(p: LdapGroup, quotas: Dict[str, str]) -> Optional[HpcProjectV2]:
+        name = strip_prefix(p.cn, POSIX_PROJECT_PREFIX)
+        if not p.owner_dn:
+            console_err.log(f"no owner DN for {p.cn}, skipping")
+            return
+        members = []
+        for uid in p.member_uids:
+            uid = uid.strip()
+            user = user_by_uid[uid]
+            members.append(user.username)
+        gid_number = user_by_dn[p.owner_dn].gid_number
+        if not gid_number:
+            group = None
+        else:
+            group = group_by_gid_number[gid_number].cn
+        return HpcProjectV2(
+            name=name,
+            description=g.description,
+            group=group,
+            delegate=user_by_dn[p.delegate_dns[0]].uid if p.delegate_dns else None,
+            resources_requested=ResourceData(**quotas),
+            status=Status.ACTIVE,
+            gid=p.gid_number,
+            folders=GroupFolders(
+                tier1_work=f"{BASE_PATH_TIER1}/work/projects/{name}",
+                tier1_scratch=f"{BASE_PATH_TIER1}/scratch/projects/{name}",
+                tier2_mirrored=f"{BASE_PATH_TIER2}/mirrored/projects/{name}",
+                tier2_unmirrored=f"{BASE_PATH_TIER2}/unmirrored/projects/{name}",
+            ),
+            members=members,
+        )
+
+    # construct the resulting state
+    hpc_users = []
+    hpc_groups = []
+    hpc_projects = []
+
+    for u in system_state.ldap_users.values():
+        hpc_user = build_hpcuser(u, user_quotas.get(u.uid, {}))
+        hpc_users.append(hpc_user)
+
+    for g in system_state.ldap_groups.values():
+        if g.cn.startswith(POSIX_AG_PREFIX):
+            hpc_group = build_hpcgroup(
+                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_AG_PREFIX), {})
+            )
+            if hpc_group:
+                hpc_groups.append(hpc_group)
+        elif g.cn.startswith(POSIX_PROJECT_PREFIX):
+            hpc_project = build_hpcproject(
+                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_PROJECT_PREFIX), {})
+            )
+            if hpc_project:
+                hpc_projects.append(hpc_project)
+
+    return HpcaccessStateV2(
         hpc_users=hpc_users,
         hpc_groups=hpc_groups,
         hpc_projects=hpc_projects,
