@@ -2,9 +2,11 @@
 
 import re
 
+import attr
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
+    RetrieveAPIView,
     RetrieveUpdateAPIView,
     get_object_or_404,
 )
@@ -24,6 +26,7 @@ from usersec.models import (
     HpcUser,
 )
 from usersec.serializers import (
+    HpcAccessStatusSerializer,
     HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,
     HpcProjectCreateRequestSerializer,
@@ -215,3 +218,27 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
             raise ValidationError(errors)
 
         super().perform_update(serializer)
+
+
+@attr.s(frozen=True)
+class HpcAccessStatus:
+    """Class to hold the status of the HPC access system."""
+
+    hpc_users: dict = attr.ib()
+    hpc_groups: dict = attr.ib()
+    hpc_projects: dict = attr.ib()
+
+
+class HpcAccessStatusApiView(RetrieveAPIView):
+    """API view for listing all users."""
+
+    serializer_class = HpcAccessStatusSerializer
+    permission_classes = [IsAdminUser | IsHpcAdminUser]
+
+    def get_object(self):
+        """Return the object to be used in the view."""
+        return HpcAccessStatus(
+            hpc_users=HpcUser.objects.all(),
+            hpc_groups=HpcGroup.objects.all(),
+            hpc_projects=HpcProject.objects.all(),
+        )

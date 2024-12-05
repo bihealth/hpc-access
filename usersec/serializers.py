@@ -102,23 +102,28 @@ class HpcUserSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
         ]
 
 
-class HpcUserLookupSerializer(serializers.ModelSerializer):
-    """Serializer for HpcUser model for lookup purposes."""
+class HpcUserStatusSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcUser model."""
 
     primary_group = serializers.SlugRelatedField(slug_field="name", read_only=True)
-    username = serializers.CharField(read_only=True)
-    full_name = serializers.SerializerMethodField()
-
-    def get_full_name(self, obj) -> str:
-        return obj.user.name
 
     class Meta:
         model = HpcUser
         fields = [
-            "id",
-            "username",
-            "primary_group",
+            "uid",
+            "email",
             "full_name",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "primary_group",
+            "resources_requested",
+            "status",
+            "description",
+            "username",
+            "expiration",
+            "home_directory",
+            "login_shell",
         ]
 
 
@@ -189,6 +194,26 @@ class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSer
         ]
 
 
+class HpcGroupStatusSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcGroup model."""
+
+    owner = serializers.SlugRelatedField(slug_field="username", read_only=True)
+
+    class Meta:
+        model = HpcUser
+        fields = [
+            "owner",
+            "delegate",
+            "resources_requested",
+            "status",
+            "description",
+            "name",
+            "folders",
+            "expiration",
+            "gid",
+        ]
+
+
 class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC project serializers."""
 
@@ -242,6 +267,29 @@ class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.Mode
         model = HpcUserVersion
         fields = HpcProjectAbstractSerializer.Meta.fields + [
             "version",
+        ]
+
+
+class HpcProjectStatusSerializer(HpcProjectAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcProject model."""
+
+    group = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    delegate = serializers.SlugRelatedField(slug_field="username", read_only=True)
+    members = serializers.SlugRelatedField(slug_field="username", many=True, read_only=True)
+
+    class Meta:
+        model = HpcUser
+        fields = [
+            "gid",
+            "group",
+            "delegate",
+            "resources_requested",
+            "status",
+            "description",
+            "name",
+            "folders",
+            "expiration",
+            "members",
         ]
 
 
@@ -382,3 +430,40 @@ class HpcProjectCreateRequestVersionSerializer(
         fields = HpcProjectCreateRequestAbstractSerializer.Meta.fields + [
             "version",
         ]
+
+
+class HpcUserLookupSerializer(serializers.ModelSerializer):
+    """Serializer for HpcUser model for lookup purposes."""
+
+    primary_group = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    username = serializers.CharField(read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj) -> str:
+        return obj.user.name
+
+    class Meta:
+        model = HpcUser
+        fields = [
+            "id",
+            "username",
+            "primary_group",
+            "full_name",
+        ]
+
+
+class HpcAccessStatusSerializer(serializers.Serializer):
+    """Serializer for HpcAccessStatus model."""
+
+    hpc_users = serializers.SerializerMethodField()
+    hpc_groups = serializers.SerializerMethodField()
+    hpc_projects = serializers.SerializerMethodField()
+
+    def get_hpc_users(self, obj):
+        return HpcUserStatusSerializer(obj.hpc_users, many=True).data
+
+    def get_hpc_groups(self, obj):
+        return HpcGroupStatusSerializer(obj.hpc_groups, many=True).data
+
+    def get_hpc_projects(self, obj):
+        return HpcProjectStatusSerializer(obj.hpc_projects, many=True).data
