@@ -302,8 +302,6 @@ class HpcUserV2(BaseModel):
     home_directory: str
     #: The login shell
     login_shell: str
-    #: The version of the user record.
-    current_version: int
 
 
 class HpcGroup(BaseModel):
@@ -339,7 +337,7 @@ class HpcGroupV2(BaseModel):
     """A group as read from the hpc-access API."""
 
     #: The owning ``HpcUser``.
-    owner: UUID
+    owner: str
     #: Description of the record.
     description: Optional[str]
     #: The delegate.
@@ -432,9 +430,9 @@ class HpcaccessState(BaseModel):
 class HpcaccessStateV2(BaseModel):
     """State as loaded from hpc-access."""
 
-    hpc_users: List[HpcUser]
-    hpc_groups: List[HpcGroup]
-    hpc_projects: List[HpcProject]
+    hpc_users: List[HpcUserV2]
+    hpc_groups: List[HpcGroupV2]
+    hpc_projects: List[HpcProjectV2]
 
 
 @enum.unique

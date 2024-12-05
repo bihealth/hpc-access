@@ -500,7 +500,9 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             primary_group = group_uuids.get(group_by_gid_number[u.gid_number].cn)
         else:
             primary_group = None
-        return HpcUserV2(
+        if not primary_group.startswith(POSIX_AG_PREFIX) and not primary_group == "hpc-alumnis":
+            console_err.log(f"User belongs to group that is not a group ({primary_group}, {u.uid})")
+        return HpcUser(
             uuid=user_uuids[u.uid],
             primary_group=primary_group,
             description=None,
@@ -671,8 +673,10 @@ def convert_to_hpcaccess_state_v2(system_state: SystemState) -> HpcaccessStateV2
             primary_group = group_by_gid_number[u.gid_number].cn
         else:
             primary_group = None
+        if not primary_group.startswith(POSIX_AG_PREFIX) and not primary_group == "hpc-alumnis":
+            console_err.log(f"User belongs to group that is not a group ({primary_group}, {u.uid})")
         return HpcUserV2(
-            primary_group=primary_group,
+            primary_group=strip_prefix(primary_group, prefix=POSIX_AG_PREFIX),
             description=None,
             full_name=u.cn,
             first_name=u.given_name,
@@ -717,7 +721,7 @@ def convert_to_hpcaccess_state_v2(system_state: SystemState) -> HpcaccessStateV2
         for uid in p.member_uids:
             uid = uid.strip()
             user = user_by_uid[uid]
-            members.append(user.username)
+            members.append(user.uid)
         gid_number = user_by_dn[p.owner_dn].gid_number
         if not gid_number:
             group = None
