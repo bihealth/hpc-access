@@ -233,6 +233,7 @@ class HpcAccessStatusApiView(RetrieveAPIView):
     """API view for listing all users."""
 
     serializer_class = HpcAccessStatusSerializer
+    permission_classes = [IsAdminUser | IsHpcAdminUser]
 
     def get_object(self):
         """Return the object to be used in the view."""
