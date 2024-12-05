@@ -28,8 +28,6 @@ django-rest-framework = "*"
 django-rest-knox = "*"
 pydantic = "*"
 django-impersonate = "*"
-attrs = "*"
-cattrs = "*"
 
 [dev-packages]
 Werkzeug = "*"

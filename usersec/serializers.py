@@ -14,6 +14,8 @@ from usersec.models import (
     HpcUserVersion,
 )
 
+HPC_ALUMNI_GROUP = "hpc-alumnis"
+
 
 class HpcObjectAbstractSerializer(serializers.Serializer):
     """Common base class for HPC object serializers."""
@@ -46,6 +48,7 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     phone_number = serializers.SerializerMethodField()
     home_directory = serializers.CharField()
     login_shell = serializers.CharField()
+    removed = serializers.BooleanField(read_only=True)
 
     def get_email(self, obj) -> Optional[str]:
         return obj.user.email
@@ -82,6 +85,7 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
             "expiration",
             "home_directory",
             "login_shell",
+            "removed",
         ]
 
 
@@ -100,7 +104,12 @@ class HpcUserSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
 class HpcUserStatusSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
     """Serializer for HpcUser model."""
 
-    primary_group = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    primary_group = serializers.SerializerMethodField()
+
+    def get_primary_group(self, obj):
+        if obj.primary_group is None:
+            return HPC_ALUMNI_GROUP
+        return obj.primary_group.name
 
     class Meta:
         model = HpcUser

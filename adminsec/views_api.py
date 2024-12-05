@@ -2,7 +2,6 @@
 
 import re
 
-import attr
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
@@ -16,6 +15,7 @@ from adminsec.constants import (
     RE_FOLDER,
     RE_NAME,
 )
+from adminsec.models import HpcAccessStatus
 from adminsec.permissions_api import IsHpcAdminUser
 from hpcaccess.utils.rest_framework import CursorPagination
 from usersec.models import (
@@ -218,15 +218,6 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
             raise ValidationError(errors)
 
         super().perform_update(serializer)
-
-
-@attr.s(frozen=True)
-class HpcAccessStatus:
-    """Class to hold the status of the HPC access system."""
-
-    hpc_users: dict = attr.ib()
-    hpc_groups: dict = attr.ib()
-    hpc_projects: dict = attr.ib()
 
 
 class HpcAccessStatusApiView(RetrieveAPIView):
