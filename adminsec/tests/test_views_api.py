@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from test_plus import TestCase
 
 from usersec.models import REQUEST_STATUS_ACTIVE
+from usersec.serializers import HPC_ALUMNI_GROUP
 from usersec.tests.factories import (
     HpcGroupCreateRequestFactory,
     HpcGroupFactory,
@@ -634,8 +635,6 @@ class TestHpcAccessStatusApiView(ApiTestCase):
     def test_get_succeed(self):
         """Test the GET method (staff users can do)."""
 
-        self.maxDiff = None
-
         expected = {
             "hpc_users": [
                 {
@@ -646,6 +645,62 @@ class TestHpcAccessStatusApiView(ApiTestCase):
                     "last_name": self.hpcuser_user.user.last_name,
                     "phone_number": None,
                     "primary_group": self.hpcuser_group.name,
+                    "resources_requested": self.hpcuser_user.resources_requested,
+                    "status": "INITIAL",
+                    "description": self.hpcuser_user.description,
+                    "username": self.hpcuser_user.username,
+                    "expiration": self.hpcuser_user.expiration.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "home_directory": self.hpcuser_user.home_directory,
+                    "login_shell": self.hpcuser_user.login_shell,
+                }
+            ],
+            "hpc_groups": [
+                {
+                    "owner": None,
+                    "delegate": None,
+                    "resources_requested": self.hpcuser_group.resources_requested,
+                    "status": "INITIAL",
+                    "description": self.hpcuser_group.description,
+                    "name": self.hpcuser_group.name,
+                    "folders": self.hpcuser_group.folders,
+                    "expiration": self.hpcuser_group.expiration.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "gid": self.hpcuser_group.gid,
+                }
+            ],
+            "hpc_projects": [
+                {
+                    "gid": self.hpcuser_project.gid,
+                    "group": self.hpcuser_group.name,
+                    "delegate": None,
+                    "resources_requested": self.hpcuser_project.resources_requested,
+                    "status": "INITIAL",
+                    "description": self.hpcuser_project.description,
+                    "name": self.hpcuser_project.name,
+                    "folders": self.hpcuser_project.folders,
+                    "expiration": self.hpcuser_project.expiration.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "members": [],
+                }
+            ],
+        }
+        for user in [self.user_staff, self.user_admin, self.user_hpcadmin]:
+            with self.login(user):
+                self.get("adminsec:api-hpcaccess-status")
+                self.response_200()
+                self.assertEqual(self.last_response.json(), expected)
+
+    def test_get_succeed_alumni(self):
+        self.hpcuser_user.primary_group = None
+        self.hpcuser_user.save()
+        expected = {
+            "hpc_users": [
+                {
+                    "uid": self.hpcuser_user.user.uid,
+                    "email": self.hpcuser_user.user.email,
+                    "full_name": "User Name",
+                    "first_name": self.hpcuser_user.user.first_name,
+                    "last_name": self.hpcuser_user.user.last_name,
+                    "phone_number": None,
+                    "primary_group": HPC_ALUMNI_GROUP,
                     "resources_requested": self.hpcuser_user.resources_requested,
                     "status": "INITIAL",
                     "description": self.hpcuser_user.description,
