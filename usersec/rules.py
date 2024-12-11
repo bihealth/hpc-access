@@ -94,6 +94,7 @@ is_delegate_of_hpcuser = ~is_hpcadmin & is_cluster_user & _is_delegate_of_hpcuse
 
 can_view_hpcuser = is_hpcuser | is_pi_of_hpcuser | is_delegate_of_hpcuser
 can_create_hpcuserchangerequest = (is_pi_of_hpcuser | is_delegate_of_hpcuser) & ~view_mode_enabled
+can_create_hpcuserdeleterequest = (is_pi_of_hpcuser | is_delegate_of_hpcuser) & ~view_mode_enabled
 
 
 # HpcGroupCreateRequest based
@@ -359,6 +360,51 @@ can_manage_hpcuserchangerequest = (
 ) & ~view_mode_enabled
 
 
+# HpcUserDeleteRequest based
+# ------------------------------------------------------------------------------
+
+
+@rules.predicate
+def _is_group_owner_by_hpcuserdeleterequest(user, hpcuserdeleterequest):
+    if hpcuserdeleterequest is None:
+        raise ValueError("HpcUserDeleteRequest is None")
+
+    owner = hpcuserdeleterequest.user.primary_group.owner
+
+    if owner:
+        return owner.user == user
+
+    return False
+
+
+@rules.predicate
+def _is_group_delegate_by_hpcuserdeleterequest(user, hpcuserdeleterequest):
+    if hpcuserdeleterequest is None:
+        raise ValueError("HpcUserDeleteRequest is None")
+
+    delegate = hpcuserdeleterequest.user.primary_group.delegate
+
+    if delegate:
+        return delegate.user == user
+
+    return False
+
+
+is_group_owner_by_hpcuserdeleterequest = (
+    ~is_hpcadmin & is_cluster_user & _is_group_owner_by_hpcuserdeleterequest
+)
+is_group_delegate_by_hpcuserdeleterequest = (
+    ~is_hpcadmin & is_cluster_user & _is_group_delegate_by_hpcuserdeleterequest
+)
+
+can_view_hpcuserdeleterequest = (
+    is_group_owner_by_hpcuserdeleterequest | is_group_delegate_by_hpcuserdeleterequest
+) & ~view_mode_enabled
+can_manage_hpcuserdeleterequest = (
+    is_group_owner_by_hpcuserdeleterequest | is_group_delegate_by_hpcuserdeleterequest
+) & ~view_mode_enabled
+
+
 # HpcGroup based
 # ------------------------------------------------------------------------------
 
@@ -520,6 +566,13 @@ rules.add_perm("usersec.manage_hpcusercreaterequest", can_manage_hpcusercreatere
 rules.add_perm("usersec.view_hpcuserchangerequest", can_view_hpcuserchangerequest)
 rules.add_perm("usersec.create_hpcuserchangerequest", can_create_hpcuserchangerequest)
 rules.add_perm("usersec.manage_hpcuserchangerequest", can_manage_hpcuserchangerequest)
+
+# HpcUserDeleteRequest related
+# ------------------------------------------------------------------------------
+rules.add_perm("usersec.view_hpcuserdeleterequest", can_view_hpcuserdeleterequest)
+rules.add_perm("usersec.create_hpcuserdeleterequest", can_create_hpcuserdeleterequest)
+rules.add_perm("usersec.manage_hpcuserdeleterequest", can_manage_hpcuserdeleterequest)
+
 
 # HpcGroup related
 # ------------------------------------------------------------------------------

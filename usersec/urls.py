@@ -224,7 +224,7 @@ urlpatterns = [
     # HpcUserDeleteRequest related
     # ------------------------------------------------------------------------------
     path(
-        "hpcgroup/<uuid:hpcgroup>/hpcuserdeleterequest/",
+        "hpcuser/<uuid:hpcuser>/hpcuserdeleterequest/",
         view=views.HpcUserDeleteRequestCreateView.as_view(),
         name="hpcuserdeleterequest-create",
     ),
@@ -346,7 +346,7 @@ urlpatterns = [
     # HpcProjectDeleteRequest related
     # ------------------------------------------------------------------------------
     path(
-        "hpcgroup/<uuid:hpcgroup>/hpcprojectdeleterequest/",
+        "hpcproject/<uuid:hpcproject>/hpcprojectdeleterequest/",
         view=views.HpcProjectDeleteRequestCreateView.as_view(),
         name="hpcprojectdeleterequest-create",
     ),

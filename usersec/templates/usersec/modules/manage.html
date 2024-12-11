@@ -95,6 +95,7 @@
     <tr>
       <th>Name</th>
       <th>Username</th>
+      <th>Role</th>
       <th>Joined</th>
       <th>Expires</th>
       <th></th>
@@ -105,20 +106,49 @@
       <tr>
         <td>{{ member.user.name }}</td>
         <td>{{ member.username }}</td>
+        <td>{{ member.role }}</td>
         <td>{{ member.date_created|date:"Y-m-d H:i" }}</td>
         <td>{{ member.expiration|date:"Y-m-d H:i" }}</td>
         <td class="text-end">
           <div class="btn-group">
-            <a
-              href="{% url 'usersec:hpcuserchangerequest-create' hpcuser=member.uuid %}"
-              class="btn btn-secondary btn-sm">
-              <i class="iconify" data-icon="mdi:account-edit"></i>
-            </a>
-            <a
-              href="#"
-              class="btn btn-danger btn-sm disabled">
-              <i class="iconify" data-icon="mdi:account-remove"></i>
-            </a>
+            {% if member.has_pending_requests %}
+              <a
+                class="btn btn-secondary btn-sm disabled">
+                <i class="iconify" data-icon="mdi:account-edit"></i>
+              </a>
+            {% elif member.has_retracted_change_request %}
+              <a
+                href="{% url 'usersec:hpcuserchangerequest-update' hpcuserchangerequest=member.retracted_change_request.uuid %}"
+                class="btn btn-secondary btn-sm">
+                <i class="iconify" data-icon="mdi:account-edit"></i>
+              </a>
+            {% else %}
+              <a
+                href="{% url 'usersec:hpcuserchangerequest-create' hpcuser=member.uuid %}"
+                class="btn btn-secondary btn-sm disabled">
+                <i class="iconify" data-icon="mdi:account-edit"></i>
+              </a>
+            {% endif %}
+            {% if not member.is_pi %}
+              {% if members.has_pending_requests %}
+                <a
+                  class="btn btn-danger btn-sm disabled">
+                  <i class="iconify" data-icon="mdi:account-remove"></i>
+                </a>
+              {% elif member.has_retracted_delete_request %}
+                <a
+                  href="{% url 'usersec:hpcuserdeleterequest-update' hpcuserdeleterequest=member.retracted_delete_request.uuid %}"
+                  class="btn btn-danger btn-sm">
+                  <i class="iconify" data-icon="mdi:account-remove"></i>
+                </a>
+              {% else %}
+                <a
+                  href="{% url 'usersec:hpcuserdeleterequest-create' hpcuser=member.uuid %}"
+                  class="btn btn-danger btn-sm disabled">
+                  <i class="iconify" data-icon="mdi:account-remove"></i>
+                </a>
+              {% endif %}
+            {% endif %}
           </div>
         </td>
       </tr>

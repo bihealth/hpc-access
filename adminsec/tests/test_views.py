@@ -36,6 +36,7 @@ from usersec.tests.factories import (
     HpcProjectCreateRequestFactory,
     HpcUserChangeRequestFactory,
     HpcUserCreateRequestFactory,
+    HpcUserDeleteRequestFactory,
     HpcUserFactory,
     TermsAndConditionsFactory,
 )
@@ -1275,6 +1276,238 @@ class TestHpcUserChangeRequestDenyView(TestViewBase):
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(len(messages), 1)
             self.assertEqual(str(messages[0]), "Successfully denied request for user update.")
+
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.comment, "Denied")
+            self.assertEqual(self.obj.status, REQUEST_STATUS_DENIED)
+
+            self.assertEqual(len(mail.outbox), 1)
+
+
+class TestHpcUserDeleteRequestDetailView(TestViewBase):
+    """Tests for HpcUserDeleteRequestDetailView."""
+
+    def test_get(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_ACTIVE
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+            self.assertTrue(response.context["admin"])
+
+    def test_get_retracted(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_RETRACTED
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertTrue(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+    def test_get_denied(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_DENIED
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertTrue(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+    def test_get_approved(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_APPROVED
+        )
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertTrue(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+
+class TestHpcUserDeleteRequestApproveView(TestViewBase):
+    """Tests for HpcUserDeleteRequestApproveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_ACTIVE
+        )
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-approve",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-approve",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:overview"),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully approved request for user deletion.")
+
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_APPROVED)
+
+            self.assertEqual(len(mail.outbox), 1)
+
+
+class TestHpcUserDeleteRequestRevisionView(TestViewBase):
+    """Tests for HpcUserDeleteRequestRevisionView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_ACTIVE
+        )
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-revision",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["form"]["comment"].value(), "")
+            self.assertTrue(response.context["update"])
+
+    def test_post(self):
+        update = {
+            "comment": "I made a comment!",
+        }
+
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-revision",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+                update,
+            )
+            self.assertRedirects(
+                response,
+                reverse("adminsec:overview"),
+            )
+
+            self.obj.refresh_from_db()
+
+            self.assertEqual(self.obj.comment, update["comment"])
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully requested revision for user deletion.")
+
+            self.assertEqual(len(mail.outbox), 1)
+
+
+class TestHpcUserDeleteRequestDenyView(TestViewBase):
+    """Tests for HpcUserDeleteRequestDenyView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_ACTIVE
+        )
+
+    def test_get(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.get(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-deny",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.context["form"])
+
+    def test_post(self):
+        with self.login(self.user_hpcadmin):
+            response = self.client.post(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-deny",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+                data={"comment": "Denied"},
+            )
+
+            self.assertRedirects(
+                response,
+                reverse("adminsec:overview"),
+            )
+
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), "Successfully denied request for user deletion.")
 
             self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
             self.obj.refresh_from_db()

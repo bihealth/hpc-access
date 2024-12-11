@@ -26,6 +26,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    HpcUserDeleteRequest,
 )
 from usersec.tests.factories import (
     HPCGROUPCREATEREQUEST_FORM_DATA_VALID,
@@ -43,6 +44,7 @@ from usersec.tests.factories import (
     HpcProjectInvitationFactory,
     HpcUserChangeRequestFactory,
     HpcUserCreateRequestFactory,
+    HpcUserDeleteRequestFactory,
     HpcUserFactory,
     TermsAndConditionsFactory,
 )
@@ -1597,6 +1599,277 @@ class TestHpcUserChangeRequestArchiveView(TestViewBase):
                 reverse(
                     "usersec:hpcuserchangerequest-archive",
                     kwargs={"hpcuserchangerequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ARCHIVED)
+
+
+class TestHpcUserDeleteRequestCreateView(TestViewBase):
+    """Tests for HpcUserDeleteRequestCreateView."""
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-create", kwargs={"hpcuser": self.hpc_member.uuid}
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post_form_valid(self):
+        with self.login(self.user_owner):
+            data = {}
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcuserdeleterequest-create", kwargs={"hpcuser": self.hpc_member.uuid}
+                ),
+                data=data,
+            )
+            self.assertEqual(HpcUserDeleteRequest.objects.count(), 1)
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(len(mail.outbox), 1)
+
+
+class TestHpcUserDeleteRequestDetailView(TestViewBase):
+    """Tests for HpcUserDeleteRequestDetailView."""
+
+    def test_get(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_ACTIVE, user=self.hpc_member
+        )
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertTrue(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+    def test_get_retracted(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_RETRACTED, user=self.hpc_member
+        )
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertTrue(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+    def test_get_denied(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_DENIED, user=self.hpc_member
+        )
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertTrue(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertFalse(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+    def test_get_approved(self):
+        request = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, status=REQUEST_STATUS_APPROVED, user=self.hpc_member
+        )
+
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": request.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_decided"])
+            self.assertFalse(response.context["is_denied"])
+            self.assertFalse(response.context["is_retracted"])
+            self.assertTrue(response.context["is_approved"])
+            self.assertFalse(response.context["is_active"])
+            self.assertFalse(response.context["is_revision"])
+
+
+class TestHpcUserDeleteRequestUpdateView(TestViewBase):
+    """Tests for HpcUserDeleteRequestUpdateView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-update",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["form"]["comment"].value(), "")
+            self.assertTrue(response.context["update"])
+
+    def test_post(self):
+        update = {
+            "comment": "I made a comment!",
+        }
+
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcuserdeleterequest-update",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+                update,
+            )
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+            )
+
+            self.obj.refresh_from_db()
+
+            self.assertEqual(self.obj.comment, update["comment"])
+            self.assertEqual(self.obj.editor, self.user_owner)
+            self.assertEqual(self.obj.requester, self.user_owner)
+
+            self.assertEqual(len(mail.outbox), 0)
+
+
+class TestHpcUserDeleteRequestRetractView(TestViewBase):
+    """Tests for HpcUserDeleteRequestRetractView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-retract",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(
+                response,
+                reverse(
+                    "usersec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                ),
+            )
+
+            self.assertEqual(self.obj.status, REQUEST_STATUS_INITIAL)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
+
+            self.assertEqual(len(mail.outbox), 0)
+
+
+class TestHpcUserDeleteRequestReactivateView(TestViewBase):
+    """Tests for HpcUserDeleteRequestReactivateView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(
+            requester=self.user_owner, user=self.hpc_member, status=REQUEST_STATUS_RETRACTED
+        )
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-reactivate",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(self.obj.status, REQUEST_STATUS_RETRACTED)
+            self.obj.refresh_from_db()
+            self.assertEqual(self.obj.status, REQUEST_STATUS_ACTIVE)
+
+
+class TestHpcUserDeleteRequestDeleteView(TestViewBase):
+    """Tests for HpcUserDeleteRequestDeleteView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-delete",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        with self.login(self.user_owner):
+            response = self.client.post(
+                reverse(
+                    "usersec:hpcuserdeleterequest-delete",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
+                )
+            )
+            self.assertRedirects(response, reverse("home"))
+            self.assertNoMessages(response)
+            self.assertEqual(HpcUserDeleteRequest.objects.count(), 0)
+
+
+class TestHpcUserDeleteRequestArchiveView(TestViewBase):
+    """Tests for HpcUserDeleteRequestArchiveView."""
+
+    def setUp(self):
+        super().setUp()
+        self.obj = HpcUserDeleteRequestFactory(requester=self.user_owner, user=self.hpc_member)
+
+    def test_get(self):
+        with self.login(self.user_owner):
+            response = self.client.get(
+                reverse(
+                    "usersec:hpcuserdeleterequest-archive",
+                    kwargs={"hpcuserdeleterequest": self.obj.uuid},
                 )
             )
             self.assertRedirects(response, reverse("home"))
