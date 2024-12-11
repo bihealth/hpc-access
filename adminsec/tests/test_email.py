@@ -4,11 +4,11 @@ from django.core import mail
 from adminsec.email import (
     send_mail,
     send_notification_admin_request,
-    send_notification_manager_change_request_approved,
     send_notification_manager_group_created,
     send_notification_manager_group_request,
     send_notification_manager_project_created,
     send_notification_manager_project_request,
+    send_notification_manager_request_approved,
     send_notification_manager_request_denied,
     send_notification_manager_revision_required,
     send_notification_manager_user_decided_invitation,
@@ -71,7 +71,7 @@ class TestEmail(TestViewBase):
         self.assertEqual(len(mail.outbox), 1)
 
     def test_send_notification_manager_change_request_approved(self):
-        ret = send_notification_manager_change_request_approved(self.hpc_user_change_request)
+        ret = send_notification_manager_request_approved(self.hpc_user_change_request)
         self.assertEqual(ret, 1)
         self.assertEqual(len(mail.outbox), 1)
 

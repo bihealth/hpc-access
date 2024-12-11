@@ -22,6 +22,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    HpcUserDeleteRequest,
 )
 
 
@@ -292,6 +293,26 @@ class HpcUserChangeRequestForm(forms.ModelForm):
 
         # Some cosmetics
         self.fields["expiration"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["class"] = "form-control"
+        self.fields["comment"].widget.attrs["rows"] = 3
+
+
+class HpcUserDeleteRequestForm(forms.ModelForm):
+    """Form for HpcUserDeleteRequest."""
+
+    class Meta:
+        model = HpcUserDeleteRequest
+        fields = [
+            "comment",
+        ]
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if user.is_hpcadmin:
+            self.fields["comment"].required = True
+
+        # Some cosmetics
         self.fields["comment"].widget.attrs["class"] = "form-control"
         self.fields["comment"].widget.attrs["rows"] = 3
 

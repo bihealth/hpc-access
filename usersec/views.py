@@ -36,6 +36,7 @@ from usersec.forms import (
     HpcProjectCreateRequestForm,
     HpcUserChangeRequestForm,
     HpcUserCreateRequestForm,
+    HpcUserDeleteRequestForm,
     ProjectSelectForm,
     UserSelectForm,
 )
@@ -63,6 +64,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    HpcUserDeleteRequest,
     TermsAndConditions,
 )
 
@@ -395,9 +397,10 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             return list(
                 chain(
                     HpcUserCreateRequest.objects.filter(group=group, status=status),
-                    HpcProjectCreateRequest.objects.filter(group=group, status=status),
                     HpcUserChangeRequest.objects.filter(user__primary_group=group, status=status),
+                    HpcUserDeleteRequest.objects.filter(user__primary_group=group, status=status),
                     HpcGroupChangeRequest.objects.filter(group=group, status=status),
+                    HpcProjectCreateRequest.objects.filter(group=group, status=status),
                     HpcProjectChangeRequest.objects.filter(
                         Q(project__group=group) | Q(project__delegate=context["object"]),
                         status=status,
@@ -926,32 +929,200 @@ class HpcGroupChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vi
         return HttpResponseRedirect(reverse("home"))
 
 
-class HpcUserDeleteRequestCreateView(View):
-    pass
+class HpcUserDeleteRequestCreateView(HpcPermissionMixin, CreateView):
+    """HPC user delete request create view."""
+
+    """HPC project create request create view.
+
+    Using HpcProject object for permission checking,
+    it is not the object to be created.
+    """
+
+    # Required for permission checks, usually the CreateView doesn't have the current object
+    # available
+    model = HpcUser
+    template_name = "usersec/hpcuserdeleterequest_form.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuser"
+    # Check permission based on HpcProject object
+    permission_required = "usersec.create_hpcuserdeleterequest"
+    # Pass the form to the actual object we want to create
+    form_class = HpcUserDeleteRequestForm
+
+    def get_permission_object(self):
+        """Override to return the HpcUser object.
+
+        Parent returns None in case of CreateView.
+        """
+        return self.get_object()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.requester = self.request.user
+        obj.editor = self.request.user
+        obj.status = REQUEST_STATUS_ACTIVE
+        obj.user = self.get_object()
+        obj = obj.save_with_version()
+
+        if not obj:
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_SUBMIT, MSG_PART_PROJECT_UPDATE)
+            )
+            return HttpResponseRedirect(
+                reverse("usersec:hpcuserdeleterequest-create", kwargs={"hpcuser": obj.uuid})
+            )
+
+        if settings.SEND_EMAIL:
+            send_notification_admin_request(obj)
+
+        return HttpResponseRedirect(reverse("home"))
 
 
-class HpcUserDeleteRequestDetailView(View):
-    pass
+class HpcUserDeleteRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC user delete request detail view."""
+
+    model = HpcUserDeleteRequest
+    template_name = "usersec/hpcuserdeleterequest_detail.html"
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.view_hpcuserdeleterequest"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["is_decided"] = obj.is_decided()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_archived"] = obj.is_archived()
+        return context
 
 
-class HpcUserDeleteRequestUpdateView(View):
-    pass
+class HpcUserDeleteRequestUpdateView(HpcPermissionMixin, UpdateView):
+    """HPC user delete request update view."""
+
+    template_name = "usersec/hpcuserdeleterequest_form.html"
+    form_class = HpcUserDeleteRequestForm
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.manage_hpcuserdeleterequest"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update"] = True
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def get_success_url(self):
+        return reverse(
+            "usersec:hpcuserdeleterequest-detail",
+            kwargs={"hpcuserdeleterequest": self.get_object().uuid},
+        )
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        if obj.status == REQUEST_STATUS_REVISION:
+            obj.status = REQUEST_STATUS_ACTIVE
+        obj = obj.save_with_version()
+
+        if not obj:
+            messages.error(
+                self.request, MSG_REQUEST_FAILURE.format(MSG_PART_UPDATE, MSG_PART_USER_UPDATE)
+            )
+            return HttpResponseRedirect(reverse("home"))
+
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcUserDeleteRequestRetractView(View):
-    pass
+class HpcUserDeleteRequestRetractView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user delete request retract view."""
+
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.manage_hpcuserdeleterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.editor = self.request.user
+        obj.comment = ""
+        obj.retract_with_version()
+
+        return HttpResponseRedirect(
+            reverse(
+                "usersec:hpcuserdeleterequest-detail",
+                kwargs={"hpcuserdeleterequest": obj.uuid},
+            )
+        )
 
 
-class HpcUserDeleteRequestReactivateView(View):
-    pass
+class HpcUserDeleteRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user delete request reactivate view."""
+
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.manage_hpcuserdeleterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ACTIVE
+        obj.editor = self.request.user
+        obj.comment = ""
+        obj.save_with_version()
+
+        if settings.SEND_EMAIL:
+            send_notification_admin_request(obj)
+
+        return HttpResponseRedirect(reverse("home"))
 
 
-class HpcUserDeleteRequestDeleteView(View):
-    pass
+class HpcUserDeleteRequestDeleteView(HpcPermissionMixin, DeleteView):
+    """HPC user delete request delete view."""
+
+    template_name_suffix = "_delete_confirm"
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.manage_hpcuserdeleterequest"
+
+    def get_success_url(self):
+        return reverse("home")
 
 
-class HpcUserDeleteRequestArchiveView(View):
-    pass
+class HpcUserDeleteRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, View):
+    """HPC user delete request archive view."""
+
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "usersec.manage_hpcuserdeleterequest"
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.status = REQUEST_STATUS_ARCHIVED
+        obj.editor = self.request.user
+        obj.save_with_version()
+
+        return HttpResponseRedirect(reverse("home"))
 
 
 class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):

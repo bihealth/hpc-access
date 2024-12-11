@@ -26,6 +26,7 @@ from usersec.tests.factories import (
     HpcProjectInvitationFactory,
     HpcUserChangeRequestFactory,
     HpcUserCreateRequestFactory,
+    HpcUserDeleteRequestFactory,
     HpcUserFactory,
 )
 
@@ -129,6 +130,11 @@ class TestRulesBase(TestCase):
 
         # Create HPC user change request
         self.hpc_user_change_request = HpcUserChangeRequestFactory(
+            requester=self.user_owner, user=self.hpc_member
+        )
+
+        # Create HPC user delete request
+        self.hpc_user_delete_request = HpcUserDeleteRequestFactory(
             requester=self.user_owner, user=self.hpc_member
         )
 
@@ -902,6 +908,63 @@ class TestPermissions(TestRulesBase):
         perm = "usersec.manage_hpcprojectinvitation"
         self.assert_permissions_granted(perm, self.hpc_project_invitation, good_users)
         self.assert_permissions_denied(perm, self.hpc_project_invitation, bad_users)
+
+    def test_view_hpcuserdeleterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.view_hpcuserdeleterequest"
+        self.assert_permissions_granted(perm, self.hpc_user_delete_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_user_delete_request, bad_users)
+
+    def test_create_hpcuserdeleterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.create_hpcuserdeleterequest"
+        self.assert_permissions_granted(perm, self.hpc_member, good_users)
+        self.assert_permissions_denied(perm, self.hpc_member, bad_users)
+
+    def test_manage_hpcuserdeleterequest(self):
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member,
+            self.user_member2,
+            self.user_member_other_group,
+            self.user,
+            self.user_invited,
+        ]
+        perm = "usersec.manage_hpcuserdeleterequest"
+        self.assert_permissions_granted(perm, self.hpc_user_delete_request, good_users)
+        self.assert_permissions_denied(perm, self.hpc_user_delete_request, bad_users)
 
 
 class TestPermissionsInViews(TestRulesBase):
@@ -2728,6 +2791,401 @@ class TestPermissionsInViews(TestRulesBase):
         url = reverse(
             "usersec:hpcuserchangerequest-archive",
             kwargs={"hpcuserchangerequest": self.hpc_user_change_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_create_view_get(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_create_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_create_view_post(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+        data = {}
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_create_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-create",
+            kwargs={"hpcuser": self.hpc_member.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
+    def test_hpc_user_delete_request_detail_view(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-detail",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_detail_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-detail",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_update_view_get(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-update",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 200)
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_update_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-update",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_update_view_post(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-update",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+        data = {}
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse(
+                "usersec:hpcuserdeleterequest-detail",
+                kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            req_kwargs=data,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_update_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-update",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
+    def test_hpc_user_delete_request_retract_view(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-retract",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse(
+                "usersec:hpcuserdeleterequest-detail",
+                kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+            ),
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_retract_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-retract",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_reactivate_view(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-reactivate",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users, url, "GET", 302, redirect_url=reverse("home"), not_authorized=True
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_reactivate_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-reactivate",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_delete_view_get(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-delete",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "GET",
+            200,
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_delete_view_get_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-delete",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url)
+
+    def test_hpc_user_delete_request_delete_view_post(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-delete",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        def rollback_callback():
+            self.hpc_user_delete_request.save()
+
+        self.assert_permissions_on_url(
+            good_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse("home"),
+            rollback_callback=rollback_callback,
+        )
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_delete_view_post_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-delete",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        self._test_view_mode_denied(url, "POST")
+
+    def test_hpc_user_delete_request_archive_view(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-archive",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
+        )
+        good_users = [
+            self.superuser,
+            self.user_owner,
+            self.user_delegate,
+        ]
+        bad_users = [
+            self.user_member,
+            self.user_member2,
+            self.user_pending,
+            self.user_hpcadmin,
+            self.user_member_other_group,
+            self.user,
+        ]
+
+        self.assert_permissions_on_url(good_users, url, "GET", 302, redirect_url=reverse("home"))
+        self.assert_permissions_on_url(
+            bad_users,
+            url,
+            "GET",
+            302,
+            redirect_url=reverse("home"),
+            not_authorized=True,
+        )
+
+    @override_settings(VIEW_MODE=True)
+    def test_hpc_user_delete_request_archive_view_view_mode(self):
+        url = reverse(
+            "usersec:hpcuserdeleterequest-archive",
+            kwargs={"hpcuserdeleterequest": self.hpc_user_delete_request.uuid},
         )
         self._test_view_mode_denied(url)
 

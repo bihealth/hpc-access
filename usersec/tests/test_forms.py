@@ -10,6 +10,7 @@ from usersec.forms import (
     HpcProjectCreateRequestForm,
     HpcUserChangeRequestForm,
     HpcUserCreateRequestForm,
+    HpcUserDeleteRequestForm,
     ProjectSelectForm,
     UserSelectForm,
 )
@@ -223,6 +224,31 @@ class TestHpcUserChangeRequestForm(TestCase):
     def test_form_invalid_hpcadmin_comment_missing(self):
         data_invalid = {**self.data_valid, "comment": ""}
         form = HpcUserChangeRequestForm(user=self.user_hpcadmin, data=data_invalid)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["comment"], ["This field is required."])
+
+
+class TestHpcUserDeleteRequestForm(TestCase):
+    """Tests for HpcUserDeleteRequest form."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.make_user("user")
+        self.user_owner = self.make_user("owner")
+        self.user_hpcadmin = self.make_user("hpcadmin")
+        self.user_hpcadmin.is_hpcadmin = True
+        self.user_hpcadmin.save()
+
+    def test_form_valid(self):
+        form = HpcUserDeleteRequestForm(user=self.user_owner, data={})
+        self.assertTrue(form.is_valid())
+
+    def test_form_valid_hpcadmin(self):
+        form = HpcUserDeleteRequestForm(user=self.user_hpcadmin, data={"comment": "comment"})
+        self.assertTrue(form.is_valid())
+
+    def test_form_invalid_hpcadmin_comment_missing(self):
+        form = HpcUserDeleteRequestForm(user=self.user_hpcadmin, data={})
         self.assertFalse(form.is_valid())
         self.assertEqual(form.errors["comment"], ["This field is required."])
 

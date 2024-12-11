@@ -4,9 +4,9 @@
   <div class="card-header">
     <h4 class="card-title">
       AG {{ object.primary_group.name.capitalize }}
-      {% if object.hpcgroup_owner.exists %}
+      {% if object.is_pi %}
         <span class="badge rounded-pill bg-dark">Owner</span>
-      {% elif object.hpcgroup_delegate.exists %}
+      {% elif object.is_delegate %}
         <span class="badge rounded-pill bg-secondary">Delegate</span>
       {% else %}
         <span class="badge rounded-pill bg-light text-secondary" style="border: 1px solid #6c757d !important">Member</span>
@@ -31,7 +31,7 @@
 
         <dt class="col-sm-3">Delegate</dt>
         <dd class="col-sm-9">
-          {% if object.primary_group.delegate %}
+          {% if object.is_delegate %}
             {{ object.primary_group.delegate.user.name }}
             <span class="small fw-light">({{ object.primary_group.delegate.username }})</span>
           {% else %}
