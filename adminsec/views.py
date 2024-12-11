@@ -37,9 +37,9 @@ from adminsec.constants import (
     LDAP_USERNAME_SEPARATOR,
 )
 from adminsec.email import (
-    send_notification_manager_change_request_approved,
     send_notification_manager_group_created,
     send_notification_manager_project_created,
+    send_notification_manager_request_approved,
     send_notification_manager_request_denied,
     send_notification_manager_revision_required,
     send_notification_user_consent,
@@ -55,6 +55,7 @@ from usersec.forms import (
     HpcProjectCreateRequestForm,
     HpcUserChangeRequestForm,
     HpcUserCreateRequestForm,
+    HpcUserDeleteRequestForm,
 )
 from usersec.models import (
     OBJECT_STATUS_ACTIVE,
@@ -70,6 +71,7 @@ from usersec.models import (
     HpcUser,
     HpcUserChangeRequest,
     HpcUserCreateRequest,
+    HpcUserDeleteRequest,
     TermsAndConditions,
 )
 from usersec.views import (
@@ -80,6 +82,7 @@ from usersec.views import (
     MSG_PART_SUBMIT,
     MSG_PART_UPDATE,
     MSG_PART_USER_CREATION,
+    MSG_PART_USER_DELETION,
     MSG_PART_USER_UPDATE,
     MSG_REQUEST_FAILURE,
     HpcPermissionMixin,
@@ -183,6 +186,7 @@ class AdminView(HpcPermissionMixin, TemplateView):
                 HpcProjectChangeRequest.objects.active(),
                 HpcUserCreateRequest.objects.active(),
                 HpcUserChangeRequest.objects.active(),
+                HpcUserDeleteRequest.objects.active(),
             )
         )
 
@@ -726,7 +730,7 @@ class HpcGroupChangeRequestApproveView(HpcPermissionMixin, DeleteView):
             )
 
         if settings.SEND_EMAIL:
-            send_notification_manager_change_request_approved(obj)
+            send_notification_manager_request_approved(obj)
 
         with transaction.atomic():
             obj.comment = COMMENT_APPROVED
@@ -1036,20 +1040,144 @@ class HpcProjectCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class HpcUserDeleteRequestDetailView(View):
-    pass
+class HpcUserDeleteRequestDetailView(HpcPermissionMixin, DetailView):
+    """HPC user delete request detail view."""
+
+    template_name = "usersec/hpcuserdeleterequest_detail.html"
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.get_object()
+        context["is_decided"] = obj.is_decided()
+        context["is_denied"] = obj.is_denied()
+        context["is_retracted"] = obj.is_retracted()
+        context["is_approved"] = obj.is_approved()
+        context["is_active"] = obj.is_active()
+        context["is_revision"] = obj.is_revision()
+        context["is_archived"] = obj.is_archived()
+        context["admin"] = True
+        return context
 
 
-class HpcUserDeleteRequestRevisionView(View):
-    pass
+class HpcUserDeleteRequestRevisionView(HpcPermissionMixin, UpdateView):
+    """HPC user delete request revision view."""
+
+    template_name = "usersec/hpcuserdeleterequest_form.html"
+    model = HpcUserDeleteRequest
+    form_class = HpcUserDeleteRequestForm
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update"] = True
+        context["admin"] = True
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["comment"] = ""
+        return initial
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.editor = self.request.user
+        obj = obj.revision_with_version()
+
+        if not obj:
+            messages.error(
+                self.request, MSG_REQUEST_REVISION_FAILURE.format(MSG_PART_USER_DELETION)
+            )
+            return HttpResponseRedirect(reverse("adminsec:overview"))
+
+        if settings.SEND_EMAIL:
+            send_notification_manager_revision_required(obj)
+
+        messages.success(self.request, MSG_REQUEST_REVISION_SUCCESS.format(MSG_PART_USER_DELETION))
+        return HttpResponseRedirect(self.get_success_url())
 
 
-class HpcUserDeleteRequestApproveView(View):
-    pass
+class HpcUserDeleteRequestApproveView(HpcPermissionMixin, DeleteView):
+    """HpcUserDeleteRequest approve view."""
+
+    template_name_suffix = "_approve_confirm"
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "adminsec.is_hpcadmin"
+    success_url = reverse_lazy("adminsec:overview")
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        try:
+            with transaction.atomic():
+                obj.user.primary_group = None
+                obj.user.delete_with_version()
+
+        except Exception as e:
+            messages.error(self.request, "Could not delete user: {}".format(e))
+            return HttpResponseRedirect(
+                reverse(
+                    "adminsec:hpcuserdeleterequest-detail",
+                    kwargs={"hpcuserdeleterequest": obj.uuid},
+                )
+            )
+
+        with transaction.atomic():
+            obj.comment = COMMENT_APPROVED
+            obj.editor = self.request.user
+            obj.approve_with_version()
+
+        if settings.SEND_EMAIL:
+            send_notification_manager_request_approved(obj)
+
+        messages.success(self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_USER_DELETION))
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class HpcUserDeleteRequestDenyView(View):
-    pass
+class HpcUserDeleteRequestDenyView(HpcPermissionMixin, DeleteView):
+    """HpcUserDeleteRequest deny view."""
+
+    template_name_suffix = "_deny_confirm"
+    model = HpcUserDeleteRequest
+    slug_field = "uuid"
+    slug_url_kwarg = "hpcuserdeleterequest"
+    permission_required = "adminsec.is_hpcadmin"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["form"] = HpcUserDeleteRequestForm(
+            user=self.request.user,
+            instance=context["object"],
+            initial={
+                "comment": "",
+            },
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.comment = self.request.POST.get("comment")
+        obj.editor = self.request.user
+        obj.deny_with_version()
+
+        if settings.SEND_EMAIL:
+            send_notification_manager_request_denied(obj)
+
+        messages.success(self.request, MSG_REQUEST_DENIED_SUCCESS.format(MSG_PART_USER_DELETION))
+        return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
 class HpcUserChangeRequestDetailView(HpcPermissionMixin, DetailView):
@@ -1150,7 +1278,7 @@ class HpcUserChangeRequestApproveView(HpcPermissionMixin, DeleteView):
             obj.approve_with_version()
 
         if settings.SEND_EMAIL:
-            send_notification_manager_change_request_approved(obj)
+            send_notification_manager_request_approved(obj)
 
         messages.success(self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_USER_UPDATE))
         return HttpResponseRedirect(reverse("adminsec:overview"))
@@ -1333,7 +1461,7 @@ class HpcProjectChangeRequestApproveView(HpcPermissionMixin, DeleteView):
             obj.approve_with_version()
 
         if settings.SEND_EMAIL:
-            send_notification_manager_change_request_approved(obj)
+            send_notification_manager_request_approved(obj)
 
         messages.success(self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_PROJECT_UPDATE))
         return HttpResponseRedirect(reverse("adminsec:overview"))

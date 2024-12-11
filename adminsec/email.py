@@ -214,11 +214,9 @@ declined. Please find more information by following the link below:
 {footer}
 """.lstrip()
 
-#:
-SUBJECT_MANAGER_CHANGE_REQUEST_APPROVED = (
-    SUBJECT_PREFIX + "Your {request_type} request has been approved"
-)
-NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED = """
+#: Notification text for managers for a request approval
+SUBJECT_MANAGER_REQUEST_APPROVED = SUBJECT_PREFIX + "Your {request_type} request has been approved"
+NOTIFICATION_MANAGER_REQUEST_APPROVED = """
 {greeting}
 
 your {request_type} request has been approved. Please see the active changes
@@ -521,11 +519,11 @@ def send_notification_manager_project_created(request, project):
     return send_mail(subject, message, [request.requester.email])
 
 
-def send_notification_manager_change_request_approved(request):
-    subject = SUBJECT_MANAGER_CHANGE_REQUEST_APPROVED.format(
+def send_notification_manager_request_approved(request):
+    subject = SUBJECT_MANAGER_REQUEST_APPROVED.format(
         request_type=request.get_request_type(),
     )
-    message = NOTIFICATION_MANAGER_CHANGE_REQUEST_APPROVED.format(
+    message = NOTIFICATION_MANAGER_REQUEST_APPROVED.format(
         greeting=USER_GREETING.format(user=request.requester.name),
         request_type=request.get_request_type(),
         hpc_access_link=HPC_ACCESS_LINK + request.get_detail_path(),

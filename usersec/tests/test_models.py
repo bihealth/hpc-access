@@ -163,6 +163,22 @@ class RequestTesterMixin:
         self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
         self.assertEqual(list(self.model.objects.active()), [obj])
 
+    def _test_retracted(self):
+        obj = self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
+        self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
+        self.assertEqual(list(self.model.objects.retracted()), [obj])
+
+    def _test_in_process(self):
+        obj1 = self.factory(requester=self.user, status=REQUEST_STATUS_ACTIVE)
+        obj2 = self.factory(requester=self.user, status=REQUEST_STATUS_REVISION)
+        self.factory(requester=self.user, status=REQUEST_STATUS_RETRACTED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
+        self.factory(requester=self.user, status=REQUEST_STATUS_APPROVED)
+        self.assertEqual(list(self.model.objects.in_process()), [obj1, obj2])
+
     def _test_get_revision_url(self):
         obj = self.factory(requester=self.user)
         name = self.model.__name__.lower()
@@ -376,12 +392,114 @@ class VersionTesterMixin:
         self.assertEqual(obj.get_detail_url(self.hpcadmin), expected)
 
 
-class TestHpcUser(VersionTesterMixin, TestCase):
+class PendingRequestTesterMixin:
+    change_request_factory = None
+    delete_request_factory = None
+    obj_type = None
+
+    def _test_has_pending_delete_request(self):
+        obj = self.factory()
+        data = {self.obj_type: obj}
+        request = self.delete_request_factory(**data)
+
+        for status in (REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISION):
+            request.status = status
+            request.save()
+            self.assertTrue(obj.has_pending_delete_request())
+
+        for status in (REQUEST_STATUS_APPROVED, REQUEST_STATUS_DENIED, REQUEST_STATUS_RETRACTED):
+            request.status = status
+            request.save()
+            self.assertFalse(obj.has_pending_delete_request())
+
+    def _test_has_pending_change_request(self):
+        obj = self.factory()
+        data = {self.obj_type: obj}
+        request = self.change_request_factory(**data)
+
+        for status in (REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISION):
+            request.status = status
+            request.save()
+            self.assertTrue(obj.has_pending_change_request())
+
+        for status in (REQUEST_STATUS_APPROVED, REQUEST_STATUS_DENIED, REQUEST_STATUS_RETRACTED):
+            request.status = status
+            request.save()
+            self.assertFalse(obj.has_pending_change_request())
+
+    def _test_has_retracted_change_request(self):
+        obj = self.factory()
+        request = self.change_request_factory(
+            **{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED}
+        )
+        self.assertTrue(obj.has_retracted_change_request())
+
+        for status in (
+            REQUEST_STATUS_ACTIVE,
+            REQUEST_STATUS_REVISION,
+            REQUEST_STATUS_APPROVED,
+            REQUEST_STATUS_DENIED,
+        ):
+            request.status = status
+            request.save()
+            self.assertFalse(obj.has_retracted_change_request())
+
+    def _test_has_retracted_delete_request(self):
+        obj = self.factory()
+        request = self.delete_request_factory(
+            **{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED}
+        )
+        self.assertTrue(obj.has_retracted_delete_request())
+
+        for status in (
+            REQUEST_STATUS_ACTIVE,
+            REQUEST_STATUS_REVISION,
+            REQUEST_STATUS_APPROVED,
+            REQUEST_STATUS_DENIED,
+        ):
+            request.status = status
+            request.save()
+            self.assertFalse(obj.has_retracted_delete_request())
+
+    def _test_retracted_delete_request(self):
+        obj = self.factory()
+        request = self.delete_request_factory(
+            **{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED}
+        )
+        self.assertEqual(obj.retracted_delete_request(), request)
+
+    def _test_retracted_change_request(self):
+        obj = self.factory()
+        request = self.change_request_factory(
+            **{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED}
+        )
+        self.assertEqual(obj.retracted_change_request(), request)
+
+    def _test_has_pending_requests(self):
+        obj = self.factory()
+        self.change_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_ACTIVE})
+        self.delete_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED})
+        self.assertTrue(obj.has_pending_requests())
+
+    def _test_has_pending_requests_false(self):
+        obj = self.factory()
+        self.change_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED})
+        self.delete_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED})
+        self.assertFalse(obj.has_pending_requests())
+
+
+class TestHpcUser(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcUser model"""
 
+    # Version Tester Mixin
     model = HpcUser
     version_model = HpcUserVersion
     factory = HpcUserFactory
+
+    # Pending Request Tester Mixin
+    obj_type = "user"
+    change_request_factory = HpcUserChangeRequestFactory
+    delete_request_factory = HpcUserDeleteRequestFactory
 
     def test_create_with_version(self):
         self._test_create_with_version()
@@ -429,6 +547,60 @@ class TestHpcUser(VersionTesterMixin, TestCase):
             list(HpcProjectInvitation.objects.filter(user=user, status=INVITATION_STATUS_PENDING)),
             list(user.get_pending_invitations()),
         )
+
+    def test_is_pi_false(self):
+        user = self.factory()
+        self.assertFalse(user.is_pi)
+
+    def test_is_pi_true(self):
+        user = self.factory(primary_group=None)
+        user.primary_group = HpcGroupFactory(owner=user)
+        user.save()
+        self.assertTrue(user.is_pi)
+
+    def test_role_pi(self):
+        user = self.factory(primary_group=None)
+        user.primary_group = HpcGroupFactory(owner=user)
+        user.save()
+        self.assertEqual(user.role, "PI")
+
+    def test_role_delegate(self):
+        user = self.factory(primary_group=None)
+        user.primary_group = HpcGroupFactory(delegate=user)
+        user.save()
+        self.assertEqual(user.role, "Delegate")
+
+    def test_role_member(self):
+        user = self.factory()
+        self.assertEqual(user.role, "Member")
+
+    def test_role_alumni(self):
+        user = self.factory(primary_group=None)
+        self.assertEqual(user.role, "Alumni")
+
+    def test_has_pending_delete_request(self):
+        self._test_has_pending_delete_request()
+
+    def test_has_pending_change_request(self):
+        self._test_has_pending_change_request()
+
+    def test_has_retracted_change_request(self):
+        self._test_has_retracted_change_request()
+
+    def test_has_retracted_delete_request(self):
+        self._test_has_retracted_delete_request()
+
+    def test_retracted_delete_request(self):
+        self._test_retracted_delete_request()
+
+    def test_retracted_change_request(self):
+        self._test_retracted_change_request()
+
+    def test_has_pending_requests(self):
+        self._test_has_pending_requests()
+
+    def test_has_pending_requests_false(self):
+        self._test_has_pending_requests_false()
 
     def test_generate_quota_report_green(self):
         user = self.factory(
@@ -578,7 +750,7 @@ class TestHpcUser(VersionTesterMixin, TestCase):
             self.factory().get_manager_contact()
 
 
-class TestHpcGroup(VersionTesterMixin, TestCase):
+class TestHpcGroup(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcGroup model"""
 
     model = HpcGroup
@@ -842,8 +1014,32 @@ class TestHpcGroup(VersionTesterMixin, TestCase):
         ):
             obj.get_user_active()
 
+    # def test_has_pending_delete_request(self):
+    #     self._test_has_pending_delete_request()
 
-class TestHpcProject(VersionTesterMixin, TestCase):
+    # def test_has_pending_change_request(self):
+    #     self._test_has_pending_change_request()
+
+    # def test_has_retracted_change_request(self):
+    #     self._test_has_retracted_change_request()
+
+    # def test_has_retracted_delete_request(self):
+    #     self._test_has_retracted_delete_request()
+
+    # def test_retracted_delete_request(self):
+    #     self._test_retracted_delete_request()
+
+    # def test_retracted_change_request(self):
+    #     self._test_retracted_change_request()
+
+    # def test_has_pending_requests(self):
+    #     self._test_has_pending_requests()
+
+    # def test_has_pending_requests_false(self):
+    #     self._test_has_pending_requests_false()
+
+
+class TestHpcProject(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcProject model"""
 
     model = HpcProject
@@ -1125,6 +1321,30 @@ class TestHpcProject(VersionTesterMixin, TestCase):
         ):
             obj.get_user_active()
 
+    # def test_has_pending_delete_request(self):
+    #     self._test_has_pending_delete_request()
+
+    # def test_has_pending_change_request(self):
+    #     self._test_has_pending_change_request()
+
+    # def test_has_retracted_change_request(self):
+    #     self._test_has_retracted_change_request()
+
+    # def test_has_retracted_delete_request(self):
+    #     self._test_has_retracted_delete_request()
+
+    # def test_retracted_delete_request(self):
+    #     self._test_retracted_delete_request()
+
+    # def test_retracted_change_request(self):
+    #     self._test_retracted_change_request()
+
+    # def test_has_pending_requests(self):
+    #     self._test_has_pending_requests()
+
+    # def test_has_pending_requests_false(self):
+    #     self._test_has_pending_requests_false()
+
 
 class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
     """Tests for HpcGroupChangeRequest model"""
@@ -1199,6 +1419,12 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_active(self):
         self._test_active()
+
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
 
     def test_get_revision_url(self):
         self._test_get_revision_url()
@@ -1296,6 +1522,12 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_active(self):
         self._test_active()
 
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
+
     def test_get_revision_url(self):
         self._test_get_revision_url()
 
@@ -1391,6 +1623,12 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
 
     def test_active(self):
         self._test_active()
+
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
 
     def test_get_revision_url(self):
         self._test_get_revision_url()
@@ -1488,6 +1726,12 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_active(self):
         self._test_active()
 
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
+
     def test_get_revision_url(self):
         self._test_get_revision_url()
 
@@ -1583,6 +1827,12 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
 
     def test_active(self):
         self._test_active()
+
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
 
     def test_get_revision_url(self):
         self._test_get_revision_url()
@@ -1680,6 +1930,12 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
     def test_active(self):
         self._test_active()
 
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
+
     def test_get_revision_url(self):
         self._test_get_revision_url()
 
@@ -1775,6 +2031,12 @@ class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_active(self):
         self._test_active()
+
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
 
     def test_get_revision_url(self):
         self._test_get_revision_url()
@@ -1876,6 +2138,12 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
     def test_active(self):
         self._test_active()
 
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
+
     def test_get_revision_url(self):
         self._test_get_revision_url()
 
@@ -1971,6 +2239,12 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
 
     def test_active(self):
         self._test_active()
+
+    def test_in_process(self):
+        self._test_in_process()
+
+    def test_retracted(self):
+        self._test_retracted()
 
     def test_get_revision_url(self):
         self._test_get_revision_url()

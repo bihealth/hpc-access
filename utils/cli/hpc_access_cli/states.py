@@ -497,11 +497,18 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             status = Status.EXPIRED
             expiration = datetime.datetime.now()
         if u.gid_number and u.gid_number in group_by_gid_number:
-            primary_group = group_uuids.get(group_by_gid_number[u.gid_number].cn)
+            _primary_group = group_by_gid_number[u.gid_number].cn
+            primary_group = group_uuids.get(_primary_group)
+            if (
+                _primary_group
+                and not _primary_group.startswith(POSIX_AG_PREFIX)
+                and not _primary_group == "hpc-alumnis"
+            ):
+                console_err.log(
+                    f"User belongs to group that is not a group ({_primary_group}, {u.uid})"
+                )
         else:
             primary_group = None
-        if not primary_group.startswith(POSIX_AG_PREFIX) and not primary_group == "hpc-alumnis":
-            console_err.log(f"User belongs to group that is not a group ({primary_group}, {u.uid})")
         return HpcUser(
             uuid=user_uuids[u.uid],
             primary_group=primary_group,

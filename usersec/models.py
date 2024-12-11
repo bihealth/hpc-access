@@ -153,7 +153,15 @@ class VersionRequestManager(VersionManager):
 
     def active(self, **kwargs):
         kwargs.update({"status": REQUEST_STATUS_ACTIVE})
-        return super().get_queryset().filter(**kwargs)
+        return self.get_queryset().filter(**kwargs)
+
+    def in_process(self, **kwargs):
+        kwargs.update({"status__in": [REQUEST_STATUS_ACTIVE, REQUEST_STATUS_REVISION]})
+        return self.get_queryset().filter(**kwargs)
+
+    def retracted(self, **kwargs):
+        kwargs.update({"status": REQUEST_STATUS_RETRACTED})
+        return self.get_queryset().filter(**kwargs)
 
 
 class VersionManagerMixin:
@@ -591,7 +599,48 @@ class HpcUserAbstract(HpcObjectAbstract):
     )
 
 
-class HpcUser(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcUserAbstract):
+ROLE_ALUMNI = "Alumni"
+ROLE_DELEGATE = "Delegate"
+ROLE_PI = "PI"
+ROLE_MEMBER = "Member"
+
+
+class HpcObjectPendingRequestMixin:
+    """Mixin for objects with pending requests."""
+
+    def has_pending_delete_request(self):
+        return (
+            getattr(self, f"{self.__class__.__name__.lower()}deleterequest").in_process().exists()
+        )
+
+    def has_pending_change_request(self):
+        return (
+            getattr(self, f"{self.__class__.__name__.lower()}changerequest").in_process().exists()
+        )
+
+    def has_pending_requests(self):
+        return self.has_pending_delete_request() or self.has_pending_change_request()
+
+    def has_retracted_delete_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().exists()
+
+    def has_retracted_change_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().exists()
+
+    def retracted_delete_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().first()
+
+    def retracted_change_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().first()
+
+
+class HpcUser(
+    ContactMixin,
+    VersionManagerMixin,
+    CheckQuotaMixin,
+    HpcObjectPendingRequestMixin,
+    HpcUserAbstract,
+):
     """HpcUser model"""
 
     #: Set custom manager
@@ -625,8 +674,30 @@ class HpcUser(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcUserAbstrac
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
 
     @property
+    def role(self):
+        if self.is_alumni:
+            return ROLE_ALUMNI
+        elif self.is_pi:
+            return ROLE_PI
+        elif self.is_delegate:
+            return ROLE_DELEGATE
+        return ROLE_MEMBER
+
+    @property
     def is_pi(self):
         return self.primary_group.owner == self
+
+    @property
+    def is_delegate(self):
+        return self.primary_group.delegate == self
+
+    @property
+    def is_alumni(self):
+        return self.primary_group is None
+
+    @property
+    def is_member(self):
+        return not (self.is_alumni or self.is_pi or self.is_delegate)
 
 
 class HpcUserVersion(HpcUserAbstract):
@@ -739,7 +810,13 @@ class HpcGroupAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroup(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcGroupAbstract):
+class HpcGroup(
+    ContactMixin,
+    VersionManagerMixin,
+    CheckQuotaMixin,
+    # HpcObjectPendingRequestMixin,
+    HpcGroupAbstract,
+):
     """HpcGroup model"""
 
     #: Set custom manager
@@ -893,7 +970,13 @@ class HpcProjectAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProject(ContactMixin, VersionManagerMixin, CheckQuotaMixin, HpcProjectAbstract):
+class HpcProject(
+    ContactMixin,
+    VersionManagerMixin,
+    CheckQuotaMixin,
+    # HpcObjectPendingRequestMixin,
+    HpcProjectAbstract,
+):
     """HpcProject model"""
 
     #: Set custom manager
