@@ -46,7 +46,6 @@ class TestHpcUserSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus):
         result["full_name"] = "name_placeholder"
         result["first_name"] = "first_name_placeholder"
         result["last_name"] = "last_name_placeholder"
-        result["uid"] = 2000
         self.assertMatchSnapshot(result)
 
 
@@ -124,7 +123,6 @@ class TestHpcUserStatusSerializer(ResetSequenceMixin, TestCaseSnap, TestCasePlus
         result["full_name"] = "name_placeholder"
         result["first_name"] = "first_name_placeholder"
         result["last_name"] = "last_name_placeholder"
-        result["uid"] = 2000
         self.assertMatchSnapshot(result)
 
 

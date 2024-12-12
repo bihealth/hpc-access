@@ -176,7 +176,7 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     }
     description = "this is a group"
     creator = factory.SubFactory(UserFactory)  # User
-    gid = 2000
+    gid = 5000
     name = factory.Sequence(lambda n: f"group{n}")
     folders = {
         "tier1_scratch": "/data/scratch/group",
@@ -242,6 +242,7 @@ class HpcUserFactory(HpcObjectFactoryBase):
     creator = factory.SubFactory(UserFactory)  # User
     description = "this is a user"
     username = factory.Sequence(lambda n: f"user{n}_" + settings.INSTITUTE_USERNAME_SUFFIX)
+    uid = 2000
     expiration = datetime(2050, 1, 1, tzinfo=utc)
     home_directory = factory.LazyAttribute(lambda o: f"/data/cephfs-1/home/users/{o.username}")
 
@@ -309,7 +310,7 @@ class HpcProjectFactory(HpcObjectFactoryBase):
     creator = factory.SubFactory(UserFactory)  # User
     delegate = None  # HpcUser
     description = "this is a project"
-    gid = 5000
+    gid = 6000
     name = factory.Sequence(lambda n: f"hpc-project{n}")
     folders = {
         "tier1_scratch": "/data/scratch/project",
