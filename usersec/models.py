@@ -108,6 +108,28 @@ LOGIN_SHELL_CHOICES = [
 RE_EMAIL = r"^\S+@\S+\.\S+$"
 
 
+def _get_next_id(model, id_type):
+    _id = 0
+    for o in model.objects.all():
+        if getattr(o, id_type) is None:
+            continue
+        if getattr(o, id_type) > _id:
+            _id = getattr(o, id_type)
+    return _id + 1
+
+
+def get_next_hpcuser_uid():
+    return _get_next_id(HpcUser, "uid")
+
+
+def get_next_hpcgroup_gid():
+    return _get_next_id(HpcGroup, "gid")
+
+
+def get_next_hpcproject_gid():
+    return _get_next_id(HpcProject, "gid")
+
+
 # ------------------------------------------------------------------------------
 # Mixins
 # ------------------------------------------------------------------------------
@@ -581,6 +603,9 @@ class HpcUserAbstract(HpcObjectAbstract):
     #: POSIX username on the cluster.
     username = models.CharField(max_length=32, help_text="Username of the user on the cluster")
 
+    #: POSIX id of the user on the cluster.
+    uid = models.IntegerField(null=True, help_text="Id of the user on the cluster")
+
     #: Expiration date of the user account
     expiration = models.DateTimeField(help_text="Expiration date of the user account")
 
@@ -658,8 +683,8 @@ class HpcUser(
             f"id={self.id},"
             f"user={self.user.username if self.user else None},"
             f"username={self.username},"
-            f"uid={self.user.uid if self.user else None},"
-            f"primary_group={self.primary_group.name},"
+            f"uid={self.uid},"
+            f"primary_group={self.primary_group.name if self.primary_group else None},"
             f"status={self.status},"
             f"creator={self.creator.username if self.creator else None},"
             f"current_version={self.current_version})"
@@ -725,7 +750,7 @@ class HpcUserVersion(HpcUserAbstract):
             f"user={self.user.username if self.user else None},"
             f"username={self.username},"
             f"uid={self.uid},"
-            f"primary_group={self.primary_group.name},"
+            f"primary_group={self.primary_group.name if self.primary_group else None},"
             f"status={self.status},"
             f"creator={self.creator.username if self.creator else None},"
             f"version={self.version})"

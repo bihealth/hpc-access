@@ -638,7 +638,7 @@ class TestHpcAccessStatusApiView(ApiTestCase):
         expected = {
             "hpc_users": [
                 {
-                    "uid": self.hpcuser_user.user.uid,
+                    "uid": self.hpcuser_user.uid,
                     "email": self.hpcuser_user.user.email,
                     "full_name": "User Name",
                     "first_name": self.hpcuser_user.user.first_name,
@@ -694,7 +694,7 @@ class TestHpcAccessStatusApiView(ApiTestCase):
         expected = {
             "hpc_users": [
                 {
-                    "uid": self.hpcuser_user.user.uid,
+                    "uid": self.hpcuser_user.uid,
                     "email": self.hpcuser_user.user.email,
                     "full_name": "User Name",
                     "first_name": self.hpcuser_user.user.first_name,

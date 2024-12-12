@@ -38,7 +38,7 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     resources_used = serializers.JSONField()
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
-    uid = serializers.SerializerMethodField()
+    uid = serializers.IntegerField(read_only=True)
     username = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
     email = serializers.SerializerMethodField()
@@ -64,9 +64,6 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
 
     def get_phone_number(self, obj) -> Optional[str]:
         return obj.user.phone
-
-    def get_uid(self, obj) -> Optional[int]:
-        return obj.user.uid
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [

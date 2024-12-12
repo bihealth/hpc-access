@@ -66,6 +66,7 @@ from usersec.models import (
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
     TermsAndConditions,
+    get_next_hpcuser_uid,
 )
 
 # -----------------------------------------------------------------------------
@@ -1824,6 +1825,7 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
                 resources_requested=obj.hpcusercreaterequest.resources_requested,
                 creator=obj.hpcusercreaterequest.editor,
                 username=username,
+                uid=get_next_hpcuser_uid(),
                 status=OBJECT_STATUS_ACTIVE,
                 expiration=obj.hpcusercreaterequest.expiration,
                 home_directory=DEFAULT_HOME_DIRECTORY.format(username=username),
