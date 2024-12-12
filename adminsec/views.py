@@ -73,6 +73,9 @@ from usersec.models import (
     HpcUserCreateRequest,
     HpcUserDeleteRequest,
     TermsAndConditions,
+    get_next_hpcgroup_gid,
+    get_next_hpcproject_gid,
+    get_next_hpcuser_uid,
 )
 from usersec.views import (
     MSG_PART_GROUP_CREATION,
@@ -370,6 +373,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             description=obj.description,
             creator=self.request.user,
             name=obj.name,
+            gid=get_next_hpcgroup_gid(),
             folders=obj.folders,
             expiration=obj.expiration,
         )
@@ -384,6 +388,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             creator=self.request.user,
             description="PI, created together with accepting the group request.",
             username=username,
+            uid=get_next_hpcuser_uid(),
             status=OBJECT_STATUS_ACTIVE,
             expiration=datetime(year=timezone.now().year + 1, month=1, day=31),
             home_directory=DEFAULT_HOME_DIRECTORY.format(username=username),
@@ -953,6 +958,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             project = HpcProject.objects.create_with_version(
                 group=obj.group,
                 name=obj.name,
+                gid=get_next_hpcproject_gid(),
                 folders=obj.folders,
                 description=obj.description,
                 resources_requested=obj.resources_requested,

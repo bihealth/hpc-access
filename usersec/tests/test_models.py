@@ -47,6 +47,9 @@ from usersec.models import (
     HpcUserDeleteRequestVersion,
     HpcUserVersion,
     TermsAndConditions,
+    get_next_hpcgroup_gid,
+    get_next_hpcproject_gid,
+    get_next_hpcuser_uid,
     parse_email,
     user_active,
 )
@@ -486,6 +489,35 @@ class PendingRequestTesterMixin:
         self.change_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED})
         self.delete_request_factory(**{self.obj_type: obj, "status": REQUEST_STATUS_RETRACTED})
         self.assertFalse(obj.has_pending_requests())
+
+
+class TestGetNextIdFunctions(TestCase):
+    def test_get_next_hpcuser_id(self):
+        HpcUserFactory(uid=2000)
+        HpcUserFactory(uid=2002)
+        self.assertEqual(get_next_hpcuser_uid(), 2003)
+
+    def test_get_next_hpcuser_id_all_none(self):
+        HpcUserFactory(uid=None)
+        self.assertEqual(get_next_hpcuser_uid(), 1)
+
+    def test_get_next_hpcgroup_id(self):
+        HpcGroupFactory(gid=5000)
+        HpcGroupFactory(gid=5002)
+        self.assertEqual(get_next_hpcgroup_gid(), 5003)
+
+    def test_get_next_hpcgroup_id_all_none(self):
+        HpcGroupFactory(gid=None)
+        self.assertEqual(get_next_hpcgroup_gid(), 1)
+
+    def test_get_next_hpcproject_id(self):
+        HpcProjectFactory(gid=6000)
+        HpcProjectFactory(gid=6002)
+        self.assertEqual(get_next_hpcproject_gid(), 6003)
+
+    def test_get_next_hpcproject_id_all_none(self):
+        HpcProjectFactory(gid=None)
+        self.assertEqual(get_next_hpcproject_gid(), 1)
 
 
 class TestHpcUser(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
