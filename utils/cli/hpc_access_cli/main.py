@@ -129,8 +129,52 @@ def sync_data(
     comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
     operations = comparison.run()
     # console_err.print_json(data=operations.model_dump(mode="json"))
-    for user_op in operations.ldap_user_ops:
-        console_err.print_json(data=user_op.model_dump(mode="json"))
+    with open("ldap_user_disable.ldif", "w") as fh_disable, open("ldap_user_create.ldif", ) as fh_create, open("ldap_user_update.ldif", "w") as fh_update:
+        for user_op in operations.ldap_user_ops:
+            data = user_op.model_dump(mode="json")
+            if data["operation"] == "CREATE":
+                console_err.log(f"create user {data['name']}")
+                fh_create.write(f"dn: {data["user"]['dn']}\n")
+                fh_create.write("changetype: add\n")
+                fh_create.write("objectClass: inetOrgPerson\n")
+                fh_create.write("objectClass: posixAccount\n")
+                fh_create.write("objectClass: ldapPublicKey\n")
+                fh_create.write("objectClass: bih-expireDates\n")
+                fh_create.write("objectClass: top\n")
+                fh_create.write(f"cn: {data['user']['cn']}\n")
+                fh_create.write(f"gidNumber: {data['user']['gidNumber']}\n")
+                fh_create.write(f"homeDirectory: {data['user']['homeDirectory']}\n")
+                fh_create.write(f"sn: {data['user']['sn']}\n")
+                fh_create.write(f"uid: {data['user']['uid']}\n")
+                fh_create.write(f"uidNumber: {data['user']['uidNumber']}\n")
+                if data["user"]["givenName"]:
+                    fh_create.write(f"givenName: {data['user']['givenName']}\n")
+                if data["user"]["loginShell"]:
+                    fh_create.write(f"loginShell: {data['user']['loginShell']}\n")
+                if data["user"]["mail"]:
+                    fh_create.write(f"mail: {data['user']['mail']}\n")
+                if data["user"]["telephoneNumber"]:
+                    fh_create.write(f"telephoneNumber: {data['user']['telephoneNumber']}\n")
+                fh_create.write("\n")
+
+            elif data["operation"] == "UPDATE":
+                console_err.log(f"update user {data['name']}")
+                for key, value in data["diff"].items():
+                    fh_update.write(f"dn: {data["user"]['dn']}\n")
+                    fh_update.write("changetype: modify\n")
+                    if not value:
+                        fh_update.write(f"delete: {key}\n")
+                    else:
+                        fh_update.write(f"replace: {key}\n")
+                        fh_update.write(f"{key}: {value}\n")
+                    fh_update.write("\n")
+
+            elif data["operation"] == "DISABLE":
+                console_err.log(f"disable user {data['name']}")
+                fh_disable.write(f"dn: {data["user"]["dn"]}\n")
+                fh_disable.write("changetype: modify\n")
+                fh_disable.write("replace: login_shell\n")
+                fh_disable.write("login_shell: /usr/sbin/nologin\n\n")
     # connection = LdapConnection(settings.ldap_hpc)
     # console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
     # for group_op in operations.ldap_group_ops:

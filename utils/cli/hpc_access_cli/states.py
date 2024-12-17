@@ -330,6 +330,7 @@ class TargetStateBuilder:
                 cn=user.full_name,
                 sn=user.last_name,
                 given_name=user.first_name,
+                display_name=user.full_name,
                 uid=user.username,
                 mail=user.email,
                 # gecos=None,

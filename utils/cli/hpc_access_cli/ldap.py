@@ -109,6 +109,7 @@ class LdapConnection:
                 raise ValueError(f"Missing LDAP attribute uid for {entry.entry_dn}")
             sn = attribute_as_str(entry.sn)
             given_name = attribute_as_str(entry.givenName)
+            display_name = attribute_as_str(entry.displayName)
             home_directory = attribute_as_str(entry.homeDirectory)
             if not home_directory:
                 raise ValueError(f"Missing LDAP attribute homeDirectory for {entry.entry_dn}")
@@ -123,6 +124,7 @@ class LdapConnection:
                     sn=sn,
                     mail=attribute_as_str(entry.mail),
                     given_name=given_name,
+                    display_name=display_name,
                     uid_number=uid_number,
                     gid_number=gid_number,
                     home_directory=home_directory,
@@ -149,6 +151,11 @@ class LdapConnection:
             "uid": user.uid,
             "uidNumber": user.uid_number,
             "homeDirectory": user.home_directory,
+            "mail": user.mail,
+            "telephoneNumber": user.telephone_number,
+            "loginShell": user.login_shell,
+            "gidNumber": user.gid_number,
+            "displayName": user.display_name,
         }
         if user.sn:
             user_data["sn"] = user.sn

@@ -58,6 +58,7 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             first_name = userinfo.givenName
             last_name = userinfo.sn
             mail = userinfo.mail
+            name = userinfo.displayName
             disabled = True
 
             if userAccountControl:
@@ -78,7 +79,9 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             if uid:
                 user.uid = uid[0]
 
-            user.name = " ".join([user.first_name, user.last_name])
+            if name:
+                user.name = name[0]
+
             user.is_active = not disabled
 
             if user.hpcuser_user.exists():

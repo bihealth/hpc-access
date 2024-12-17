@@ -153,6 +153,8 @@ class LdapUser(BaseModel):
     sn: Optional[str]
     #: The user's given name.
     given_name: Optional[str]
+    #: The user's display name.
+    display_name: Optional[str]
     #: The numeric user ID.
     uid_number: int
     #: The primary group of the user.
