@@ -98,6 +98,7 @@ snapshots["TestHpcUserSerializer::testSerializeExisting 1"] = {
     "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "description": "this is a user",
+    "display_name": None,
     "email": "email_placeholder",
     "expiration": "2050-01-01T00:00:00Z",
     "first_name": "first_name_placeholder",
