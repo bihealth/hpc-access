@@ -126,6 +126,7 @@ class LdapConnection:
                     gid_number=gid_number,
                     home_directory=home_directory,
                     login_shell=login_shell,
+                    telephone_number=attribute_as_str(entry.telephoneNumber),
                     # gecos=None,
                     # ssh_public_key=attribute_list_as_str_list(entry.sshPublicKey),
                 )
