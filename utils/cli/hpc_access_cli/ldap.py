@@ -127,7 +127,7 @@ class LdapConnection:
                     home_directory=home_directory,
                     login_shell=login_shell,
                     # gecos=None,
-                    ssh_public_key=attribute_list_as_str_list(entry.sshPublicKey),
+                    # ssh_public_key=attribute_list_as_str_list(entry.sshPublicKey),
                 )
             )
         return result
