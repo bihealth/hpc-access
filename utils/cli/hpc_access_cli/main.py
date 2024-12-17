@@ -129,7 +129,7 @@ def sync_data(
     comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
     operations = comparison.run()
     # console_err.print_json(data=operations.model_dump(mode="json"))
-    with open("ldap_user_disable.ldif", "w") as fh_disable, open("ldap_user_create.ldif", ) as fh_create, open("ldap_user_update.ldif", "w") as fh_update:
+    with open("ldap_user_disable.ldif", "w") as fh_disable, open("ldap_user_create.ldif", "w") as fh_create, open("ldap_user_update.ldif", "w") as fh_update:
         for user_op in operations.ldap_user_ops:
             data = user_op.model_dump(mode="json")
             if data["operation"] == "CREATE":
