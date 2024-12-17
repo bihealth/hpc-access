@@ -26,7 +26,6 @@ from usersec.models import (
     HpcUser,
 )
 from usersec.serializers import (
-    HpcAccessStatusSerializer,
     HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,
     HpcProjectCreateRequestSerializer,
@@ -218,18 +217,3 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
             raise ValidationError(errors)
 
         super().perform_update(serializer)
-
-
-class HpcAccessStatusApiView(RetrieveAPIView):
-    """API view for listing all users."""
-
-    serializer_class = HpcAccessStatusSerializer
-    permission_classes = [IsAdminUser | IsHpcAdminUser]
-
-    def get_object(self):
-        """Return the object to be used in the view."""
-        return HpcAccessStatus(
-            hpc_users=HpcUser.objects.all(),
-            hpc_groups=HpcGroup.objects.all(),
-            hpc_projects=HpcProject.objects.all(),
-        )

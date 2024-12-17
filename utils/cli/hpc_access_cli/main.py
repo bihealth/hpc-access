@@ -16,7 +16,6 @@ from hpc_access_cli.states import (
     TargetStateBuilder,
     TargetStateComparison,
     convert_to_hpcaccess_state,
-    convert_to_hpcaccess_state_v2,
     deploy_hpcaccess_state,
     fs_validation,
     gather_hpcaccess_state,
@@ -77,20 +76,6 @@ def dump_data(
     console_err.print_json(data=settings.model_dump(mode="json"))
     system_state = gather_system_state(settings)
     hpcaccess_state = convert_to_hpcaccess_state(system_state)
-    console_out.print_json(data=hpcaccess_state.model_dump(mode="json"))
-
-
-@app.command("state-dump-v2")
-def dump_data_v2(
-    config_path: Annotated[
-        str, typer.Option(..., help="path to configuration file")
-    ] = "/etc/hpc-access-cli/config.json",
-):
-    """dump system state as hpc-access state"""
-    settings = load_settings(config_path)
-    console_err.print_json(data=settings.model_dump(mode="json"))
-    system_state = gather_system_state(settings)
-    hpcaccess_state = convert_to_hpcaccess_state_v2(system_state)
     console_out.print_json(data=hpcaccess_state.model_dump(mode="json"))
 
 
