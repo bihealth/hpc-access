@@ -37,7 +37,7 @@ from hpc_access_cli.models import (
     LOGIN_SHELL_DISABLED,
     FsDirectory,
     FsDirectoryOp,
-    Gecos,
+    # Gecos,
     GroupFolders,
     HpcaccessState,
     HpcaccessStateV2,
@@ -313,12 +313,13 @@ class TargetStateBuilder:
         """Build the LDAP users from the hpc-access state."""
         result = {}
         for user in hpcaccess_state.hpc_users.values():
-            gecos = Gecos(
-                full_name=user.full_name,
-                office_location=None,
-                office_phone=user.phone_number,
-                other=None,
-            )
+            # gecos = Gecos(
+            #     full_name=user.full_name,
+            #     office_location=None,
+            #     office_phone=user.phone_number,
+            #     home_phone=None,
+            #     other=None,
+            # )
             if user.primary_group:
                 hpc_group = hpcaccess_state.hpc_groups[user.primary_group]
                 group_gid = hpc_group.gid or HPC_ALUMNIS_GID
@@ -331,15 +332,14 @@ class TargetStateBuilder:
                 given_name=user.first_name,
                 uid=user.username,
                 mail=user.email,
-                gecos=gecos,
+                # gecos=None,
                 uid_number=user.uid,
                 gid_number=group_gid,
-                # user.home_directory
-                home_directory=f"{BASE_PATH_TIER1}/home/users/{user.username}",
-                # user.login_shell
-                login_shell="/usr/bin/bash",
+                home_directory=user.home_directory,
+                login_shell=user.login_shell,
+                telephone_number=user.phone_number,
                 # SSH keys are managed via upstream LDAP.
-                ssh_public_key=[],
+                # ssh_public_key=[],
             )
         return result
 
@@ -517,7 +517,7 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             first_name=u.given_name,
             last_name=u.sn,
             email=u.mail,
-            phone_number=u.gecos.office_phone if u.gecos else None,
+            phone_number=u.telephone_number,
             resources_requested=ResourceDataUser(**quotas),
             resources_used=ResourceDataUser(
                 tier1_home=0,
@@ -689,7 +689,7 @@ def convert_to_hpcaccess_state_v2(system_state: SystemState) -> HpcaccessStateV2
             first_name=u.given_name,
             last_name=u.sn,
             email=u.mail,
-            phone_number=u.gecos.office_phone if u.gecos else None,
+            phone_number=u.telephone_number,
             resources_requested=ResourceDataUser(**quotas),
             status=status,
             uid=u.uid_number,

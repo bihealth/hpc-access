@@ -97,45 +97,45 @@ class FsDirectory(BaseModel):
         )
 
 
-class Gecos(BaseModel):
-    """GECOS information about a user."""
+# class Gecos(BaseModel):
+#     """GECOS information about a user."""
 
-    #: The full name of the user.
-    full_name: Optional[str] = None
-    #: The office location of the user.
-    office_location: Optional[str] = None
-    #: The office phone number of the user.
-    office_phone: Optional[str] = None
-    #: The home phone number of the user.
-    home_phone: Optional[str] = None
-    #: The other information about the user.
-    other: Optional[str] = None
+#     #: The full name of the user.
+#     full_name: Optional[str] = None
+#     #: The office location of the user.
+#     office_location: Optional[str] = None
+#     #: The office phone number of the user.
+#     office_phone: Optional[str] = None
+#     #: The home phone number of the user.
+#     home_phone: Optional[str] = None
+#     #: The other information about the user.
+#     other: Optional[str] = None
 
-    def to_string(self):
-        """Convert the GECOS information to a GECOS string."""
-        return ",".join(
-            [
-                self.full_name if self.full_name else "",
-                self.office_location if self.office_location else "",
-                self.office_phone if self.office_phone else "",
-                self.home_phone if self.home_phone else "",
-                self.other if self.other else "",
-            ]
-        )
+#     def to_string(self):
+#         """Convert the GECOS information to a GECOS string."""
+#         return ",".join(
+#             [
+#                 self.full_name if self.full_name else "",
+#                 self.office_location if self.office_location else "",
+#                 self.office_phone if self.office_phone else "",
+#                 self.home_phone if self.home_phone else "",
+#                 self.other if self.other else "",
+#             ]
+#         )
 
-    @staticmethod
-    def from_string(gecos: str) -> "Gecos":
-        """Create a new instance from a GECOS string."""
-        parts = gecos.split(",", 4)
-        if len(parts) < 5:
-            parts.extend([""] * (5 - len(parts)))
-        return Gecos(
-            full_name=parts[0] if parts[0] != "None" else None,
-            office_location=parts[1] if parts[1] != "None" else None,
-            office_phone=parts[2] if parts[2] != "None" else None,
-            home_phone=parts[3] if parts[3] != "None" else None,
-            other=parts[4] if parts[4] != "None" else None,
-        )
+#     @staticmethod
+#     def from_string(gecos: str) -> "Gecos":
+#         """Create a new instance from a GECOS string."""
+#         parts = gecos.split(",", 4)
+#         if len(parts) < 5:
+#             parts.extend([""] * (5 - len(parts)))
+#         return Gecos(
+#             full_name=parts[0] if parts[0] != "None" else None,
+#             office_location=parts[1] if parts[1] != "None" else None,
+#             office_phone=parts[2] if parts[2] != "None" else None,
+#             home_phone=parts[3] if parts[3] != "None" else None,
+#             other=parts[4] if parts[4] != "None" else None,
+#         )
 
 
 class LdapUser(BaseModel):
@@ -161,10 +161,12 @@ class LdapUser(BaseModel):
     home_directory: str
     #: The login shell of the user.
     login_shell: str
-    #: The GECOS information of the user.
-    gecos: Optional[Gecos]
-    #: Public SSH keys.
-    ssh_public_key: List[str]
+    # #: The GECOS information of the user.
+    # gecos: Optional[Gecos]
+    # #: Public SSH keys.
+    # ssh_public_key: List[str]
+    #: Telephone number.
+    telephone_number: Optional[str]
 
 
 class LdapGroup(BaseModel):

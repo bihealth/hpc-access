@@ -10,7 +10,7 @@ from rich.console import Console
 from hpc_access_cli.config import LdapSettings
 from hpc_access_cli.models import (
     LOGIN_SHELL_DISABLED,
-    Gecos,
+    # Gecos,
     LdapGroup,
     LdapGroupOp,
     LdapUser,
@@ -80,7 +80,7 @@ class LdapConnection:
                 "uidNumber",
                 "gidNumber",
                 "homeDirectory",
-                "gecos",
+                # "gecos",
                 "loginShell",
                 "mail",
                 "displayName",
@@ -90,8 +90,8 @@ class LdapConnection:
             raise Exception("Failed to search for users.")
         result = []
         for entry in self.connection.entries:
-            gecos_str = attribute_as_str(entry.gecos)
-            gecos = Gecos.from_string(gecos_str) if gecos_str else None
+            # gecos_str = attribute_as_str(entry.gecos)
+            # gecos = Gecos.from_string(gecos_str) if gecos_str else None
             uid_str = attribute_as_str(entry.uidNumber)
             uid_number = int(uid_str) if uid_str else None
             if not uid_number:
@@ -126,7 +126,7 @@ class LdapConnection:
                     gid_number=gid_number,
                     home_directory=home_directory,
                     login_shell=login_shell,
-                    gecos=gecos,
+                    # gecos=None,
                     ssh_public_key=attribute_list_as_str_list(entry.sshPublicKey),
                 )
             )
@@ -226,10 +226,10 @@ class LdapConnection:
         applied_diff = {}
         for key, value in diff.items():
             key = humps.camelize(key)
-            if key == "gecos":
-                gecos: Gecos = value or Gecos()  # type: ignore
-                applied_diff[key] = Gecos.model_validate(gecos).to_string()
-            elif key == "sshPublicKey":
+            # if key == "gecos":
+            #     gecos: Gecos = value or Gecos()  # type: ignore
+            #     applied_diff[key] = Gecos.model_validate(gecos).to_string()
+            if key == "sshPublicKey":
                 # We only support clearing this list for now which is fine as the
                 # SSH keys live in the upstream ADs only.
                 applied_diff[key] = [(ldap3.MODIFY_DELETE, x) for x in writable[key]]
