@@ -43,6 +43,7 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     full_name = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
     phone_number = serializers.SerializerMethodField()
     home_directory = serializers.CharField()
     login_shell = serializers.CharField()
@@ -65,12 +66,16 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     def get_uid(self, obj) -> Optional[int]:
         return obj.user.uid
 
+    def get_display_name(self, obj) -> Optional[str]:
+        return obj.user.display_name
+
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "email",
             "full_name",
             "first_name",
             "last_name",
+            "display_name",
             "phone_number",
             "primary_group",
             "resources_requested",

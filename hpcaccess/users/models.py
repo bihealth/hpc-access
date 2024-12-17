@@ -21,6 +21,7 @@ class User(AbstractUser):
     phone = CharField(_("Phone number of User"), blank=True, null=True, max_length=32)
     email = EmailField(_("email address"), blank=True, null=True)
     uid = IntegerField(_("UID of User"), blank=True, null=True)
+    display_name = CharField(_("Display Name"), blank=True, null=True, max_length=255)
     consented_to_terms = BooleanField(
         _("Terms consent status"),
         default=False,
