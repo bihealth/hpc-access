@@ -188,6 +188,7 @@ class LdapConnector:
                 "userAccountControl",
                 "telephoneNumber",
                 "uidNumber",
+                "cn",
             ],
         }
 

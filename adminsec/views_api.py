@@ -5,7 +5,6 @@ import re
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
-    RetrieveAPIView,
     RetrieveUpdateAPIView,
     get_object_or_404,
 )
@@ -15,7 +14,6 @@ from adminsec.constants import (
     RE_FOLDER,
     RE_NAME,
 )
-from adminsec.models import HpcAccessStatus
 from adminsec.permissions_api import IsHpcAdminUser
 from hpcaccess.utils.rest_framework import CursorPagination
 from usersec.models import (
@@ -26,7 +24,6 @@ from usersec.models import (
     HpcUser,
 )
 from usersec.serializers import (
-    HpcAccessStatusSerializer,
     HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,
     HpcProjectCreateRequestSerializer,
@@ -218,18 +215,3 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
             raise ValidationError(errors)
 
         super().perform_update(serializer)
-
-
-class HpcAccessStatusApiView(RetrieveAPIView):
-    """API view for listing all users."""
-
-    serializer_class = HpcAccessStatusSerializer
-    permission_classes = [IsAdminUser | IsHpcAdminUser]
-
-    def get_object(self):
-        """Return the object to be used in the view."""
-        return HpcAccessStatus(
-            hpc_users=HpcUser.objects.all(),
-            hpc_groups=HpcGroup.objects.all(),
-            hpc_projects=HpcProject.objects.all(),
-        )

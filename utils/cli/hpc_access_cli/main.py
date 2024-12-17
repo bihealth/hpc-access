@@ -1,4 +1,3 @@
-import os
 import sys
 from typing import List
 
@@ -9,18 +8,17 @@ from typing_extensions import Annotated
 
 from hpc_access_cli.config import load_settings
 from hpc_access_cli.constants import ENTITIES, ENTITY_USERS
-from hpc_access_cli.fs import FsResourceManager
-from hpc_access_cli.ldap import LdapConnection
+from hpc_access_cli.fs import FS_GROUP_OPS, FS_PROJECT_OPS, FS_USER_OPS
 from hpc_access_cli.models import StateOperation
 from hpc_access_cli.states import (
     TargetStateBuilder,
     TargetStateComparison,
     convert_to_hpcaccess_state,
-    convert_to_hpcaccess_state_v2,
     deploy_hpcaccess_state,
     fs_validation,
     gather_hpcaccess_state,
     gather_system_state,
+    user_dn,
 )
 
 #: The typer application object to use.
@@ -80,20 +78,6 @@ def dump_data(
     console_out.print_json(data=hpcaccess_state.model_dump(mode="json"))
 
 
-@app.command("state-dump-v2")
-def dump_data_v2(
-    config_path: Annotated[
-        str, typer.Option(..., help="path to configuration file")
-    ] = "/etc/hpc-access-cli/config.json",
-):
-    """dump system state as hpc-access state"""
-    settings = load_settings(config_path)
-    console_err.print_json(data=settings.model_dump(mode="json"))
-    system_state = gather_system_state(settings)
-    hpcaccess_state = convert_to_hpcaccess_state_v2(system_state)
-    console_out.print_json(data=hpcaccess_state.model_dump(mode="json"))
-
-
 @app.command("state-sync")
 def sync_data(
     config_path: Annotated[
@@ -124,22 +108,134 @@ def sync_data(
     )
     # console_err.print_json(data=settings.model_dump(mode="json"))
     src_state = gather_system_state(settings)
-    dst_builder = TargetStateBuilder(settings.hpc_access, src_state)
+    hpcaccess_state = gather_hpcaccess_state(settings.hpc_access)
+    dst_builder = TargetStateBuilder(hpcaccess_state, src_state)
     dst_state = dst_builder.run()
-    comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
+    comparison = TargetStateComparison(src_state, dst_state)
     operations = comparison.run()
+    group_by_gid = {g.gid: g for g in hpcaccess_state.hpc_groups.values()}
+    user_by_uuid = {u.uuid: u for u in hpcaccess_state.hpc_users.values()}
+    owner_by_dn = {
+        user_dn(user_by_uuid[g.owner]): g.owner for g in hpcaccess_state.hpc_groups.values()
+    }
     # console_err.print_json(data=operations.model_dump(mode="json"))
-    connection = LdapConnection(settings.ldap_hpc)
-    console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
-    for group_op in operations.ldap_group_ops:
-        connection.apply_group_op(group_op, dry_run)
-    console_err.log(f"applying LDAP user operations now, dry_run={dry_run}")
-    for user_op in operations.ldap_user_ops:
-        connection.apply_user_op(user_op, dry_run)
-    console_err.log(f"applying file system operations now, dry_run={dry_run}")
-    fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
-    for fs_op in operations.fs_ops:
-        fs_mgr.apply_fs_op(fs_op, dry_run)
+    with open("ldap_user_ops.ldif", "w") as fh_ldap_user_ops:
+        for user_op in operations.ldap_user_ops:
+            if user_op.operation == StateOperation.CREATE:
+                console_err.log(f"create user {user_op.user.dn}")
+                fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
+                fh_ldap_user_ops.write("changetype: add\n")
+                fh_ldap_user_ops.write("objectClass: inetOrgPerson\n")
+                fh_ldap_user_ops.write("objectClass: posixAccount\n")
+                fh_ldap_user_ops.write("objectClass: ldapPublicKey\n")
+                fh_ldap_user_ops.write("objectClass: bih-expireDates\n")
+                fh_ldap_user_ops.write("objectClass: top\n")
+                fh_ldap_user_ops.write(f"cn: {user_op.user.cn}\n")
+                fh_ldap_user_ops.write(f"gidNumber: {user_op.user.gid_number}\n")
+                fh_ldap_user_ops.write(f"homeDirectory: {user_op.user.home_directory}\n")
+                fh_ldap_user_ops.write(f"sn: {user_op.user.sn}\n")
+                fh_ldap_user_ops.write(f"uid: {user_op.user.uid}\n")
+                fh_ldap_user_ops.write(f"uidNumber: {user_op.user.uid_number}\n")
+                if user_op.user.given_name:
+                    fh_ldap_user_ops.write(f"givenName: {user_op.user.given_name}\n")
+                if user_op.user.login_shell:
+                    fh_ldap_user_ops.write(f"loginShell: {user_op.user.login_shell}\n")
+                if user_op.user.mail:
+                    fh_ldap_user_ops.write(f"mail: {user_op.user.mail}\n")
+                if user_op.user.telephone_number:
+                    fh_ldap_user_ops.write(f"telephoneNumber: {user_op.user.telephone_number}\n")
+                fh_ldap_user_ops.write("\n")
+
+                group_folders = group_by_gid[user_op.user.gid_number].folders
+                users_folder = f"users/{user_op.user.uid}"
+
+                with open(f"fs_user_ops_{user_op.user.uid}.sh", "w") as fh_fs_user_ops:
+                    fh_fs_user_ops.write(
+                        FS_USER_OPS
+                        % {
+                            "username": user_op.user.uid,
+                            "folder_home": user_op.user.home_directory,
+                            "folder_work": f"{group_folders.tier1_work}/{users_folder}",
+                            "folder_scratch": f"{group_folders.tier1_scratch}/{users_folder}",
+                            "folder_group_work": group_folders.tier1_work,
+                            "folder_group_scratch": group_folders.tier1_scratch,
+                        }
+                    )
+
+            elif user_op.operation == StateOperation.UPDATE:
+                console_err.log(f"update user {user_op.user.dn}")
+                fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
+                fh_ldap_user_ops.write("changetype: modify\n")
+                for i, (key, value) in enumerate(user_op.diff.items(), 1):
+                    if not value:
+                        fh_ldap_user_ops.write(f"delete: {key}\n")
+                    else:
+                        fh_ldap_user_ops.write(f"replace: {key}\n")
+                        fh_ldap_user_ops.write(f"{key}: {value}\n")
+                    if i < len(user_op.diff):
+                        fh_ldap_user_ops.write("-\n")
+                fh_ldap_user_ops.write("\n")
+
+            elif user_op.operation == StateOperation.DISABLE:
+                console_err.log(f"disable user {user_op.user.dn}")
+                fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
+                fh_ldap_user_ops.write("changetype: modify\n")
+                fh_ldap_user_ops.write("replace: login_shell\n")
+                fh_ldap_user_ops.write("login_shell: /usr/sbin/nologin\n\n")
+
+    with open("ldap_group_ops.ldif", "w") as fh_ldap_group_ops:
+        for group_op in operations.ldap_group_ops:
+            if group_op.operation == StateOperation.CREATE:
+                console_err.log(f"create group {group_op.group.dn}")
+                fh_ldap_group_ops.write(f"dn: {group_op.group.dn}\n")
+                fh_ldap_group_ops.write("changetype: add\n")
+                fh_ldap_group_ops.write("objectClass: groupOfNames\n")
+                fh_ldap_group_ops.write("objectClass: top\n")
+                fh_ldap_group_ops.write(f"cn: {group_op.group.cn}\n")
+                for member in group_op.group.member_uids:
+                    fh_ldap_group_ops.write(f"member: {member}\n")
+                fh_ldap_group_ops.write("\n")
+                FS_OPS = FS_PROJECT_OPS if group_op.group.cn.startswith("hpc-prj") else FS_GROUP_OPS
+                group = group_by_gid[group_op.group.gid_number]
+                with open(f"fs_group_ops_{group_op.group.dn}.sh", "w") as fh_fs_group_ops:
+                    fh_fs_group_ops.write(
+                        FS_OPS
+                        % {
+                            "owner": owner_by_dn(group_op.group.owner_dn),
+                            "group": group_op.group.cn,
+                            "quota1": group.resources_requested.tier1_work,
+                            "quota2": group.resources_requested.tier1_scratch,
+                            "folder_work": group.folders.tier1_work,
+                            "folder_scratch": group.folders.tier1_scratch,
+                            "folder_unmirrored": group.folders.tier2_unmirrored,
+                        }
+                    )
+
+            elif group_op.operation == StateOperation.UPDATE:
+                console_err.log(f"update group {group_op.group.dn}")
+                fh_ldap_group_ops.write(f"dn: {group_op.group.dn}\n")
+                fh_ldap_group_ops.write("changetype: modify\n")
+                for i, (key, value) in enumerate(group_op.diff.items(), 1):
+                    if not value:
+                        fh_ldap_group_ops.write(f"delete: {key}\n")
+                    else:
+                        fh_ldap_group_ops.write(f"replace: {key}\n")
+                        fh_ldap_group_ops.write(f"{key}: {value}\n")
+                    if i < len(group_op.diff):
+                        fh_ldap_group_ops.write("-\n")
+                fh_ldap_group_ops.write("\n")
+
+    # connection = LdapConnection(settings.ldap_hpc)
+    # console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
+    # for group_op in operations.ldap_group_ops:
+    #     connection.apply_group_op(group_op, dry_run)
+    # console_err.log(f"applying LDAP user operations now, dry_run={dry_run}")
+    # for user_op in operations.ldap_user_ops:
+    #     connection.apply_user_op(user_op, dry_run)
+    # console_err.log(f"applying file system operations now, dry_run={dry_run}")
+    # fs_mgr = FsResourceManager("")
+    # for fs_op in operations.fs_ops:
+    #     fs_mgr.apply_fs_op(fs_op, dry_run)
 
 
 @app.command("storage-usage-sync")
