@@ -133,7 +133,7 @@ def sync_data(
         for user_op in operations.ldap_user_ops:
             data = user_op.model_dump(mode="json")
             if data["operation"] == "CREATE":
-                console_err.log(f"create user {data['name']}")
+                console_err.log(f"create user {data['user']['dn']}")
                 fh_create.write(f"dn: {data["user"]['dn']}\n")
                 fh_create.write("changetype: add\n")
                 fh_create.write("objectClass: inetOrgPerson\n")
@@ -158,7 +158,7 @@ def sync_data(
                 fh_create.write("\n")
 
             elif data["operation"] == "UPDATE":
-                console_err.log(f"update user {data['name']}")
+                console_err.log(f"update user {data['user']['dn']}")
                 for key, value in data["diff"].items():
                     fh_update.write(f"dn: {data["user"]['dn']}\n")
                     fh_update.write("changetype: modify\n")
@@ -170,7 +170,7 @@ def sync_data(
                     fh_update.write("\n")
 
             elif data["operation"] == "DISABLE":
-                console_err.log(f"disable user {data['name']}")
+                console_err.log(f"disable user {data['user']['dn']}")
                 fh_disable.write(f"dn: {data["user"]["dn"]}\n")
                 fh_disable.write("changetype: modify\n")
                 fh_disable.write("replace: login_shell\n")
