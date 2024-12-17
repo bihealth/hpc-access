@@ -129,17 +129,19 @@ def sync_data(
     comparison = TargetStateComparison(settings.hpc_access, src_state, dst_state)
     operations = comparison.run()
     # console_err.print_json(data=operations.model_dump(mode="json"))
-    connection = LdapConnection(settings.ldap_hpc)
-    console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
-    for group_op in operations.ldap_group_ops:
-        connection.apply_group_op(group_op, dry_run)
-    console_err.log(f"applying LDAP user operations now, dry_run={dry_run}")
     for user_op in operations.ldap_user_ops:
-        connection.apply_user_op(user_op, dry_run)
-    console_err.log(f"applying file system operations now, dry_run={dry_run}")
-    fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
-    for fs_op in operations.fs_ops:
-        fs_mgr.apply_fs_op(fs_op, dry_run)
+        console_err.print_json(data=user_op.model_dump(mode="json"))
+    # connection = LdapConnection(settings.ldap_hpc)
+    # console_err.log(f"applying LDAP group operations now, dry_run={dry_run}")
+    # for group_op in operations.ldap_group_ops:
+    #     connection.apply_group_op(group_op, dry_run)
+    # console_err.log(f"applying LDAP user operations now, dry_run={dry_run}")
+    # for user_op in operations.ldap_user_ops:
+    #     connection.apply_user_op(user_op, dry_run)
+    # console_err.log(f"applying file system operations now, dry_run={dry_run}")
+    # fs_mgr = FsResourceManager(prefix="/data/sshfs" if os.environ.get("DEBUG", "0") == "1" else "")
+    # for fs_op in operations.fs_ops:
+    #     fs_mgr.apply_fs_op(fs_op, dry_run)
 
 
 @app.command("storage-usage-sync")

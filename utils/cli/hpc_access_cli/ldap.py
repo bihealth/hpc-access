@@ -85,6 +85,7 @@ class LdapConnection:
                 "mail",
                 "displayName",
                 "sshPublicKey",
+                "telephoneNumber",
             ],
         ):
             raise Exception("Failed to search for users.")
@@ -173,8 +174,8 @@ class LdapConnection:
                 "objectclass",
                 "uid",
                 "uidNumber",
-                "telephoneNumber",
                 "mail",
+                "telephoneNumber",
                 "displayName",
                 "sshPublicKey",
                 "loginShell",
@@ -209,8 +210,8 @@ class LdapConnection:
                 "objectclass",
                 "uid",
                 "uidNumber",
-                "telephoneNumber",
                 "mail",
+                "telephoneNumber",
                 "displayName",
                 "sshPublicKey",
                 "loginShell",
