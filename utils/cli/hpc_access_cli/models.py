@@ -251,6 +251,8 @@ class HpcUser(BaseModel):
     first_name: Optional[str]
     #: The last name of the user.
     last_name: Optional[str]
+    #: The display name of the user.
+    display_name: Optional[str]
     #: The office phone number of the user.
     phone_number: Optional[str]
     #: The requested resources.
