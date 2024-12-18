@@ -576,6 +576,9 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             group = None
         else:
             group = group_uuids[group_by_gid_number[gid_number].cn]
+            owner_uuid = user_uuids[user_by_dn[group_by_gid_number[gid_number].owner_dn].uid]
+            if owner_uuid not in members:
+                members.append(owner_uuid)
         return HpcProject(
             uuid=group_uuids[p.cn],
             name=name,
