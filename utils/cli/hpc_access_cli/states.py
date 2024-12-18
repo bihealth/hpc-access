@@ -150,6 +150,7 @@ class TargetStateBuilder:
             gid_number=HPC_USERS_GID,
             owner_dn=None,
             delegate_dns=[],
+            description="users allowed to login (active+have group)",
             member_uids=[
                 u.uid
                 for u in ldap_users.values()
