@@ -384,7 +384,7 @@ class TargetStateBuilder:
                 description=project.description,
                 owner_dn=owner_dn,
                 delegate_dns=[user_dn(delegate)] if delegate else [],
-                member_uids=list(set(state.hpc_users[m].username for m in project.members)),
+                member_uids=[state.hpc_users[m].username for m in project.members].sort(),
             )
         return result
 
