@@ -92,6 +92,7 @@ class Command(BaseCommand):
                         first_name=user_data.first_name.strip(),
                         last_name=user_data.last_name.strip(),
                         name=user_data.full_name.strip(),
+                        display_name=user_data.display_name.strip(),
                         email=user_data.email,
                         is_staff=False,
                         is_superuser=False,
