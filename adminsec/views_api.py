@@ -5,7 +5,6 @@ import re
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
-    RetrieveAPIView,
     RetrieveUpdateAPIView,
     get_object_or_404,
 )
@@ -15,7 +14,6 @@ from adminsec.constants import (
     RE_FOLDER,
     RE_NAME,
 )
-from adminsec.models import HpcAccessStatus
 from adminsec.permissions_api import IsHpcAdminUser
 from hpcaccess.utils.rest_framework import CursorPagination
 from usersec.models import (

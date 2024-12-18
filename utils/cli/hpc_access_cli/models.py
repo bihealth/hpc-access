@@ -308,7 +308,6 @@ class HpcGroup(BaseModel):
     current_version: int
 
 
-
 class HpcProject(BaseModel):
     """A project as read from the hpc-access API."""
 
