@@ -142,8 +142,8 @@ def sync_data(
             elif data["operation"] == "UPDATE":
                 console_err.log(f"update user {data['user']['dn']}")
                 fh_user_ops.write(f"dn: {data["user"]['dn']}\n")
+                fh_user_ops.write("changetype: modify\n")
                 for i, (key, value) in enumerate(data["diff"].items(), 1):
-                    fh_user_ops.write("changetype: modify\n")
                     if not value:
                         fh_user_ops.write(f"delete: {key}\n")
                     else:

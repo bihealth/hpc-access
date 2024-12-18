@@ -148,7 +148,6 @@ class TargetStateBuilder:
             dn="cn=hpc-users,ou=Groups,dc=hpc,dc=bihealth,dc=org",
             cn="hpc-users",
             gid_number=HPC_USERS_GID,
-            description="users allowed to login (active+have group)",
             owner_dn=None,
             delegate_dns=[],
             member_uids=[
@@ -384,7 +383,7 @@ class TargetStateBuilder:
                 description=project.description,
                 owner_dn=owner_dn,
                 delegate_dns=[user_dn(delegate)] if delegate else [],
-                member_uids=[],
+                member_uids=[state.hpc_users[m].username for m in project.members],
             )
         return result
 
