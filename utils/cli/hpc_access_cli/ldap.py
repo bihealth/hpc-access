@@ -282,7 +282,7 @@ class LdapConnection:
                 raise ValueError(f"Missing LDAP attribute gidNumber for {entry.entry_dn}")
             owner_dn = attribute_as_str(entry["bih-groupOwnerDN"])
             delegate_dns = attribute_list_as_str_list(entry["bih-groupDelegateDNs"])
-            member_uids = attribute_list_as_str_list(entry.memberUid).sort()
+            member_uids = sorted(attribute_list_as_str_list(entry.memberUid))
             result.append(
                 LdapGroup(
                     dn=entry.entry_dn,
