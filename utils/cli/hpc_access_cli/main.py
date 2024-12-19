@@ -121,7 +121,7 @@ def sync_data(
     # console_err.print_json(data=operations.model_dump(mode="json"))
     with open("ldap_user_ops.ldif", "w") as fh_ldap_user_ops:
         for user_op in operations.ldap_user_ops:
-            if user_op.operation == "CREATE":
+            if user_op.operation == StateOperation.CREATE:
                 console_err.log(f"create user {user_op.user.dn}")
                 fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
                 fh_ldap_user_ops.write("changetype: add\n")
@@ -162,7 +162,7 @@ def sync_data(
                         }
                     )
 
-            elif user_op.operation == "UPDATE":
+            elif user_op.operation == StateOperation.UPDATE:
                 console_err.log(f"update user {user_op.user.dn}")
                 fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
                 fh_ldap_user_ops.write("changetype: modify\n")
@@ -185,7 +185,7 @@ def sync_data(
 
     with open("ldap_group_ops.ldif", "w") as fh_ldap_group_ops:
         for group_op in operations.ldap_group_ops:
-            if group_op.operation == "CREATE":
+            if group_op.operation == StateOperation.CREATE:
                 console_err.log(f"create group {group_op.group.dn}")
                 fh_ldap_group_ops.write(f"dn: {group_op.group.dn}\n")
                 fh_ldap_group_ops.write("changetype: add\n")
@@ -211,7 +211,7 @@ def sync_data(
                         }
                     )
 
-            elif group_op.operation == "UPDATE":
+            elif group_op.operation == StateOperation.UPDATE:
                 console_err.log(f"update group {group_op.group.dn}")
                 fh_ldap_group_ops.write(f"dn: {group_op.group.dn}\n")
                 fh_ldap_group_ops.write("changetype: modify\n")
