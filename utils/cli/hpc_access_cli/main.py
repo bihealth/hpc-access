@@ -176,7 +176,7 @@ def sync_data(
                         fh_ldap_user_ops.write("-\n")
                 fh_ldap_user_ops.write("\n")
 
-            elif user_op.operation == "DISABLE":
+            elif user_op.operation == StateOperation.DISABLE:
                 console_err.log(f"disable user {user_op.user.dn}")
                 fh_ldap_user_ops.write(f"dn: {user_op.user.dn}\n")
                 fh_ldap_user_ops.write("changetype: modify\n")
