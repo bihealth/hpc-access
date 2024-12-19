@@ -97,45 +97,45 @@ class FsDirectory(BaseModel):
         )
 
 
-class Gecos(BaseModel):
-    """GECOS information about a user."""
+# class Gecos(BaseModel):
+#     """GECOS information about a user."""
 
-    #: The full name of the user.
-    full_name: Optional[str] = None
-    #: The office location of the user.
-    office_location: Optional[str] = None
-    #: The office phone number of the user.
-    office_phone: Optional[str] = None
-    #: The home phone number of the user.
-    home_phone: Optional[str] = None
-    #: The other information about the user.
-    other: Optional[str] = None
+#     #: The full name of the user.
+#     full_name: Optional[str] = None
+#     #: The office location of the user.
+#     office_location: Optional[str] = None
+#     #: The office phone number of the user.
+#     office_phone: Optional[str] = None
+#     #: The home phone number of the user.
+#     home_phone: Optional[str] = None
+#     #: The other information about the user.
+#     other: Optional[str] = None
 
-    def to_string(self):
-        """Convert the GECOS information to a GECOS string."""
-        return ",".join(
-            [
-                self.full_name if self.full_name else "",
-                self.office_location if self.office_location else "",
-                self.office_phone if self.office_phone else "",
-                self.home_phone if self.home_phone else "",
-                self.other if self.other else "",
-            ]
-        )
+#     def to_string(self):
+#         """Convert the GECOS information to a GECOS string."""
+#         return ",".join(
+#             [
+#                 self.full_name if self.full_name else "",
+#                 self.office_location if self.office_location else "",
+#                 self.office_phone if self.office_phone else "",
+#                 self.home_phone if self.home_phone else "",
+#                 self.other if self.other else "",
+#             ]
+#         )
 
-    @staticmethod
-    def from_string(gecos: str) -> "Gecos":
-        """Create a new instance from a GECOS string."""
-        parts = gecos.split(",", 4)
-        if len(parts) < 5:
-            parts.extend([""] * (5 - len(parts)))
-        return Gecos(
-            full_name=parts[0] if parts[0] != "None" else None,
-            office_location=parts[1] if parts[1] != "None" else None,
-            office_phone=parts[2] if parts[2] != "None" else None,
-            home_phone=parts[3] if parts[3] != "None" else None,
-            other=parts[4] if parts[4] != "None" else None,
-        )
+#     @staticmethod
+#     def from_string(gecos: str) -> "Gecos":
+#         """Create a new instance from a GECOS string."""
+#         parts = gecos.split(",", 4)
+#         if len(parts) < 5:
+#             parts.extend([""] * (5 - len(parts)))
+#         return Gecos(
+#             full_name=parts[0] if parts[0] != "None" else None,
+#             office_location=parts[1] if parts[1] != "None" else None,
+#             office_phone=parts[2] if parts[2] != "None" else None,
+#             home_phone=parts[3] if parts[3] != "None" else None,
+#             other=parts[4] if parts[4] != "None" else None,
+#         )
 
 
 class LdapUser(BaseModel):
@@ -153,6 +153,8 @@ class LdapUser(BaseModel):
     sn: Optional[str]
     #: The user's given name.
     given_name: Optional[str]
+    #: The user's display name.
+    display_name: Optional[str]
     #: The numeric user ID.
     uid_number: int
     #: The primary group of the user.
@@ -161,10 +163,12 @@ class LdapUser(BaseModel):
     home_directory: str
     #: The login shell of the user.
     login_shell: str
-    #: The GECOS information of the user.
-    gecos: Optional[Gecos]
-    #: Public SSH keys.
-    ssh_public_key: List[str]
+    # #: The GECOS information of the user.
+    # gecos: Optional[Gecos]
+    # #: Public SSH keys.
+    # ssh_public_key: List[str]
+    #: Telephone number.
+    telephone_number: Optional[str]
 
 
 class LdapGroup(BaseModel):
@@ -275,37 +279,6 @@ class HpcUser(BaseModel):
     current_version: int
 
 
-class HpcUserV2(BaseModel):
-    """A user as read from the hpc-access API."""
-
-    #: The UUID of the primary ``HpcGroup``.
-    primary_group: Optional[str]
-    #: Description of the record.
-    description: Optional[str]
-    #: The user's email address.
-    email: Optional[str]
-    #: The full name of the user.
-    full_name: str
-    #: The first name fo the user.
-    first_name: Optional[str]
-    #: The last name of the user.
-    last_name: Optional[str]
-    #: The office phone number of the user.
-    phone_number: Optional[str]
-    #: The requested resources.
-    resources_requested: Optional[ResourceDataUser]
-    #: The status of the record.
-    status: Status
-    #: The POSIX UID of the user.
-    uid: int
-    #: The username of the record.
-    username: str
-    #: The home directory.
-    home_directory: str
-    #: The login shell
-    login_shell: str
-
-
 class HpcGroup(BaseModel):
     """A group as read from the hpc-access API."""
 
@@ -333,27 +306,6 @@ class HpcGroup(BaseModel):
     expiration: datetime.datetime
     #: The version of the group record.
     current_version: int
-
-
-class HpcGroupV2(BaseModel):
-    """A group as read from the hpc-access API."""
-
-    #: The owning ``HpcUser``.
-    owner: str
-    #: Description of the record.
-    description: Optional[str]
-    #: The delegate.
-    delegate: Optional[str]
-    #: The requested resources.
-    resources_requested: Optional[ResourceData]
-    #: The status of the record.
-    status: Status
-    #: The POSIX GID of the corresponding Unix group.
-    gid: Optional[int]
-    #: The name of the record.
-    name: str
-    #: The folders of the group.
-    folders: GroupFolders
 
 
 class HpcProject(BaseModel):
@@ -387,29 +339,6 @@ class HpcProject(BaseModel):
     members: List[UUID]
 
 
-class HpcProjectV2(BaseModel):
-    """A project as read from the hpc-access API."""
-
-    #: The owning ``HpcGroup``, owner of group is owner of project.
-    group: Optional[str]
-    #: Description of the record.
-    description: Optional[str]
-    #: The delegate for the project.
-    delegate: Optional[str]
-    #: The requested resources.
-    resources_requested: Optional[ResourceData]
-    #: The status of the record.
-    status: Status
-    #: The POSIX GID of the corresponding Unix group.
-    gid: Optional[int]
-    #: The name of the record.
-    name: str
-    #: The folders of the group.
-    folders: GroupFolders
-    #: The project's member user UUIDs.
-    members: List[str]
-
-
 class SystemState(BaseModel):
     """System state retrieved from LDAP and file system."""
 
@@ -427,14 +356,6 @@ class HpcaccessState(BaseModel):
     hpc_users: Dict[UUID, HpcUser]
     hpc_groups: Dict[UUID, HpcGroup]
     hpc_projects: Dict[UUID, HpcProject]
-
-
-class HpcaccessStateV2(BaseModel):
-    """State as loaded from hpc-access."""
-
-    hpc_users: List[HpcUserV2]
-    hpc_groups: List[HpcGroupV2]
-    hpc_projects: List[HpcProjectV2]
 
 
 @enum.unique

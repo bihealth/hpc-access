@@ -103,36 +103,6 @@ class HpcUserSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
         ]
 
 
-class HpcUserStatusSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcUser model."""
-
-    primary_group = serializers.SerializerMethodField()
-
-    def get_primary_group(self, obj):
-        if obj.primary_group is None:
-            return HPC_ALUMNI_GROUP
-        return obj.primary_group.name
-
-    class Meta:
-        model = HpcUser
-        fields = [
-            "uid",
-            "email",
-            "full_name",
-            "first_name",
-            "last_name",
-            "phone_number",
-            "primary_group",
-            "resources_requested",
-            "status",
-            "description",
-            "username",
-            "expiration",
-            "home_directory",
-            "login_shell",
-        ]
-
-
 class HpcUserVersionSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
     """Serializer for HpcUserVersion model."""
 
@@ -200,26 +170,6 @@ class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSer
         ]
 
 
-class HpcGroupStatusSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcGroup model."""
-
-    owner = serializers.SlugRelatedField(slug_field="username", read_only=True)
-
-    class Meta:
-        model = HpcUser
-        fields = [
-            "owner",
-            "delegate",
-            "resources_requested",
-            "status",
-            "description",
-            "name",
-            "folders",
-            "expiration",
-            "gid",
-        ]
-
-
 class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC project serializers."""
 
@@ -273,29 +223,6 @@ class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.Mode
         model = HpcUserVersion
         fields = HpcProjectAbstractSerializer.Meta.fields + [
             "version",
-        ]
-
-
-class HpcProjectStatusSerializer(HpcProjectAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcProject model."""
-
-    group = serializers.SlugRelatedField(slug_field="name", read_only=True)
-    delegate = serializers.SlugRelatedField(slug_field="username", read_only=True)
-    members = serializers.SlugRelatedField(slug_field="username", many=True, read_only=True)
-
-    class Meta:
-        model = HpcUser
-        fields = [
-            "gid",
-            "group",
-            "delegate",
-            "resources_requested",
-            "status",
-            "description",
-            "name",
-            "folders",
-            "expiration",
-            "members",
         ]
 
 
@@ -456,20 +383,3 @@ class HpcUserLookupSerializer(serializers.ModelSerializer):
             "primary_group",
             "full_name",
         ]
-
-
-class HpcAccessStatusSerializer(serializers.Serializer):
-    """Serializer for HpcAccessStatus model."""
-
-    hpc_users = serializers.SerializerMethodField()
-    hpc_groups = serializers.SerializerMethodField()
-    hpc_projects = serializers.SerializerMethodField()
-
-    def get_hpc_users(self, obj):
-        return HpcUserStatusSerializer(obj.hpc_users, many=True).data
-
-    def get_hpc_groups(self, obj):
-        return HpcGroupStatusSerializer(obj.hpc_groups, many=True).data
-
-    def get_hpc_projects(self, obj):
-        return HpcProjectStatusSerializer(obj.hpc_projects, many=True).data
