@@ -117,9 +117,9 @@ class TargetStateBuilder:
     from hpc-access.
     """
 
-    def __init__(self, settings: HpcaccessSettings, system_state: SystemState):
-        #: The settings to use.
-        self.settings = settings
+    def __init__(self, hpcaccess_state: HpcaccessState, system_state: SystemState):
+        #: The hpc-access state to use.
+        self.hpcaccess_state = hpcaccess_state
         #: The current system state, used for determining next group id.
         self.system_state = system_state
         #: The next gid.
@@ -133,16 +133,11 @@ class TargetStateBuilder:
         return max(gids) + 1 if gids else 1000
 
     def run(self) -> SystemState:
-        """Run the builder."""
-        hpcaccess_state = gather_hpcaccess_state(self.settings)
-        return self._build(hpcaccess_state)
-
-    def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
         """Build the target state."""
         # IMPORANT: Note that order matters here! First, we must create
         # LDAP groups so we have the Unix GIDs when users are considered.
-        ldap_groups = self._build_ldap_groups(hpcaccess_state)
-        ldap_users = self._build_ldap_users(hpcaccess_state)
+        ldap_groups = self._build_ldap_groups(self.hpcaccess_state)
+        ldap_users = self._build_ldap_users(self.hpcaccess_state)
         # build hpc-users group
         ldap_groups["hpc-users"] = LdapGroup(
             dn="cn=hpc-users,ou=Groups,dc=hpc,dc=bihealth,dc=org",
@@ -160,7 +155,7 @@ class TargetStateBuilder:
         return SystemState(
             ldap_users=ldap_users,
             ldap_groups=ldap_groups,
-            fs_directories=self._build_fs_directories(hpcaccess_state),
+            fs_directories=self._build_fs_directories(self.hpcaccess_state),
         )
 
     def _build_fs_directories(self, hpcaccess_state: HpcaccessState) -> Dict[str, FsDirectory]:
@@ -648,9 +643,7 @@ class TargetStateComparison:
           to them is disabled.
     """
 
-    def __init__(self, settings: HpcaccessSettings, src: SystemState, dst: SystemState):
-        #: Configuration of ``hpc-access`` system to use.
-        self.settings = settings
+    def __init__(self, src: SystemState, dst: SystemState):
         #: Source state
         self.src = src
         #: Target state
