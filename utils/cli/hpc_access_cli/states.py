@@ -37,16 +37,12 @@ from hpc_access_cli.models import (
     LOGIN_SHELL_DISABLED,
     FsDirectory,
     FsDirectoryOp,
-    Gecos,
+    # Gecos,
     GroupFolders,
     HpcaccessState,
-    HpcaccessStateV2,
     HpcGroup,
-    HpcGroupV2,
     HpcProject,
-    HpcProjectV2,
     HpcUser,
-    HpcUserV2,
     LdapGroup,
     LdapGroupOp,
     LdapUser,
@@ -121,9 +117,9 @@ class TargetStateBuilder:
     from hpc-access.
     """
 
-    def __init__(self, settings: HpcaccessSettings, system_state: SystemState):
-        #: The settings to use.
-        self.settings = settings
+    def __init__(self, hpcaccess_state: HpcaccessState, system_state: SystemState):
+        #: The hpc-access state to use.
+        self.hpcaccess_state = hpcaccess_state
         #: The current system state, used for determining next group id.
         self.system_state = system_state
         #: The next gid.
@@ -137,24 +133,19 @@ class TargetStateBuilder:
         return max(gids) + 1 if gids else 1000
 
     def run(self) -> SystemState:
-        """Run the builder."""
-        hpcaccess_state = gather_hpcaccess_state(self.settings)
-        return self._build(hpcaccess_state)
-
-    def _build(self, hpcaccess_state: HpcaccessState) -> SystemState:
         """Build the target state."""
         # IMPORANT: Note that order matters here! First, we must create
         # LDAP groups so we have the Unix GIDs when users are considered.
-        ldap_groups = self._build_ldap_groups(hpcaccess_state)
-        ldap_users = self._build_ldap_users(hpcaccess_state)
+        ldap_groups = self._build_ldap_groups(self.hpcaccess_state)
+        ldap_users = self._build_ldap_users(self.hpcaccess_state)
         # build hpc-users group
         ldap_groups["hpc-users"] = LdapGroup(
             dn="cn=hpc-users,ou=Groups,dc=hpc,dc=bihealth,dc=org",
             cn="hpc-users",
             gid_number=HPC_USERS_GID,
-            description="users allowed to login (active+have group)",
             owner_dn=None,
             delegate_dns=[],
+            description="users allowed to login (active+have group)",
             member_uids=[
                 u.uid
                 for u in ldap_users.values()
@@ -164,7 +155,7 @@ class TargetStateBuilder:
         return SystemState(
             ldap_users=ldap_users,
             ldap_groups=ldap_groups,
-            fs_directories=self._build_fs_directories(hpcaccess_state),
+            fs_directories=self._build_fs_directories(self.hpcaccess_state),
         )
 
     def _build_fs_directories(self, hpcaccess_state: HpcaccessState) -> Dict[str, FsDirectory]:
@@ -313,12 +304,13 @@ class TargetStateBuilder:
         """Build the LDAP users from the hpc-access state."""
         result = {}
         for user in hpcaccess_state.hpc_users.values():
-            gecos = Gecos(
-                full_name=user.full_name,
-                office_location=None,
-                office_phone=user.phone_number,
-                other=None,
-            )
+            # gecos = Gecos(
+            #     full_name=user.full_name,
+            #     office_location=None,
+            #     office_phone=user.phone_number,
+            #     home_phone=None,
+            #     other=None,
+            # )
             if user.primary_group:
                 hpc_group = hpcaccess_state.hpc_groups[user.primary_group]
                 group_gid = hpc_group.gid or HPC_ALUMNIS_GID
@@ -329,17 +321,17 @@ class TargetStateBuilder:
                 cn=user.full_name,
                 sn=user.last_name,
                 given_name=user.first_name,
+                display_name=user.display_name,
                 uid=user.username,
                 mail=user.email,
-                gecos=gecos,
+                # gecos=None,
                 uid_number=user.uid,
                 gid_number=group_gid,
-                # user.home_directory
-                home_directory=f"{BASE_PATH_TIER1}/home/users/{user.username}",
-                # user.login_shell
-                login_shell="/usr/bin/bash",
+                home_directory=user.home_directory,
+                login_shell=user.login_shell,
+                telephone_number=user.phone_number,
                 # SSH keys are managed via upstream LDAP.
-                ssh_public_key=[],
+                # ssh_public_key=[],
             )
         return result
 
@@ -387,7 +379,7 @@ class TargetStateBuilder:
                 description=project.description,
                 owner_dn=owner_dn,
                 delegate_dns=[user_dn(delegate)] if delegate else [],
-                member_uids=[],
+                member_uids=sorted([state.hpc_users[m].username for m in project.members]),
             )
         return result
 
@@ -516,8 +508,9 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             full_name=u.cn,
             first_name=u.given_name,
             last_name=u.sn,
+            display_name=u.display_name,
             email=u.mail,
-            phone_number=u.gecos.office_phone if u.gecos else None,
+            phone_number=u.telephone_number,
             resources_requested=ResourceDataUser(**quotas),
             resources_used=ResourceDataUser(
                 tier1_home=0,
@@ -578,6 +571,9 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
             group = None
         else:
             group = group_uuids[group_by_gid_number[gid_number].cn]
+            owner_uuid = user_uuids[user_by_dn[group_by_gid_number[gid_number].owner_dn].uid]
+            if owner_uuid not in members:
+                members.append(owner_uuid)
         return HpcProject(
             uuid=group_uuids[p.cn],
             name=name,
@@ -631,156 +627,6 @@ def convert_to_hpcaccess_state(system_state: SystemState) -> HpcaccessState:
     )
 
 
-def convert_to_hpcaccess_state_v2(system_state: SystemState) -> HpcaccessStateV2:
-    """Convert hpc-access to system state.
-
-    Note that this will make up the UUIDs.
-    """
-    # create UUID mapping from user/groupnames
-    user_by_uid = {u.uid: u for u in system_state.ldap_users.values()}
-    user_by_dn = {u.dn: u for u in system_state.ldap_users.values()}
-    group_by_name = {strip_prefix(g.cn): g for g in system_state.ldap_groups.values()}
-    group_by_gid_number = {g.gid_number: g for g in system_state.ldap_groups.values()}
-    group_by_owner_dn: Dict[str, LdapGroup] = {}
-    for g in system_state.ldap_groups.values():
-        if g.owner_dn:
-            group_by_owner_dn[user_by_dn[g.owner_dn].dn] = g
-    user_quotas: Dict[str, ResourceDataUser] = {}
-    group_quotas: Dict[str, ResourceData] = {}
-    for fs_data in system_state.fs_directories.values():
-        try:
-            entity, name, resource = fs_validation(fs_data)
-        except ValueError as e:
-            console_err.log(f"WARNING: {e}")
-            continue
-
-        quota_bytes = fs_data.quota_bytes if fs_data.quota_bytes is not None else 0
-
-        if entity == ENTITY_USERS:
-            if name not in user_by_uid:
-                console_err.log(f"WARNING: user {name} not found")
-                continue
-            if name not in user_quotas:
-                user_quotas[name] = {}
-            user_quotas[name][resource] = quota_bytes / 1024**3
-        elif entity in (ENTITY_GROUPS, ENTITY_PROJECTS):
-            if name not in group_by_name:
-                console_err.log(f"WARNING: group {name} not found")
-                continue
-            if name not in group_quotas:
-                group_quotas[name] = {}
-            group_quotas[name][resource] = quota_bytes / 1024**4
-
-    def build_hpcuser(u: LdapUser, quotas: Dict[str, str]) -> HpcUserV2:
-        if u.login_shell != LOGIN_SHELL_DISABLED:
-            status = Status.ACTIVE
-        else:
-            status = Status.EXPIRED
-        if u.gid_number and u.gid_number in group_by_gid_number:
-            primary_group = group_by_gid_number[u.gid_number].cn
-        else:
-            primary_group = None
-        if not primary_group.startswith(POSIX_AG_PREFIX) and not primary_group == "hpc-alumnis":
-            console_err.log(f"User belongs to group that is not a group ({primary_group}, {u.uid})")
-        return HpcUserV2(
-            primary_group=strip_prefix(primary_group, prefix=POSIX_AG_PREFIX),
-            description=None,
-            full_name=u.cn,
-            first_name=u.given_name,
-            last_name=u.sn,
-            email=u.mail,
-            phone_number=u.gecos.office_phone if u.gecos else None,
-            resources_requested=ResourceDataUser(**quotas),
-            status=status,
-            uid=u.uid_number,
-            username=u.uid,
-            home_directory=u.home_directory,
-            login_shell=u.login_shell,
-        )
-
-    def build_hpcgroup(g: LdapGroup, quotas: Dict[str, str]) -> Optional[HpcGroupV2]:
-        name = strip_prefix(g.cn, POSIX_AG_PREFIX)
-        if not g.owner_dn:
-            console_err.log(f"no owner DN for {g.cn}, skipping")
-            return
-        return HpcGroupV2(
-            name=name,
-            description=g.description,
-            owner=user_by_dn[g.owner_dn].uid,
-            delegate=user_by_dn[g.delegate_dns[0]].uid if g.delegate_dns else None,
-            resources_requested=ResourceData(**quotas),
-            status=Status.ACTIVE,
-            gid=g.gid_number,
-            folders=GroupFolders(
-                tier1_work=f"{BASE_PATH_TIER1}/work/groups/{name}",
-                tier1_scratch=f"{BASE_PATH_TIER1}/scratch/groups/{name}",
-                tier2_mirrored=f"{BASE_PATH_TIER2}/mirrored/groups/{name}",
-                tier2_unmirrored=f"{BASE_PATH_TIER2}/unmirrored/groups/{name}",
-            ),
-        )
-
-    def build_hpcproject(p: LdapGroup, quotas: Dict[str, str]) -> Optional[HpcProjectV2]:
-        name = strip_prefix(p.cn, POSIX_PROJECT_PREFIX)
-        if not p.owner_dn:
-            console_err.log(f"no owner DN for {p.cn}, skipping")
-            return
-        members = []
-        for uid in p.member_uids:
-            uid = uid.strip()
-            user = user_by_uid[uid]
-            members.append(user.uid)
-        gid_number = user_by_dn[p.owner_dn].gid_number
-        if not gid_number:
-            group = None
-        else:
-            group = group_by_gid_number[gid_number].cn
-        return HpcProjectV2(
-            name=name,
-            description=g.description,
-            group=group,
-            delegate=user_by_dn[p.delegate_dns[0]].uid if p.delegate_dns else None,
-            resources_requested=ResourceData(**quotas),
-            status=Status.ACTIVE,
-            gid=p.gid_number,
-            folders=GroupFolders(
-                tier1_work=f"{BASE_PATH_TIER1}/work/projects/{name}",
-                tier1_scratch=f"{BASE_PATH_TIER1}/scratch/projects/{name}",
-                tier2_mirrored=f"{BASE_PATH_TIER2}/mirrored/projects/{name}",
-                tier2_unmirrored=f"{BASE_PATH_TIER2}/unmirrored/projects/{name}",
-            ),
-            members=members,
-        )
-
-    # construct the resulting state
-    hpc_users = []
-    hpc_groups = []
-    hpc_projects = []
-
-    for u in system_state.ldap_users.values():
-        hpc_user = build_hpcuser(u, user_quotas.get(u.uid, {}))
-        hpc_users.append(hpc_user)
-
-    for g in system_state.ldap_groups.values():
-        if g.cn.startswith(POSIX_AG_PREFIX):
-            hpc_group = build_hpcgroup(
-                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_AG_PREFIX), {})
-            )
-            if hpc_group:
-                hpc_groups.append(hpc_group)
-        elif g.cn.startswith(POSIX_PROJECT_PREFIX):
-            hpc_project = build_hpcproject(
-                g, group_quotas.get(strip_prefix(g.cn, prefix=POSIX_PROJECT_PREFIX), {})
-            )
-            if hpc_project:
-                hpc_projects.append(hpc_project)
-
-    return HpcaccessStateV2(
-        hpc_users=hpc_users,
-        hpc_groups=hpc_groups,
-        hpc_projects=hpc_projects,
-    )
-
-
 class TargetStateComparison:
     """Helper class that compares two system states.
 
@@ -797,9 +643,7 @@ class TargetStateComparison:
           to them is disabled.
     """
 
-    def __init__(self, settings: HpcaccessSettings, src: SystemState, dst: SystemState):
-        #: Configuration of ``hpc-access`` system to use.
-        self.settings = settings
+    def __init__(self, src: SystemState, dst: SystemState):
         #: Source state
         self.src = src
         #: Target state

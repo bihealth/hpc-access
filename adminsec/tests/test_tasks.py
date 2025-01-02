@@ -104,7 +104,7 @@ class TestSyncLdap(TestCase):
                 },
             )
             connection.strategy.add_entry(
-                "cn=user,ou=test," + AUTH_LDAP_USER_SEARCH_BASE,
+                "cn=Jane Joe,ou=test," + AUTH_LDAP_USER_SEARCH_BASE,
                 {
                     "objectclass": "person",
                     "mail": USER_MAIL_INSTITUTE,
@@ -126,7 +126,7 @@ class TestSyncLdap(TestCase):
                 },
             )
             connection.strategy.add_entry(
-                "cn=user,ou=test," + AUTH_LDAP2_USER_SEARCH_BASE,
+                "cn=John Doe,ou=test," + AUTH_LDAP2_USER_SEARCH_BASE,
                 {
                     "objectclass": "person",
                     "mail": USER_MAIL_INSTITUTE2,
