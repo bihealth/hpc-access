@@ -99,7 +99,6 @@ class Command(BaseCommand):
                         is_hpcadmin=False,
                         consented_to_terms=username in users_consented,
                         phone=user_data.phone_number,
-                        uid=user_data.uid,
                         username=username,
                     )
                     hpcuser = HpcUser(
@@ -118,6 +117,7 @@ class Command(BaseCommand):
                         expiration=make_aware(user_data.expiration),
                         login_shell=user_data.login_shell,
                         username=user_data.username,
+                        uid=user_data.uid,
                     )
                     hpcuser.save_with_version()
 
