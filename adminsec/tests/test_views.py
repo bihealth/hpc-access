@@ -2365,7 +2365,8 @@ class TestFunctions(TestViewBase):
     def test_ldap_to_hpc_username_invalid_string(self):
         username = "user"
         domain = "UNKNOWN"
-        self.assertEqual(ldap_to_hpc_username(username, domain), "")
+        with self.assertRaisesMessage(ValueError, "Unknown domain:"):
+            ldap_to_hpc_username(username, domain)
 
     def test_django_to_hpc_username_institute1(self):
         username = "user@" + settings.AUTH_LDAP_USERNAME_DOMAIN
@@ -2381,11 +2382,13 @@ class TestFunctions(TestViewBase):
 
     def test_django_to_hpc_username_invalid_string(self):
         username = "user@A@B"
-        self.assertEqual(django_to_hpc_username(username), "")
+        with self.assertRaisesMessage(ValueError, "Invalid username format:"):
+            django_to_hpc_username(username)
 
     def test_django_to_hpc_username_invalid_domain(self):
         username = "user@UNKNOWN"
-        self.assertEqual(django_to_hpc_username(username), "")
+        with self.assertRaisesMessage(ValueError, "Unknown domain:"):
+            django_to_hpc_username(username)
 
     def test_convert_to_posix(self):
         name = "LeéèÄAöo"

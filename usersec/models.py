@@ -710,10 +710,16 @@ class HpcUser(
 
     @property
     def is_pi(self):
+        if self.primary_group is None:
+            return False
+
         return self.primary_group.owner == self
 
     @property
     def is_delegate(self):
+        if self.primary_group is None:
+            return False
+
         return self.primary_group.delegate == self
 
     @property

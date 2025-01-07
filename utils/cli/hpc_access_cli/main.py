@@ -116,7 +116,8 @@ def sync_data(
     group_by_gid = {g.gid: g for g in hpcaccess_state.hpc_groups.values()}
     user_by_uuid = {u.uuid: u for u in hpcaccess_state.hpc_users.values()}
     owner_by_dn = {
-        user_dn(user_by_uuid[g.owner]): g.owner for g in hpcaccess_state.hpc_groups.values()
+        user_dn(user_by_uuid[g.owner]): user_by_uuid[g.owner].username
+        for g in hpcaccess_state.hpc_groups.values()
     }
     # console_err.print_json(data=operations.model_dump(mode="json"))
     with open("ldap_user_ops.ldif", "w") as fh_ldap_user_ops:
@@ -197,14 +198,14 @@ def sync_data(
                 fh_ldap_group_ops.write("\n")
                 FS_OPS = FS_PROJECT_OPS if group_op.group.cn.startswith("hpc-prj") else FS_GROUP_OPS
                 group = group_by_gid[group_op.group.gid_number]
-                with open(f"fs_group_ops_{group_op.group.dn}.sh", "w") as fh_fs_group_ops:
+                with open(f"fs_group_ops_{group_op.group.cn}.sh", "w") as fh_fs_group_ops:
                     fh_fs_group_ops.write(
                         FS_OPS
                         % {
-                            "owner": owner_by_dn(group_op.group.owner_dn),
+                            "owner": owner_by_dn[group_op.group.owner_dn],
                             "group": group_op.group.cn,
-                            "quota1": group.resources_requested.tier1_work,
-                            "quota2": group.resources_requested.tier1_scratch,
+                            "quota1": int(group.resources_requested.tier1_work),
+                            "quota2": int(group.resources_requested.tier1_scratch),
                             "folder_work": group.folders.tier1_work,
                             "folder_scratch": group.folders.tier1_scratch,
                             "folder_unmirrored": group.folders.tier2_unmirrored,
