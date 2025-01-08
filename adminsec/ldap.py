@@ -112,6 +112,9 @@ class LdapConnector:
             search_base = settings.AUTH_LDAP2_USER_SEARCH_BASE
             domain = settings.AUTH_LDAP2_USERNAME_DOMAIN
 
+        elif settings.STAGING:
+            return mail.split("@")[0].lower(), ""
+
         else:
             logger.error("Email %s not valid" % mail)
             raise ImproperlyConfigured("Email %s not valid" % mail)

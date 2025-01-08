@@ -423,6 +423,9 @@ CONSENT_GRACE_PERIOD = env.int("CONSENT_GRACE_PERIOD", 30)
 # View mode - disable all request options
 VIEW_MODE = env.bool("VIEW_MODE", False)
 
+# Staging - primarily to allow for inviting external addresses for testing
+STAGING = env.bool("STAGING", False)
+
 # Cron settings
 CRON_QUOTA_EMAIL_YELLOW_DOW = env.str("CRON_QUOTA_EMAIL_YELLOW_DOW", "1")
 CRON_QUOTA_EMAIL_YELLOW_HOUR = env.str("CRON_QUOTA_EMAIL_YELLOW_HOUR", "0")

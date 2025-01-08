@@ -259,9 +259,16 @@ class HpcUserCreateRequestForm(forms.ModelForm):
             self.add_error("email", "This user is already registered.")
             return
 
-        if email_split[1].lower() not in valid_domains:
-            self.add_error("email", "No institute email address.")
-            return
+        if not settings.STAGING:
+            if email_split[1].lower() not in valid_domains:
+                self.add_error(
+                    "email",
+                    (
+                        "This is no institute email address. "
+                        f"Valid domains are: {', '.join(valid_domains)}",
+                    ),
+                )
+                return
 
         return cleaned_data
 

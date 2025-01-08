@@ -558,10 +558,12 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
                 )
             )
 
+        django_username = ldap_to_django_username(username, domain) if domain else username
+
         try:
             with transaction.atomic():
                 invitation = HpcGroupInvitation.objects.create_with_version(
-                    hpcusercreaterequest=obj, username=ldap_to_django_username(username, domain)
+                    hpcusercreaterequest=obj, username=django_username
                 )
 
         except Exception as e:
