@@ -140,25 +140,24 @@ def get_admin_emails():
 
 
 def ldap_to_hpc_username(username, domain):
-    fail_string = ""
     ending = DOMAIN_MAPPING.get(domain.upper())
 
     if not ending:
-        return fail_string
+        raise ValueError(f"Unknown domain: {domain}")
 
     return f"{username}{HPC_USERNAME_SEPARATOR}{ending}"
 
 
 def django_to_hpc_username(username):
-    fail_string = ""
     data = username.split(LDAP_USERNAME_SEPARATOR)
 
-    if not len(data) == 2:
-        return fail_string
+    if len(data) == 1:
+        return data[0]
 
-    username, domain = data
+    if len(data) == 2:
+        return ldap_to_hpc_username(data[0], data[1])
 
-    return ldap_to_hpc_username(username, domain)
+    raise ValueError(f"Invalid username format: {username}")
 
 
 def ldap_to_django_username(username, domain):

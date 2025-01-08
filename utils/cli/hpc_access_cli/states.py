@@ -670,7 +670,7 @@ class TargetStateComparison:
             user = self.src.ldap_users[username]
             result.append(LdapUserOp(operation=StateOperation.DISABLE, user=user, diff={}))
         for username in missing_usernames:
-            user = self.src.ldap_users[username]
+            user = self.dst.ldap_users[username]
             result.append(LdapUserOp(operation=StateOperation.CREATE, user=user, diff={}))
         for username in common_usernames:
             src_user = self.src.ldap_users[username]

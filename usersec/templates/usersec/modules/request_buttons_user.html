@@ -6,7 +6,7 @@
 
 <span class="btn-group">
   {% if is_decided %}
-    {% if is_hpc_group_create_request %}
+    {% if is_hpc_group_create_request and is_denied %}
       <a class="btn btn-danger"
           href="{{ object.get_delete_url }}"
       >
