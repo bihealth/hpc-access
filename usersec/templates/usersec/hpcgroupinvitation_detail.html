@@ -4,27 +4,50 @@
 
 {% block content %}
 
-  <h1>
-    You've been invited to the BIH cluster to join group
-    <span class="text-danger">{{ object.hpcusercreaterequest.group.name }}</span>
-  </h1>
+  {% if object.status == "REJECTED" %}
 
-  <h3 class="mt-4">Terms &amp; Conditions</h3>
+  <h2 class="mt-4">
+    You've rejected your invitation to join group
+    <strong>{{ object.hpcusercreaterequest.group.name }}</strong>.
+  </h2>
 
-  {% for obj in terms_list %}
-    <h4 class="mt-4">{{ obj.title }}</h4>
-    <p>{{ obj.text }}</p>
-    <div class="input-group mb-4">
-      <span class="input-group-text">
-        <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
-      </span>
-      <label for="id_consent{{ forloop.counter }}">
-        <span class="form-control fw-bold">
-          I consent to <em>{{ obj.title }}</em>.
+  <p>
+    <a class="btn btn-secondary" href="{% url 'home' %}">
+      Return to index page
+    </a>
+  </p>
+
+  {% else %}
+
+  <h2 class="mt-4">
+    You've been invited to the BIH cluster
+  </h2>
+
+  <p class="lead">
+    You've been invited to the HPC cluster to join the group
+    <strong>{{ object.hpcusercreaterequest.group.name }}</strong>.
+    You can accept or reject the invitation below.
+    Please confirm any conditions.
+  </p>
+
+  {% if terms_list %}
+    <h3 class="mt-4">Terms &amp; Conditions</h3>
+
+    {% for obj in terms_list %}
+      <h4 class="mt-4">{{ obj.title }}</h4>
+      <p>{{ obj.text }}</p>
+      <div class="input-group mb-4">
+        <span class="input-group-text">
+          <input type="checkbox" class="form-check-input m-0 consent" name="consent{{ forloop.counter }}" id="id_consent{{ forloop.counter }}">
         </span>
-      </label>
-    </div>
-  {% endfor %}
+        <label for="id_consent{{ forloop.counter }}">
+          <span class="form-control fw-bold">
+            I consent to <em>{{ obj.title }}</em>.
+          </span>
+        </label>
+      </div>
+    {% endfor %}
+  {% endif %}
 
   <a
     class="btn btn-success disabled"
@@ -40,7 +63,7 @@
     <i class="iconify" data-icon="mdi:cancel"></i>
     Reject
   </a>
-
+  {% endif %}
 {% endblock content %}
 
 {% block inline_javascript %}

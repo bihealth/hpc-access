@@ -265,7 +265,7 @@ class HpcUserCreateRequestForm(forms.ModelForm):
                     "email",
                     (
                         "This is no institute email address. "
-                        f"Valid domains are: {', '.join(valid_domains)}",
+                        f"Valid domains are: {', '.join(valid_domains)}"
                     ),
                 )
                 return

@@ -175,7 +175,10 @@ class TestHpcUserCreateRequestForm(TestCase):
         data_invalid = {**self.data_valid, "email": "user@invalid.com"}
         form = HpcUserCreateRequestForm(user=self.user, data=data_invalid)
         self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors["email"], ["No institute email address."])
+        self.assertEqual(
+            form.errors["email"],
+            ["This is no institute email address. Valid domains are: charite.de, mdc-berlin.de"],
+        )
 
     def test_form_valid_hpcadmin(self):
         form = HpcUserCreateRequestForm(user=self.user_hpcadmin, data=self.data_valid)
