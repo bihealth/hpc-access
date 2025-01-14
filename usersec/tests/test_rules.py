@@ -4123,7 +4123,12 @@ class TestPermissionsInViews(TestRulesBase):
             ),
         )
         self.assert_permissions_on_url(
-            bad_users, url, "POST", 302, redirect_url=reverse("home"), not_authorized=True
+            bad_users,
+            url,
+            "POST",
+            302,
+            redirect_url=reverse("home"),
+            not_authorized=True,
         )
 
     def test_hpc_project_invitation_accept_view(self):

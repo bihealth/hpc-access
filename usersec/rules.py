@@ -2,7 +2,7 @@ import rules
 from django.conf import settings
 
 from adminsec.rules import is_hpcadmin
-from usersec.models import REQUEST_STATUS_ACTIVE, HpcGroupInvitation
+from usersec.models import INVITATION_STATUS_PENDING, REQUEST_STATUS_ACTIVE, HpcGroupInvitation
 
 # ------------------------------------------------------------------------------
 # Predicates
@@ -25,7 +25,9 @@ def _has_pending_group_request(user):
 
 @rules.predicate
 def _has_group_invitation(user):
-    return HpcGroupInvitation.objects.filter(username=user.username).exists()
+    return HpcGroupInvitation.objects.filter(
+        username=user.username, status=INVITATION_STATUS_PENDING
+    ).exists()
 
 
 @rules.predicate

@@ -42,6 +42,7 @@ from usersec.forms import (
 )
 from usersec.models import (
     INVITATION_STATUS_ACCEPTED,
+    INVITATION_STATUS_PENDING,
     INVITATION_STATUS_REJECTED,
     OBJECT_STATUS_ACTIVE,
     REQUEST_STATUS_ACTIVE,
@@ -152,7 +153,9 @@ class HomeView(LoginRequiredMixin, View):
             )
 
         if rules.test_rule("usersec.has_group_invitation", request.user):
-            invitation = HpcGroupInvitation.objects.get(username=request.user.username)
+            invitation = HpcGroupInvitation.objects.get(
+                username=request.user.username, status=INVITATION_STATUS_PENDING
+            )
             return redirect(
                 reverse(
                     "usersec:hpcgroupinvitation-detail",

@@ -1,4 +1,5 @@
 import logging as _logging
+import ssl
 
 import ldap3
 from django.conf import settings
@@ -34,7 +35,19 @@ class LdapConnector:
 
         if settings.ENABLE_LDAP:
             logger.debug("LDAP enabled")
-            server1 = ldap3.Server(settings.AUTH_LDAP_SERVER_URI)
+            ssl_options = {}
+            url = settings.AUTH_LDAP_SERVER_URI
+
+            if settings.AUTH_LDAP_START_TLS and not self.test_mode:
+                url = settings.AUTH_LDAP_SERVER_URI.replace("ldap://", "ldaps://")
+                ssl_options = {
+                    "tls": ldap3.Tls(
+                        ca_certs_file=settings.AUTH_LDAP_CA_CERT_FILE,
+                        validate=ssl.CERT_REQUIRED,
+                    ),
+                }
+
+            server1 = ldap3.Server(url, **ssl_options)
 
             logger.debug("Connecting to LDAP server: %s", settings.AUTH_LDAP_SERVER_URI)
             self.connection1 = ldap3.Connection(
