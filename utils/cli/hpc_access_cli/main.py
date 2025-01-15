@@ -198,7 +198,8 @@ def sync_data(
                 fh_ldap_group_ops.write(f"cn: {group_op.group.cn}\n")
                 fh_ldap_group_ops.write(f"gidNumber: {group_op.group.gid_number}\n")
                 if group_op.group.delegate_dns:
-                    fh_ldap_group_ops.write(f"bih-groupDelegateDNs: {group_op.group.delegate_dns[0]}\n")
+                    for delegate_dn in group_op.group.delegate_dns:
+                        fh_ldap_group_ops.write(f"bih-groupDelegateDNs: {delegate_dn}\n")
                 fh_ldap_group_ops.write(f"description: {group_op.group.description}\n")
                 for member in group_op.group.member_uids:
                     fh_ldap_group_ops.write(f"memberUid: {member}\n")
