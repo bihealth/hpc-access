@@ -1508,7 +1508,7 @@ class HpcProjectChangeRequestDenyView(HpcPermissionMixin, DeleteView):
         return HttpResponseRedirect(reverse("adminsec:overview"))
 
 
-class TermsAndConditionsListView(ListView):
+class TermsAndConditionsListView(HpcPermissionMixin, ListView):
     """TermsAndConditions list view."""
 
     model = TermsAndConditions
@@ -1534,7 +1534,7 @@ class TermsAndConditionsListView(ListView):
         return data
 
 
-class TermsAndConditionsCreateView(CreateView):
+class TermsAndConditionsCreateView(HpcPermissionMixin, CreateView):
     """TermsAndConditions create view."""
 
     model = TermsAndConditions
@@ -1544,7 +1544,7 @@ class TermsAndConditionsCreateView(CreateView):
     success_url = reverse_lazy("adminsec:termsandconditions-list")
 
 
-class TermsAndConditionsUpdateView(UpdateView):
+class TermsAndConditionsUpdateView(HpcPermissionMixin, UpdateView):
     """TermsAndConditions update view."""
 
     model = TermsAndConditions
@@ -1556,7 +1556,7 @@ class TermsAndConditionsUpdateView(UpdateView):
     success_url = reverse_lazy("adminsec:termsandconditions-list")
 
 
-class TermsAndConditionsDeleteView(DeleteView):
+class TermsAndConditionsDeleteView(HpcPermissionMixin, DeleteView):
     """TermsAndConditions delete view."""
 
     model = TermsAndConditions
@@ -1567,7 +1567,7 @@ class TermsAndConditionsDeleteView(DeleteView):
     success_url = reverse_lazy("adminsec:termsandconditions-list")
 
 
-class TermsAndConditionsPublishView(FormMixin, View):
+class TermsAndConditionsPublishView(HpcPermissionMixin, FormMixin, View):
     """TermsAndConditions publish view."""
 
     permission_required = "adminsec.is_hpcadmin"
