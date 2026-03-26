@@ -85,7 +85,9 @@ class TestTermsAndConditionsCreateViewPermissions(TestViewBase):
     def test_post_denied(self):
         for user in [self.user, self.user_owner, self.user_member]:
             with self.login(user):
-                response = self.client.post(reverse("adminsec:termsandconditions-create"), self.terms)
+                response = self.client.post(
+                    reverse("adminsec:termsandconditions-create"), self.terms
+                )
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.url, reverse("home"))
         self.assertEqual(TermsAndConditions.objects.count(), 0)
@@ -106,10 +108,12 @@ class TestTermsAndConditionsUpdateViewPermissions(TestViewBase):
     def test_get_allowed(self):
         for user in [self.user_hpcadmin, self.superuser]:
             with self.login(user):
-                response = self.client.get(reverse(
-                    "adminsec:termsandconditions-update",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                ))
+                response = self.client.get(
+                    reverse(
+                        "adminsec:termsandconditions-update",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    )
+                )
                 self.assertEqual(response.status_code, 200)
                 self.assertIsNotNone(response.context["form"])
 
@@ -120,9 +124,10 @@ class TestTermsAndConditionsUpdateViewPermissions(TestViewBase):
             with self.login(user):
                 self.assertEqual(TermsAndConditions.objects.first().text, initial_text)
                 response = self.client.post(
-                    reverse("adminsec:termsandconditions-update",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                            ),
+                    reverse(
+                        "adminsec:termsandconditions-update",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    ),
                     self.new_terms,
                 )
                 self.assertRedirects(
@@ -138,9 +143,12 @@ class TestTermsAndConditionsUpdateViewPermissions(TestViewBase):
     def test_get_denied(self):
         for user in [self.user, self.user_owner, self.user_member]:
             with self.login(user):
-                response = self.client.get(reverse("adminsec:termsandconditions-update",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                                                   ))
+                response = self.client.get(
+                    reverse(
+                        "adminsec:termsandconditions-update",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    )
+                )
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.url, reverse("home"))
 
@@ -148,9 +156,13 @@ class TestTermsAndConditionsUpdateViewPermissions(TestViewBase):
         initial_text = TermsAndConditions.objects.first().text
         for user in [self.user, self.user_owner, self.user_member]:
             with self.login(user):
-                response = self.client.post(reverse("adminsec:termsandconditions-update",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                                                    ), self.new_terms)
+                response = self.client.post(
+                    reverse(
+                        "adminsec:termsandconditions-update",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    ),
+                    self.new_terms,
+                )
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.url, reverse("home"))
         self.assertEqual(TermsAndConditions.objects.first().text, initial_text)
@@ -167,10 +179,12 @@ class TestTermsAndConditionsDeleteViewPermissions(TestViewBase):
         self.assertEqual(TermsAndConditions.objects.count(), 1)
         for user in [self.user_hpcadmin, self.superuser]:
             with self.login(user):
-                response = self.client.get(reverse(
-                    "adminsec:termsandconditions-delete",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                ))
+                response = self.client.get(
+                    reverse(
+                        "adminsec:termsandconditions-delete",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    )
+                )
                 self.assertEqual(response.status_code, 200)
                 self.assertIsNotNone(response.context["form"])
                 self.assertEqual(TermsAndConditions.objects.count(), 1)
@@ -180,9 +194,10 @@ class TestTermsAndConditionsDeleteViewPermissions(TestViewBase):
         for user in [self.user_hpcadmin, self.superuser]:
             with self.login(user):
                 response = self.client.post(
-                    reverse("adminsec:termsandconditions-delete",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                            ),
+                    reverse(
+                        "adminsec:termsandconditions-delete",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    ),
                 )
                 self.assertRedirects(
                     response,
@@ -194,18 +209,24 @@ class TestTermsAndConditionsDeleteViewPermissions(TestViewBase):
     def test_get_denied(self):
         for user in [self.user, self.user_owner, self.user_member]:
             with self.login(user):
-                response = self.client.get(reverse("adminsec:termsandconditions-delete",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                                                   ))
+                response = self.client.get(
+                    reverse(
+                        "adminsec:termsandconditions-delete",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    )
+                )
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.url, reverse("home"))
 
     def test_post_denied(self):
         for user in [self.user, self.user_owner, self.user_member]:
             with self.login(user):
-                response = self.client.post(reverse("adminsec:termsandconditions-delete",
-                    kwargs={"termsandconditions": self.terms.uuid},
-                                                    ))
+                response = self.client.post(
+                    reverse(
+                        "adminsec:termsandconditions-delete",
+                        kwargs={"termsandconditions": self.terms.uuid},
+                    )
+                )
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.url, reverse("home"))
         self.assertEqual(TermsAndConditions.objects.count(), 1)
