@@ -45,10 +45,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY Pipfile Pipfile.lock ./
 
 # Install Python dependencies via pipenv.
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install \
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv sync \
         --python=/usr/local/bin/python \
-        --categories=packages,prod-packages,dev-packages,ldap-packages \
-        --deploy
+        --categories=packages,prod-packages,dev-packages,ldap-packages
 
 # ---------------------------------------------------------------------------
 # Runtime
