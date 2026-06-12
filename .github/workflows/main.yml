@@ -53,7 +53,7 @@ jobs:
         with:
           # We need to fix the patch version here otherwise, snapshot tests
           # with randomness will / may fail.
-          python-version: "3.10.13"
+          python-version: "3.13.13"
 
       - name: Install pip and Pipenv
         run: |
@@ -61,7 +61,7 @@ jobs:
 
       - name: Install project dependencies with pipenv
         run: |
-          pipenv install --verbose --categories=packages,dev-packages,ldap-packages
+          pipenv sync --verbose --categories=packages,dev-packages,ldap-packages
 
       - name: Download icons
         run: pipenv run python manage.py geticons
@@ -83,7 +83,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - name: Install pip and Pipenv
         run: |
@@ -101,7 +101,7 @@ jobs:
 
       - name: Install project dependencies with pipenv
         run: |
-          pipenv install --categories=packages,dev-packages
+          pipenv sync --categories=packages,dev-packages
 
       - name: Style, linting and sorting with ruff
         uses: chartboost/ruff-action@v1

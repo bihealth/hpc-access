@@ -7,7 +7,7 @@ name = "pypi"
 python-dotenv = "*"
 pytz = "~=2024.1"
 python-slugify = "~=6.1.1"
-Pillow = "~=9.1.0"
+Pillow = "*"
 argon2-cffi = "~=21.3.0"
 redis = "~=5.0"
 celery = "*"
@@ -28,6 +28,7 @@ django-rest-framework = "*"
 django-rest-knox = "*"
 pydantic = "*"
 django-impersonate = "*"
+snapshottest = "~=1.0.0a1"
 
 [dev-packages]
 Werkzeug = "*"
@@ -62,4 +63,4 @@ psycopg2 = "*"
 whitenoise = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.13"
