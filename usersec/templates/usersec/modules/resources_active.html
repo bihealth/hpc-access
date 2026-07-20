@@ -26,7 +26,7 @@
     </dt>
     <dd class="col-sm-5 text-end">
       {{ object.resources_used.tier1_work|floatformat:"1" }}
-      of {{ object.resources_requested.tier1_work }} TB used
+      of {{ object.resources_requested.tier1_work }} TiB used
     </dd>
   {% endif %}
 
@@ -44,7 +44,7 @@
     </dt>
     <dd class="col-sm-5 text-end">
       {{ object.resources_used.tier1_scratch|floatformat:"1" }}
-      of {{ object.resources_requested.tier1_scratch }} TB used
+      of {{ object.resources_requested.tier1_scratch }} TiB used
     </dd>
   {% endif %}
 {% endif %}
@@ -66,7 +66,7 @@
     </dt>
     <dd class="col-sm-5 text-end">
       {{ object.resources_used.tier2_unmirrored|floatformat:"1" }}
-      of {{ object.resources_requested.tier2_unmirrored }} TB used
+      of {{ object.resources_requested.tier2_unmirrored }} TiB used
     </dd>
   {% endif %}
 
@@ -84,7 +84,7 @@
     </dt>
     <dd class="col-sm-5 text-end">
       {{ object.resources_used.tier2_mirrored|floatformat:"1" }}
-      of {{ object.resources_requested.tier2_mirrored }} TB used
+      of {{ object.resources_requested.tier2_mirrored }} TiB used
     </dd>
   {% endif %}
 {% endif %}

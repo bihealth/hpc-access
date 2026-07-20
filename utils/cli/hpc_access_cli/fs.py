@@ -181,7 +181,7 @@ if [[ "$QUOTA1" -ne "0" ]]; then
         fi
     done
 
-    echo "Creating Tier 1 location with $QUOTA1 TB quota."
+    echo "Creating Tier 1 location with $QUOTA1 TiB quota."
     mkdir $WORK
     mkdir $SCRATCH
     chown -R $OWNER:$GROUP $WORK
@@ -206,7 +206,7 @@ if [[ "$QUOTA2" -ne "0" ]]; then
         fi
     done
 
-    echo "Creating Tier 2 location with $QUOTA2 TB quota."
+    echo "Creating Tier 2 location with $QUOTA2 TiB quota."
     mkdir $TIER2
     chown -R $OWNER:$GROUP $TIER2
     chmod -R 2770 $TIER2

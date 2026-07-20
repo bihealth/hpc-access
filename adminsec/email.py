@@ -611,7 +611,7 @@ def send_notification_storage_quota(hpc_obj, report, dry_run=False):
         subject = SUBJECT_QUOTA_USER
         fragment = FRAGMENT_QUOTA_USER
         emails = [email]
-        unit = "GB"
+        unit = "GiB"
         folders = {TIER_USER_HOME: hpc_obj.home_directory}
     else:
         contacts = hpc_obj.get_manager_contact(slim=True)
@@ -621,7 +621,7 @@ def send_notification_storage_quota(hpc_obj, report, dry_run=False):
         name = hpc_obj.name if entity == "project" else f"AG {hpc_obj.name.capitalize()}"
         subject = SUBJECT_QUOTA_GROUP_PROJECT.format(entity=entity, name=name)
         fragment = FRAGMENT_QUOTA_GROUP_PROJECT.format(entity=entity)
-        unit = "TB"
+        unit = "TiB"
         folders = hpc_obj.folders
 
     table_text = f"folder | quota [{unit}] | used [{unit}] | % | warning \n"

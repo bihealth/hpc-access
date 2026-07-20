@@ -23,19 +23,19 @@ DEFAULT_PROJECT_DIRECTORY_TIER1_SCRATCH = "/data/cephfs-1/scratch/projects/{name
 DEFAULT_PROJECT_DIRECTORY_TIER2_MIRRORED = "/data/cephfs-2/mirrored/projects/{name}"
 DEFAULT_PROJECT_DIRECTORY_TIER2_UNMIRRORED = "/data/cephfs-2/unmirrored/projects/{name}"
 DEFAULT_USER_RESOURCES = {
-    TIER_USER_HOME: 1,  # GB!
+    TIER_USER_HOME: 1,  # GiB!
 }
 DEFAULT_GROUP_RESOURCES = {
-    TIER_SCRATCH: 10,  # TB
-    TIER_WORK: 1,  # TB
-    TIER_MIRRORED: 0,  # TB
-    TIER_UNMIRRORED: 10,  # TB
+    TIER_SCRATCH: 10,  # TiB
+    TIER_WORK: 1,  # TiB
+    TIER_MIRRORED: 0,  # TiB
+    TIER_UNMIRRORED: 10,  # TiB
 }
 DEFAULT_PROJECT_RESOURCES = {
-    TIER_SCRATCH: 0,  # TB
-    TIER_WORK: 0,  # TB
-    TIER_MIRRORED: 0,  # TB
-    TIER_UNMIRRORED: 0,  # TB
+    TIER_SCRATCH: 0,  # TiB
+    TIER_WORK: 0,  # TiB
+    TIER_MIRRORED: 0,  # TiB
+    TIER_UNMIRRORED: 0,  # TiB
 }
 RE_NAME_CORE = r"[a-z][a-z0-9-]*[a-z0-9]"
 RE_NAME = rf"^{RE_NAME_CORE}$"
