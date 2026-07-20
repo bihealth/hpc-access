@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hpc-access"
-dynamic = ["version"]
+version = "0.1.1"
 description = "Django web application for managing access to the BIH HPC cluster"
 readme = "README.md"
 license = "MIT"
@@ -88,10 +88,6 @@ Changelog = "https://github.com/bihealth/hpc-access/blob/main/CHANGELOG.md"
 # ---------------------------------------------------------------------------
 # Build configuration
 # ---------------------------------------------------------------------------
-
-[tool.hatch.version]
-path = "src/hpc_access/__init__.py"
-pattern = "__version__ = \"(?P<version>[^\"]+)\""
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hpc_access", "src/adminsec", "src/usersec", "config"]
