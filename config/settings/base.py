@@ -146,6 +146,7 @@ MIDDLEWARE = [
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "impersonate.middleware.ImpersonateMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 # STATIC
