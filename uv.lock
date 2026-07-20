@@ -1101,7 +1101,7 @@ dev = [
     { name = "pytest-django", specifier = "~=4.12.0" },
     { name = "pytest-sugar", specifier = "~=1.1.0" },
     { name = "ruff", specifier = "~=0.15.22" },
-    { name = "snapshottest", specifier = "~=0.6.0" },
+    { name = "snapshottest", git = "https://github.com/syrusakbary/snapshottest.git?rev=master" },
     { name = "sphinx", specifier = "~=9.1.0" },
     { name = "sphinx-autobuild" },
     { name = "werkzeug", specifier = "~=3.1.0" },
@@ -2147,16 +2147,11 @@ wheels = [
 
 [[package]]
 name = "snapshottest"
-version = "0.6.0"
-source = { registry = "https://pypi.org/simple" }
+version = "1.0.0a1"
+source = { git = "https://github.com/syrusakbary/snapshottest.git?rev=master#9de0cc30d8b3bbd67ac60978536782534629b53c" }
 dependencies = [
     { name = "fastdiff" },
-    { name = "six" },
     { name = "termcolor" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/14/6a/6a6ff192326d79048f44c9348acad760070cce68f9fc9c9832c3efa7aca8/snapshottest-0.6.0.tar.gz", hash = "sha256:bbcaf81d92d8e330042e5c928e13d9f035e99e91b314fe55fda949c2f17b653c", size = 22573, upload-time = "2020-09-29T03:54:51.005Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/d9/9527f609c28b508043edf587d03f96b8621ae4adaa4480197347cb640d0e/snapshottest-0.6.0-py2.py3-none-any.whl", hash = "sha256:9b177cffe0870c589df8ddbee0a770149c5474b251955bdbde58b7f32a4ec429", size = 16510, upload-time = "2020-09-29T03:54:49.735Z" },
 ]
 
 [[package]]
