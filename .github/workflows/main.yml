@@ -91,6 +91,6 @@ jobs:
         run: uv sync --group dev
 
       - name: Style, linting and sorting with ruff
-        uses: chartboost/ruff-action@v1
-        with:
-          version: v0.4.2
+        run: |
+          uv run ruff check
+          uv run ruff format --check

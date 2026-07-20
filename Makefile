@@ -38,11 +38,16 @@ _test-snap:
 test-snap: _test-snap format
 
 
+.PHONY: lint
+lint:
+	uv run ruff check
+	uv run ruff format --check
+
+
 .PHONY: format
 format:
 	uv run ruff format
 	uv run ruff check --fix
-	uv run ruff check
 
 
 .PHONY: migrations
