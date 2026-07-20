@@ -6,7 +6,7 @@ from django.conf import settings
 from django.forms import model_to_dict
 from django.utils.timezone import utc
 
-from hpcaccess.users.tests.factories import UserFactory
+from hpc_access.users.tests.factories import UserFactory
 from usersec.models import (
     HpcGroup,
     HpcGroupChangeRequest,

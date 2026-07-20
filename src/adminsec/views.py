@@ -47,7 +47,7 @@ from adminsec.email import (
     send_notification_user_welcome_mail,
 )
 from adminsec.ldap import LdapConnector
-from hpcaccess.users.models import User
+from hpc_access.users.models import User
 from usersec.forms import (
     HpcGroupChangeRequestForm,
     HpcGroupCreateRequestForm,

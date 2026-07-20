@@ -89,8 +89,11 @@ Changelog = "https://github.com/bihealth/hpc-access/blob/main/CHANGELOG.md"
 # Build configuration
 # ---------------------------------------------------------------------------
 
+[tool.hatch.version]
+path = "src/hpc_access/__init__.py"
+
 [tool.hatch.build.targets.wheel]
-packages = ["hpcaccess", "adminsec", "usersec", "config"]
+packages = ["src/hpc_access", "src/adminsec", "src/usersec", "config"]
 
 # ---------------------------------------------------------------------------
 # Tool configuration
@@ -118,7 +121,7 @@ module = "*.migrations.*"
 ignore_errors = true
 
 [tool.coverage.run]
-source = ["hpcaccess"]
+source = ["hpc_access"]
 omit = ["*migrations*", "*tests*"]
 plugins = ["django_coverage_plugin"]
 

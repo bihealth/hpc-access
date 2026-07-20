@@ -1,4 +1,4 @@
-# hpcaccess
+# hpc-access
 
 Managing the access to the BIH HPC cluster
 
@@ -27,7 +27,7 @@ For convenience, you can keep your normal user logged in on Chrome and your supe
 
 Running type checks with mypy:
 
-    $ mypy hpcaccess
+    $ mypy src/hpc_access
 
 ### Test coverage
 

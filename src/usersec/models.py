@@ -8,7 +8,7 @@ from django.urls import reverse
 from factory.django import get_model
 
 from adminsec.constants import TIER_USER_HOME
-from hpcaccess.users.models import User
+from hpc_access.users.models import User
 
 APP_NAME = "usersec"
 

@@ -1,7 +1,7 @@
 import pytest
 from django.urls import resolve, reverse
 
-from hpcaccess.users.models import User
+from hpc_access.users.models import User
 
 pytestmark = pytest.mark.django_db
 

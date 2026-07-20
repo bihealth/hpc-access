@@ -1,7 +1,7 @@
 import pytest
 
-from hpcaccess.users.models import User
-from hpcaccess.users.tests.factories import UserFactory
+from hpc_access.users.models import User
+from hpc_access.users.tests.factories import UserFactory
 
 
 @pytest.fixture(autouse=True)

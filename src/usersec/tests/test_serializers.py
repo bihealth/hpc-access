@@ -2,7 +2,7 @@ from freezegun import freeze_time
 from snapshottest.django import TestCase as TestCaseSnap
 from test_plus import TestCase as TestCasePlus
 
-from hpcaccess.utils.tests import FROZEN_TIME
+from hpc_access.utils.tests import FROZEN_TIME
 from usersec.serializers import (
     HpcGroupCreateRequestSerializer,
     HpcGroupSerializer,

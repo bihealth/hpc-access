@@ -5,8 +5,8 @@ Module for all Form Tests.
 import pytest
 from django.utils.translation import gettext_lazy as _
 
-from hpcaccess.users.forms import UserAdminCreationForm
-from hpcaccess.users.models import User
+from hpc_access.users.forms import UserAdminCreationForm
+from hpc_access.users.models import User
 
 pytestmark = pytest.mark.django_db
 

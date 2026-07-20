@@ -3,11 +3,11 @@ from django.utils.translation import gettext_lazy as _
 
 
 class UsersConfig(AppConfig):
-    name = "hpcaccess.users"
+    name = "hpc_access.users"
     verbose_name = _("Users")
 
     def ready(self):
         try:
-            import hpcaccess.users.signals  # noqa F401
+            import hpc_access.users.signals  # noqa F401
         except ImportError:
             pass

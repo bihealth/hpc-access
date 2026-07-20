@@ -15,7 +15,7 @@ from adminsec.constants import (
     RE_NAME,
 )
 from adminsec.permissions_api import IsHpcAdminUser
-from hpcaccess.utils.rest_framework import CursorPagination
+from hpc_access.utils.rest_framework import CursorPagination
 from usersec.models import (
     HpcGroup,
     HpcGroupCreateRequest,

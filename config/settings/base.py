@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
-# hpcaccess/
-APPS_DIR = ROOT_DIR / "hpcaccess"
+# src/
+APPS_DIR = ROOT_DIR / "src"
 env = environ.FileAwareEnv()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
@@ -86,7 +86,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    "hpcaccess.users",
+    "hpc_access.users",
     "usersec",
     "adminsec",
     # Your stuff: custom apps go here
@@ -97,7 +97,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # MIGRATIONS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#migration-modules
-MIGRATION_MODULES = {"sites": "hpcaccess.contrib.sites.migrations"}
+MIGRATION_MODULES = {"sites": "hpc_access.contrib.sites.migrations"}
 
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-                "hpcaccess.users.context_processors.allauth_settings",
+                "hpc_access.users.context_processors.allauth_settings",
             ],
         },
     }
@@ -277,13 +277,13 @@ ACCOUNT_EMAIL_REQUIRED = True
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "hpcaccess.users.adapters.AccountAdapter"
+ACCOUNT_ADAPTER = "hpc_access.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/forms.html
-ACCOUNT_FORMS = {"signup": "hpcaccess.users.forms.UserSignupForm"}
+ACCOUNT_FORMS = {"signup": "hpc_access.users.forms.UserSignupForm"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-SOCIALACCOUNT_ADAPTER = "hpcaccess.users.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "hpc_access.users.adapters.SocialAccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/forms.html
-SOCIALACCOUNT_FORMS = {"signup": "hpcaccess.users.forms.UserSocialSignupForm"}
+SOCIALACCOUNT_FORMS = {"signup": "hpc_access.users.forms.UserSocialSignupForm"}
 
 
 # Your stuff...
@@ -356,7 +356,7 @@ if ENABLE_LDAP:
 
     AUTHENTICATION_BACKENDS = tuple(
         itertools.chain(
-            ("hpcaccess.auth_backends.PrimaryLDAPBackend",),
+            ("hpc_access.auth_backends.PrimaryLDAPBackend",),
             AUTHENTICATION_BACKENDS,
         )
     )
@@ -392,7 +392,7 @@ if ENABLE_LDAP:
 
         AUTHENTICATION_BACKENDS = tuple(
             itertools.chain(
-                ("hpcaccess.auth_backends.SecondaryLDAPBackend",),
+                ("hpc_access.auth_backends.SecondaryLDAPBackend",),
                 AUTHENTICATION_BACKENDS,
             )
         )
@@ -405,7 +405,7 @@ if ENABLE_LDAP:
 
 SITE_TITLE = "HPC Access"
 SITE_SUBTITLE = "Beta"
-SITE_PACKAGE = "hpcaccess"
+SITE_PACKAGE = "hpc_access"
 
 # Email settings
 SEND_EMAIL = env.bool("SEND_EMAIL", False)
@@ -471,6 +471,6 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "knox.auth.TokenAuthentication",
     ),
-    "DEFAULT_PAGINATION_CLASS": "hpcaccess.utils.rest_framework.CursorPagination",
+    "DEFAULT_PAGINATION_CLASS": "hpc_access.utils.rest_framework.CursorPagination",
     "PAGE_SIZE": 100,
 }
