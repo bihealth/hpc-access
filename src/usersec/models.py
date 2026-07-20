@@ -2,13 +2,15 @@ import re
 import uuid as uuid_object
 from enum import Enum, unique
 
+from django.apps import apps
 from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
-from factory.django import get_model
 
 from adminsec.constants import TIER_USER_HOME
 from hpc_access.users.models import User
+
+get_model = apps.get_model
 
 APP_NAME = "usersec"
 
