@@ -198,20 +198,20 @@ class LdapGroup(BaseModel):
 class ResourceData(BaseModel):
     """A resource request/usage for a user."""
 
-    #: Storage on tier 1 in TB (work).
+    #: Storage on tier 1 in TiB (work).
     tier1_work: float = 0.0
-    #: Storage on tier 1 in TB (scratch).
+    #: Storage on tier 1 in TiB (scratch).
     tier1_scratch: float = 0.0
-    #: Storage on tier 2 (mirrored) in TB.
+    #: Storage on tier 2 (mirrored) in TiB.
     tier2_mirrored: float = 0.0
-    #: Storage on tier 2 (unmirrored) in TB.
+    #: Storage on tier 2 (unmirrored) in TiB.
     tier2_unmirrored: float = 0.0
 
 
 class ResourceDataUser(BaseModel):
     """A resource request/usage for a user."""
 
-    #: Storage on tier 1 in GB (home).
+    #: Storage on tier 1 in GiB (home).
     tier1_home: float = 0.0
 
 

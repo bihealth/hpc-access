@@ -143,7 +143,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Scratch) [TB]",
+                label="Fast Active Storage (Scratch) [TiB]",
             )
             self.fields["tier1_scratch"].initial = group.resources_requested["tier1_scratch"]
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
@@ -154,7 +154,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Work) [TB]",
+                label="Fast Active Storage (Work) [TiB]",
             )
             self.fields["tier1_work"].initial = group.resources_requested["tier1_work"]
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
@@ -167,7 +167,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "that can be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Unmirrored) [TB]",
+                label="Long-Term Storage (Unmirrored) [TiB]",
             )
             self.fields["tier2_unmirrored"].initial = group.resources_requested["tier2_unmirrored"]
             self.fields["tier2_unmirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -180,7 +180,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
                     "cannot be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Mirrored) [TB]",
+                label="Long-Term Storage (Mirrored) [TiB]",
             )
             self.fields["tier2_mirrored"].initial = group.resources_requested["tier2_mirrored"]
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -387,7 +387,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Scratch) [TB]",
+                label="Fast Active Storage (Scratch) [TiB]",
             )
             self.fields["tier1_scratch"].initial = get_project_resource("tier1_scratch", instance)
             self.fields["tier1_scratch"].widget.attrs["class"] = "form-control mergeToJson"
@@ -398,7 +398,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Work) [TB]",
+                label="Fast Active Storage (Work) [TiB]",
             )
             self.fields["tier1_work"].initial = get_project_resource("tier1_work", instance)
             self.fields["tier1_work"].widget.attrs["class"] = "form-control mergeToJson"
@@ -411,7 +411,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "that can be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Unmirrored) [TB]",
+                label="Long-Term Storage (Unmirrored) [TiB]",
             )
             self.fields["tier2_unmirrored"].initial = get_project_resource(
                 "tier2_unmirrored", instance
@@ -426,7 +426,7 @@ class HpcProjectCreateRequestForm(forms.ModelForm):
                     "cannot be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Mirrored) [TB]",
+                label="Long-Term Storage (Mirrored) [TiB]",
             )
             self.fields["tier2_mirrored"].initial = get_project_resource("tier2_mirrored", instance)
             self.fields["tier2_mirrored"].widget.attrs["class"] = "form-control mergeToJson"
@@ -549,7 +549,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "Amount of scratch storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Scratch) [TB]",
+                label="Fast Active Storage (Scratch) [TiB]",
             )
             self.fields["tier1_scratch"].initial = get_project_resource(
                 "tier1_scratch", instance, project
@@ -562,7 +562,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "Amount of work storage on the fast primary ('tier 1') storage that can be "
                     "used with parallel access for computation."
                 ),
-                label="Fast Active Storage (Work) [TB]",
+                label="Fast Active Storage (Work) [TiB]",
             )
             self.fields["tier1_work"].initial = get_project_resource(
                 "tier1_work", instance, project
@@ -577,7 +577,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "that can be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Unmirrored) [TB]",
+                label="Long-Term Storage (Unmirrored) [TiB]",
             )
             self.fields["tier2_unmirrored"].initial = get_project_resource(
                 "tier2_unmirrored", instance, project
@@ -592,7 +592,7 @@ class HpcProjectChangeRequestForm(forms.ModelForm):
                     "cannot be reconstructed from other sources. Alternatively, you can use your "
                     "group storage at Charite or MDC."
                 ),
-                label="Long-Term Storage (Mirrored) [TB]",
+                label="Long-Term Storage (Mirrored) [TiB]",
             )
             self.fields["tier2_mirrored"].initial = get_project_resource(
                 "tier2_mirrored", instance, project
