@@ -1,0 +1,171 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hpc-access"
+version = "0.1.1"
+description = "Django web application for managing access to the BIH HPC cluster"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+  { name = "Manuel Holtgrewe", email = "manuel.holtgrewe@bih-charite.de" },
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Framework :: Django",
+  "Framework :: Django :: 4.2",
+]
+dependencies = [
+  "python-dotenv",
+  "pytz>=2024.1",
+  "python-slugify>=6.1.1,<7",
+  "Pillow>=10.0,<14",
+  "argon2-cffi>=23.1,<25",
+  "redis>=5.0,<6",
+  "celery",
+  "hiredis>=3.0,<4",
+  "django>=4.2.0,<4.3",
+  "django-environ>=0.8.1,<0.12",
+  "django-model-utils>=4.2.0,<5",
+  "django-allauth>=0.50.0,<0.58",
+  "django-crispy-forms>=2.2,<3",
+  "crispy-bootstrap5>=0.6,<1",
+  "django-redis>=5.4.0,<6",
+  "django-celery-beat>=2.0,<3",
+  "sentry-sdk>=1.5.11,<3",
+  "rules>=3.3,<4",
+  "ldap3>=2.9.1,<3",
+  "djangorestframework",
+  "django-rest-knox",
+  "pydantic>=2,<3",
+  "django-impersonate",
+]
+
+[project.optional-dependencies]
+ldap = [
+  "django-auth-ldap>=4.0.0,<5",
+  "python-ldap>=3.4.0,<4",
+]
+prod = [
+  "gunicorn",
+  "psycopg2",
+  "whitenoise",
+]
+
+[dependency-groups]
+dev = [
+  "werkzeug",
+  "ipdb",
+  "psycopg2",
+  "mypy",
+  "django-stubs",
+  "pytest",
+  "pytest-sugar",
+  "django-test-plus",
+  "sphinx",
+  "sphinx-autobuild",
+  "coverage",
+  "pylint-django",
+  "pre-commit",
+  "factory-boy",
+  "django-debug-toolbar",
+  "django-extensions",
+  "django-coverage-plugin",
+  "pytest-django",
+  "freezegun",
+  "snapshottest",
+  "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/bihealth/hpc-access"
+Changelog = "https://github.com/bihealth/hpc-access/blob/main/CHANGELOG.md"
+
+# ---------------------------------------------------------------------------
+# Build configuration
+# ---------------------------------------------------------------------------
+
+[tool.hatch.build.targets.wheel]
+packages = ["hpcaccess", "adminsec", "usersec", "config"]
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+addopts = "--ds=config.settings.test --reuse-db"
+python_files = ["tests.py", "test_*.py"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = "config.settings.*"
+django_settings_module = "config.settings.test"
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
+
+[tool.coverage.run]
+source = ["hpcaccess"]
+omit = ["*migrations*", "*tests*"]
+plugins = ["django_coverage_plugin"]
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py312"
+exclude = [
+  "*/migrations/*.py",
+  ".eggs",
+  ".git",
+  ".mypy_cache",
+  ".venv",
+  ".env",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pylint.master]
+load-plugins = "pylint_django"
+django-settings-module = "config.settings.base"
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint."messages control"]
+disable = ["missing-docstring", "invalid-name"]
+
+[tool.pylint.design]
+max-parents = 13
+
+[tool.pylint.typecheck]
+generated-members = [
+  "REQUEST",
+  "acl_users",
+  "aq_parent",
+  "[a-zA-Z]+_set{1,2}",
+  "save",
+  "delete",
+]
