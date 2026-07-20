@@ -386,8 +386,7 @@ class TestHpcGroupCreateRequestRetrieveUpdateApiView(ApiTestCase):
                 self.last_response.json(),
                 {
                     "tier1": (
-                        "The last folder name the be same as the group name. "
-                        "(group name: newname)"
+                        "The last folder name the be same as the group name. (group name: newname)"
                     )
                 },
             )

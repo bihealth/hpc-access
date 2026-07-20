@@ -237,10 +237,7 @@ EMAIL_TIMEOUT = 5
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
 # Provide ADMINS as: Name:email,Name:email
-ADMINS = [
-    tuple(x.split(":"))
-    for x in env.list("ADMINS", default=["Admin User:admin@example.com"])
-]
+ADMINS = [tuple(x.split(":")) for x in env.list("ADMINS", default=["Admin User:admin@example.com"])]
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 
@@ -254,7 +251,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
         }
     },
     "handlers": {

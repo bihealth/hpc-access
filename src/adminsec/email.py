@@ -432,7 +432,7 @@ def send_mail(subject, message, recipient_list, alternative=None, dry_run=False)
             # Write email message to a file instead of sending it
             return f"""
 Subject: {subject}
-To: {','.join(recipient_list)}
+To: {",".join(recipient_list)}
 
 {message}
 """.lstrip()

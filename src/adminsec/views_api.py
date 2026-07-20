@@ -151,8 +151,7 @@ class HpcGroupCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
 
                 elif not name == m.group("name"):
                     errors[fkey] = (
-                        "The last folder name the be same as the group name. "
-                        f"(group name: {name})"
+                        f"The last folder name the be same as the group name. (group name: {name})"
                     )
 
         if errors:

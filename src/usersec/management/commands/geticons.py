@@ -6,8 +6,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 # Local constants
-JSON_URL = "https://raw.githubusercontent.com/iconify/collections-json/" "master/collections.json"
-COLL_URL = "https://raw.githubusercontent.com/iconify/collections-json/" "master/json/{id}.json"
+JSON_URL = "https://raw.githubusercontent.com/iconify/collections-json/master/collections.json"
+COLL_URL = "https://raw.githubusercontent.com/iconify/collections-json/master/json/{id}.json"
 
 
 class Command(BaseCommand):
