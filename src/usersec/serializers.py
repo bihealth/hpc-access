@@ -37,8 +37,10 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC user serializers."""
 
     primary_group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
+
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     uid = serializers.IntegerField(read_only=True)
@@ -124,8 +126,10 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
 
     owner = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
+
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
@@ -178,13 +182,16 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
 
     group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+
     resources_requested = serializers.JSONField(read_only=True)
     resources_used = serializers.JSONField()
+
     status = serializers.CharField(read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
     name = serializers.CharField(read_only=True)
     folders = serializers.JSONField()
+
     expiration = serializers.DateTimeField(read_only=True)
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
 
@@ -324,6 +331,7 @@ class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
     name_requested = serializers.CharField(read_only=True)
     name = serializers.CharField()
+
     folders = serializers.JSONField()
 
     class Meta:

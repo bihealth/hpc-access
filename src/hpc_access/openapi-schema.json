@@ -1,0 +1,1867 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "hpc-access API",
+    "version": "0.1.1",
+    "description": "API for hpc-access HPC cluster management"
+  },
+  "paths": {
+    "/adminsec/api/hpcgroup/": {
+      "get": {
+        "operationId": "adminsec_api_hpcgroup_list",
+        "description": "API view for listing all groups.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "The pagination cursor value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedHpcGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcgroup/{hpcgroup}/": {
+      "get": {
+        "operationId": "adminsec_api_hpcgroup_retrieve",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroup",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroup"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "adminsec_api_hpcgroup_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroup",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroup"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroup"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroup"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroup"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "adminsec_api_hpcgroup_partial_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroup",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroup"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroup"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroup"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroup"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcgroupcreaterequest/{hpcgroupcreaterequest}/": {
+      "get": {
+        "operationId": "adminsec_api_hpcgroupcreaterequest_retrieve",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroupcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroupCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "adminsec_api_hpcgroupcreaterequest_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroupcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroupCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "adminsec_api_hpcgroupcreaterequest_partial_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcgroupcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcGroupCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcproject/": {
+      "get": {
+        "operationId": "adminsec_api_hpcproject_list",
+        "description": "API view for listing all groups.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "The pagination cursor value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedHpcProjectList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcproject/{hpcproject}/": {
+      "get": {
+        "operationId": "adminsec_api_hpcproject_retrieve",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcproject",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProject"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "adminsec_api_hpcproject_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcproject",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProject"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProject"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProject"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProject"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "adminsec_api_hpcproject_partial_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcproject",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProject"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProject"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProject"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcprojectcreaterequest/{hpcprojectcreaterequest}/": {
+      "get": {
+        "operationId": "adminsec_api_hpcprojectcreaterequest_retrieve",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcprojectcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProjectCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "adminsec_api_hpcprojectcreaterequest_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcprojectcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProjectCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "adminsec_api_hpcprojectcreaterequest_partial_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcprojectcreaterequest",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcProjectCreateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcuser/": {
+      "get": {
+        "operationId": "adminsec_api_hpcuser_list",
+        "description": "API view for listing all users.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "The pagination cursor value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedHpcUserList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/adminsec/api/hpcuser/{hpcuser}/": {
+      "get": {
+        "operationId": "adminsec_api_hpcuser_retrieve",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcuser",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcUser"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "adminsec_api_hpcuser_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcuser",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcUser"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcUser"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/HpcUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcUser"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "adminsec_api_hpcuser_partial_update",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hpcuser",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "adminsec"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcUser"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcUser"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedHpcUser"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcUser"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/hpcuser/lookup/": {
+      "get": {
+        "operationId": "api_hpcuser_lookup_list",
+        "description": "API view for retrieving, updating and deleting a user.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "The pagination cursor value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedHpcUserLookupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HpcGroup": {
+        "type": "object",
+        "description": "Serializer for HpcGroup model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "gid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "current_version",
+          "date_created",
+          "delegate",
+          "description",
+          "expiration",
+          "folders",
+          "gid",
+          "name",
+          "owner",
+          "resources_requested",
+          "resources_used",
+          "status",
+          "uuid"
+        ]
+      },
+      "HpcGroupCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcGroupCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "folders": {},
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "current_version",
+          "date_created",
+          "description",
+          "expiration",
+          "folders",
+          "name",
+          "resources_requested",
+          "uuid"
+        ]
+      },
+      "HpcProject": {
+        "type": "object",
+        "description": "Serializer for HpcProject model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "gid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "current_version",
+          "date_created",
+          "delegate",
+          "description",
+          "expiration",
+          "folders",
+          "gid",
+          "group",
+          "members",
+          "name",
+          "resources_requested",
+          "resources_used",
+          "status",
+          "uuid"
+        ]
+      },
+      "HpcProjectCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcProjectCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_requested": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "current_version",
+          "date_created",
+          "description",
+          "expiration",
+          "folders",
+          "group",
+          "members",
+          "name",
+          "name_requested",
+          "resources_requested",
+          "uuid"
+        ]
+      },
+      "HpcUser": {
+        "type": "object",
+        "description": "Serializer for HpcUser model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "full_name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "primary_group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "uid": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "home_directory": {
+            "type": "string"
+          },
+          "login_shell": {
+            "type": "string"
+          },
+          "removed": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "current_version",
+          "date_created",
+          "description",
+          "display_name",
+          "email",
+          "expiration",
+          "first_name",
+          "full_name",
+          "home_directory",
+          "last_name",
+          "login_shell",
+          "phone_number",
+          "primary_group",
+          "removed",
+          "resources_requested",
+          "resources_used",
+          "status",
+          "uid",
+          "username",
+          "uuid"
+        ]
+      },
+      "HpcUserLookup": {
+        "type": "object",
+        "description": "Serializer for HpcUser model for lookup purposes.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "readOnly": true
+          },
+          "primary_group": {
+            "type": "string",
+            "description": "Name of the group on the cluster",
+            "readOnly": true
+          },
+          "full_name": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "full_name",
+          "id",
+          "primary_group",
+          "username"
+        ]
+      },
+      "PaginatedHpcGroupList": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cD00ODY%3D\""
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cj0xJnA9NDg3"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HpcGroup"
+            }
+          }
+        }
+      },
+      "PaginatedHpcProjectList": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cD00ODY%3D\""
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cj0xJnA9NDg3"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HpcProject"
+            }
+          }
+        }
+      },
+      "PaginatedHpcUserList": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cD00ODY%3D\""
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cj0xJnA9NDg3"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HpcUser"
+            }
+          }
+        }
+      },
+      "PaginatedHpcUserLookupList": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cD00ODY%3D\""
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?cursor=cj0xJnA9NDg3"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HpcUserLookup"
+            }
+          }
+        }
+      },
+      "PatchedHpcGroup": {
+        "type": "object",
+        "description": "Serializer for HpcGroup model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "gid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcGroupCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcGroupCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "folders": {},
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcProject": {
+        "type": "object",
+        "description": "Serializer for HpcProject model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "gid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcProjectCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcProjectCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_requested": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {},
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcUser": {
+        "type": "object",
+        "description": "Serializer for HpcUser model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "full_name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "primary_group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "readOnly": true
+          },
+          "resources_used": {},
+          "status": {
+            "type": "string",
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "uid": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "home_directory": {
+            "type": "string"
+          },
+          "login_shell": {
+            "type": "string"
+          },
+          "removed": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionid"
+      },
+      "knoxApiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Token-based authentication with required prefix \"Token\""
+      }
+    }
+  }
+}

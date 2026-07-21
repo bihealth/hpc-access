@@ -2,6 +2,7 @@
 Base settings to build other settings files upon.
 """
 
+from importlib.metadata import version as get_version
 from pathlib import Path
 
 import environ
@@ -80,6 +81,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "rules.apps.AutodiscoverRulesConfig",
     "rest_framework",
+    "drf_spectacular",
     "knox",
     "impersonate",
 ]
@@ -470,4 +472,12 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "hpc_access.utils.rest_framework.CursorPagination",
     "PAGE_SIZE": 100,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "hpc-access API",
+    "DESCRIPTION": "API for hpc-access HPC cluster management",
+    "VERSION": get_version("hpc-access"),
+    "SERVE_INCLUDE_SCHEMA": False,
 }
