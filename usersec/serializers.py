@@ -5,11 +5,14 @@ from typing import Optional
 from rest_framework import serializers
 
 from usersec.models import (
+    HpcGroup,
     HpcGroupCreateRequest,
     HpcGroupCreateRequestVersion,
     HpcGroupVersion,
+    HpcProject,
     HpcProjectCreateRequest,
     HpcProjectCreateRequestVersion,
+    HpcProjectVersion,
     HpcUser,
     HpcUserVersion,
 )
@@ -151,7 +154,7 @@ class HpcGroupSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer
     current_version = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = HpcUser
+        model = HpcGroup
         fields = HpcGroupAbstractSerializer.Meta.fields + [
             "current_version",
         ]
@@ -165,7 +168,7 @@ class HpcGroupVersionSerializer(HpcGroupAbstractSerializer, serializers.ModelSer
 
     class Meta:
         model = HpcGroupVersion
-        fields = HpcUserAbstractSerializer.Meta.fields + [
+        fields = HpcGroupAbstractSerializer.Meta.fields + [
             "version",
         ]
 
@@ -207,7 +210,7 @@ class HpcProjectSerializer(HpcProjectAbstractSerializer, serializers.ModelSerial
     current_version = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = HpcUser
+        model = HpcProject
         fields = HpcProjectAbstractSerializer.Meta.fields + [
             "current_version",
         ]
@@ -220,7 +223,7 @@ class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.Mode
     belongs_to = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
 
     class Meta:
-        model = HpcUserVersion
+        model = HpcProjectVersion
         fields = HpcProjectAbstractSerializer.Meta.fields + [
             "version",
         ]
