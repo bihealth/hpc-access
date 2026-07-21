@@ -1038,6 +1038,30 @@
   },
   "components": {
     "schemas": {
+      "GroupFolders": {
+        "type": "object",
+        "description": "Folders for a group or project.",
+        "properties": {
+          "tier1_work": {
+            "type": "string"
+          },
+          "tier1_scratch": {
+            "type": "string"
+          },
+          "tier2_mirrored": {
+            "type": "string"
+          },
+          "tier2_unmirrored": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier1_scratch",
+          "tier1_work",
+          "tier2_mirrored",
+          "tier2_unmirrored"
+        ]
+      },
       "HpcGroup": {
         "type": "object",
         "description": "Serializer for HpcGroup model.",
@@ -1064,11 +1088,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceData"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1082,7 +1117,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "expiration": {
             "type": "string",
             "format": "date-time",
@@ -1123,6 +1160,11 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1137,7 +1179,9 @@
           "name": {
             "type": "string"
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "current_version": {
             "type": "integer",
             "readOnly": true
@@ -1180,11 +1224,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceData"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1198,7 +1253,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "expiration": {
             "type": "string",
             "format": "date-time",
@@ -1249,6 +1306,11 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1282,7 +1344,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "current_version": {
             "type": "integer",
             "readOnly": true
@@ -1351,11 +1415,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceDataUser"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceDataUser"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1572,11 +1647,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceData"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1590,7 +1676,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "expiration": {
             "type": "string",
             "format": "date-time",
@@ -1616,6 +1704,11 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1630,7 +1723,9 @@
           "name": {
             "type": "string"
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "current_version": {
             "type": "integer",
             "readOnly": true
@@ -1663,11 +1758,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceData"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1681,7 +1787,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "expiration": {
             "type": "string",
             "format": "date-time",
@@ -1716,6 +1824,11 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1749,7 +1862,9 @@
             "type": "string",
             "readOnly": true
           },
-          "folders": {},
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
           "current_version": {
             "type": "integer",
             "readOnly": true
@@ -1805,11 +1920,22 @@
             "readOnly": true
           },
           "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceDataUser"
+              }
+            ],
             "readOnly": true
           },
-          "resources_used": {},
+          "resources_used": {
+            "$ref": "#/components/schemas/ResourceDataUser"
+          },
           "status": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
             "readOnly": true
           },
           "description": {
@@ -1844,6 +1970,53 @@
             "readOnly": true
           }
         }
+      },
+      "ResourceData": {
+        "type": "object",
+        "description": "Resource request/usage for a group or project.",
+        "properties": {
+          "tier1_work": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          },
+          "tier1_scratch": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          },
+          "tier2_mirrored": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          },
+          "tier2_unmirrored": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          }
+        }
+      },
+      "ResourceDataUser": {
+        "type": "object",
+        "description": "Resource request/usage for a user.",
+        "properties": {
+          "tier1_home": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          }
+        }
+      },
+      "StatusEnum": {
+        "enum": [
+          "INITIAL",
+          "ACTIVE",
+          "DELETED",
+          "EXPIRED"
+        ],
+        "type": "string",
+        "description": "* `INITIAL` - Initial\n* `ACTIVE` - Active\n* `DELETED` - Deleted\n* `EXPIRED` - Expired"
       }
     },
     "securitySchemes": {
