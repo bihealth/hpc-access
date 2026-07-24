@@ -54,7 +54,7 @@ class Command(BaseCommand):
         if options.get("path"):
             iconify_path = options["path"]
         else:
-            iconify_path = os.path.join(settings.APPS_DIR, "static", "iconify")
+            iconify_path = os.path.join(settings.ASSETS_DIR, "static", "iconify")
         coll_path = os.path.join(iconify_path, "json")
 
         # Create Iconify dirs if not there
