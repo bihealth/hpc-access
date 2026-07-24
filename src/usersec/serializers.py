@@ -2,6 +2,8 @@
 
 from typing import Optional
 
+from django.db import models
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from usersec.models import (
@@ -18,6 +20,54 @@ from usersec.models import (
 )
 
 HPC_ALUMNI_GROUP = "hpc-alumnis"
+
+
+class Status(models.TextChoices):
+    """Status of an HPC user, group, or project."""
+
+    INITIAL = "INITIAL"
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
+    EXPIRED = "EXPIRED"
+
+
+class ResourceDataSerializer(serializers.Serializer):
+    """Resource request/usage for a group or project."""
+
+    tier1_work = serializers.FloatField(default=0.0)
+    tier1_scratch = serializers.FloatField(default=0.0)
+    tier2_mirrored = serializers.FloatField(default=0.0)
+    tier2_unmirrored = serializers.FloatField(default=0.0)
+
+
+class ResourceDataUserSerializer(serializers.Serializer):
+    """Resource request/usage for a user."""
+
+    tier1_home = serializers.FloatField(default=0.0)
+
+
+class GroupFoldersSerializer(serializers.Serializer):
+    """Folders for a group or project."""
+
+    tier1_work = serializers.CharField()
+    tier1_scratch = serializers.CharField()
+    tier2_mirrored = serializers.CharField()
+    tier2_unmirrored = serializers.CharField()
+
+
+@extend_schema_field(ResourceDataUserSerializer)
+class ResourceDataUserJSONField(serializers.JSONField):
+    """JSON field annotated as ResourceDataUser for schema generation."""
+
+
+@extend_schema_field(ResourceDataSerializer)
+class ResourceDataJSONField(serializers.JSONField):
+    """JSON field annotated as ResourceData for schema generation."""
+
+
+@extend_schema_field(GroupFoldersSerializer)
+class GroupFoldersJSONField(serializers.JSONField):
+    """JSON field annotated as GroupFolders for schema generation."""
 
 
 class HpcObjectAbstractSerializer(serializers.Serializer):
@@ -37,9 +87,11 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC user serializers."""
 
     primary_group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
-    resources_requested = serializers.JSONField(read_only=True)
-    resources_used = serializers.JSONField()
-    status = serializers.CharField(read_only=True)
+
+    resources_requested = ResourceDataUserJSONField(read_only=True)
+    resources_used = ResourceDataUserJSONField()
+
+    status = serializers.ChoiceField(choices=Status.choices, read_only=True)
     description = serializers.CharField(read_only=True)
     uid = serializers.IntegerField(read_only=True)
     username = serializers.CharField(read_only=True)
@@ -124,13 +176,15 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
 
     owner = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
-    resources_requested = serializers.JSONField(read_only=True)
-    resources_used = serializers.JSONField()
-    status = serializers.CharField(read_only=True)
+
+    resources_requested = ResourceDataJSONField(read_only=True)
+    resources_used = ResourceDataJSONField()
+
+    status = serializers.ChoiceField(choices=Status.choices, read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
     name = serializers.CharField(read_only=True)
-    folders = serializers.JSONField()
+    folders = GroupFoldersJSONField()
     expiration = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -178,13 +232,16 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
 
     group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
-    resources_requested = serializers.JSONField(read_only=True)
-    resources_used = serializers.JSONField()
-    status = serializers.CharField(read_only=True)
+
+    resources_requested = ResourceDataJSONField(read_only=True)
+    resources_used = ResourceDataJSONField()
+
+    status = serializers.ChoiceField(choices=Status.choices, read_only=True)
     description = serializers.CharField(read_only=True)
     gid = serializers.IntegerField()
     name = serializers.CharField(read_only=True)
-    folders = serializers.JSONField()
+    folders = GroupFoldersJSONField()
+
     expiration = serializers.DateTimeField(read_only=True)
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
 
@@ -232,7 +289,7 @@ class HpcProjectVersionSerializer(HpcProjectAbstractSerializer, serializers.Mode
 class HpcRequestAbstractSerializer(HpcObjectAbstractSerializer):
     """Common base class for HPC request serializers."""
 
-    status = serializers.CharField(read_only=True)
+    status = serializers.ChoiceField(choices=Status.choices, read_only=True)
     requester = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     comment = serializers.CharField(read_only=True)
 
@@ -258,10 +315,10 @@ class HpcGroupRequestAbstract(HpcRequestAbstractSerializer):
 class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
     """Common base class for HPC group create request serializers."""
 
-    resources_requested = serializers.JSONField(read_only=True)
+    resources_requested = ResourceDataJSONField(read_only=True)
     description = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
-    folders = serializers.JSONField()
+    folders = GroupFoldersJSONField()
     name = serializers.CharField()
 
     class Meta:
@@ -317,14 +374,15 @@ class HpcProjectRequestAbstract(HpcRequestAbstractSerializer):
 class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
     """Common base class for HPC group create request serializers."""
 
-    resources_requested = serializers.JSONField(read_only=True)
+    resources_requested = ResourceDataJSONField(read_only=True)
     description = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
     group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
     name_requested = serializers.CharField(read_only=True)
     name = serializers.CharField()
-    folders = serializers.JSONField()
+
+    folders = GroupFoldersJSONField()
 
     class Meta:
         fields = HpcObjectAbstractSerializer.Meta.fields + [

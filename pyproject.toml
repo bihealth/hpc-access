@@ -41,6 +41,7 @@ dependencies = [
   "ldap3>=2.9.1,<3",
   "djangorestframework",
   "django-rest-knox",
+  "drf-spectacular~=0.28",
   "pydantic>=2,<3",
   "django-impersonate",
 ]
@@ -91,6 +92,7 @@ Changelog = "https://github.com/bihealth/hpc-access/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hpc_access", "src/adminsec", "src/usersec", "config"]
+artifacts = ["src/hpc_access/openapi-schema.json"]
 
 # ---------------------------------------------------------------------------
 # Tool configuration
