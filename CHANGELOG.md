@@ -114,4 +114,4 @@
 
 ### Miscellaneous Chores
 
-* update project meta ([#404](https://github.com/bihealth/hpc-access/issues/404)) ([40beb8b](https://github.com/bihealth/hpc-access/commit/40beb8bd386973b19991b122b489188f0aa4829a))
+* update project meta ([#404](https://github.com/bihealth/hpc-access/issues/404)) ([40beb8b](https://github.com/bihealth/hpc-access/commit/40beb8bd386973b19991b122b489188f0aa4829a)) 
