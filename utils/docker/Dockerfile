@@ -6,10 +6,10 @@
 
 FROM python:3.12-bookworm AS base
 
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONFAULTHANDLER 1
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONFAULTHANDLER=1
 
 WORKDIR /usr/src/app
 
@@ -61,7 +61,7 @@ COPY --from=deps /usr/src/app/.venv /usr/src/app/.venv
 WORKDIR /usr/src/app
 
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
-ENV CUSTOM_STATIC_DIR /usr/src/app/local-static
+ENV CUSTOM_STATIC_DIR=/usr/src/app/local-static
 
 # Temporarily setup environment variables for ``manage.py` commands below.
 # We will clear them again later.
