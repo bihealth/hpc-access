@@ -118,7 +118,7 @@ module = "*.migrations.*"
 ignore_errors = true
 
 [tool.coverage.run]
-source = ["hpc_access"]
+source = ["adminsec", "hpc_access", "usersec"]
 omit = ["*migrations*", "*tests*"]
 plugins = ["django_coverage_plugin"]
 
