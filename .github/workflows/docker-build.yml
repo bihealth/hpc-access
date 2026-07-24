@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
 
       - name: Log in to the Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
