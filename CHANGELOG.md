@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/bihealth/hpc-access/compare/v0.2.0...v0.2.1) (2026-07-24)
+
+
+### Features
+
+* add OpenAPI schema generation with drf-spectacular ([#405](https://github.com/bihealth/hpc-access/issues/405)) ([1f68cec](https://github.com/bihealth/hpc-access/commit/1f68cec1bb8909e59983c4e0851efde93d29efbf))
+
 ## [0.2.0](https://github.com/bihealth/hpc-access/compare/v0.1.0...v0.2.0) (2026-07-24)
 
 
@@ -114,4 +121,4 @@
 
 ### Miscellaneous Chores
 
-* update project meta ([#404](https://github.com/bihealth/hpc-access/issues/404)) ([40beb8b](https://github.com/bihealth/hpc-access/commit/40beb8bd386973b19991b122b489188f0aa4829a)) 
+* update project meta ([#404](https://github.com/bihealth/hpc-access/issues/404)) ([40beb8b](https://github.com/bihealth/hpc-access/commit/40beb8bd386973b19991b122b489188f0aa4829a))
