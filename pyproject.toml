@@ -29,7 +29,7 @@ dependencies = [
   "celery",
   "hiredis>=3.0,<4",
   "django>=4.2.0,<4.3",
-  "django-environ>=0.8.1,<0.12",
+  "django-environ>=0.14.0,<0.15",
   "django-model-utils>=4.2.0,<5",
   "django-allauth>=0.50.0,<0.58",
   "django-crispy-forms>=2.2,<3",
