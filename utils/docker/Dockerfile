@@ -4,12 +4,12 @@
 # Base
 # ---------------------------------------------------------------------------
 
-FROM python:3.10-bookworm AS base
+FROM python:3.12-bookworm AS base
 
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONFAULTHANDLER 1
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONFAULTHANDLER=1
 
 WORKDIR /usr/src/app
 
@@ -31,7 +31,8 @@ RUN chmod +x /usr/local/bin/wait
 
 FROM base AS deps
 
-RUN pip install pipenv
+COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         gcc \
@@ -41,13 +42,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         make \
         xmlsec1
 
-# Copy Pipfile and lock into the Docker image.
-COPY Pipfile Pipfile.lock ./
+COPY pyproject.toml uv.lock README.md ./
 
-# Install Python dependencies via pipenv.
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv sync \
-        --python=/usr/local/bin/python \
-        --categories=packages,prod-packages,dev-packages,ldap-packages
+RUN uv sync \
+        --frozen \
+        --no-dev \
+        --extra prod \
+        --extra ldap
 
 # ---------------------------------------------------------------------------
 # Runtime
@@ -60,7 +61,7 @@ COPY --from=deps /usr/src/app/.venv /usr/src/app/.venv
 WORKDIR /usr/src/app
 
 ENV PATH="/usr/src/app/.venv/bin:$PATH"
-ENV CUSTOM_STATIC_DIR /usr/src/app/local-static
+ENV CUSTOM_STATIC_DIR=/usr/src/app/local-static
 
 # Temporarily setup environment variables for ``manage.py` commands below.
 # We will clear them again later.

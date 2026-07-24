@@ -1,11 +1,14 @@
-# hpcaccess
+# hpc-access
 
 Managing the access to the BIH HPC cluster
 
 [![Built with Cookiecutter Django](https://img.shields.io/badge/built%20with-Cookiecutter%20Django-ff69b4.svg?logo=cookiecutter)](https://github.com/cookiecutter/cookiecutter-django/)
-[![Black code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 License: MIT
+
+## CLI Tool
+
+The `hpc-access-cli` command-line tool for syncing HPC state (LDAP, filesystem) lives in its own repository: [bihealth/hpc-access-cli](https://github.com/bihealth/hpc-access-cli).
 
 ## Settings
 
@@ -27,7 +30,7 @@ For convenience, you can keep your normal user logged in on Chrome and your supe
 
 Running type checks with mypy:
 
-    $ mypy hpcaccess
+    $ mypy src/hpc_access
 
 ### Test coverage
 

@@ -10,8 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
-# hpcaccess/
-APPS_DIR = ROOT_DIR / "hpcaccess"
+ASSETS_DIR = ROOT_DIR / "src" / "hpc_access"
 env = environ.FileAwareEnv()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
@@ -86,7 +85,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    "hpcaccess.users",
+    "hpc_access.users",
     "usersec",
     "adminsec",
     # Your stuff: custom apps go here
@@ -97,7 +96,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # MIGRATIONS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#migration-modules
-MIGRATION_MODULES = {"sites": "hpcaccess.contrib.sites.migrations"}
+MIGRATION_MODULES = {"sites": "hpc_access.contrib.sites.migrations"}
 
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -146,6 +145,7 @@ MIDDLEWARE = [
     "django.middleware.common.BrokenLinkEmailsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "impersonate.middleware.ImpersonateMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 # STATIC
@@ -155,7 +155,7 @@ STATIC_ROOT = str(ROOT_DIR / "staticfiles")
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
-STATICFILES_DIRS = [str(APPS_DIR / "static")]
+STATICFILES_DIRS = [str(ASSETS_DIR / "static")]
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -165,7 +165,7 @@ STATICFILES_FINDERS = [
 # MEDIA
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
-MEDIA_ROOT = str(APPS_DIR / "media")
+MEDIA_ROOT = str(ASSETS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
@@ -177,7 +177,7 @@ TEMPLATES = [
         # https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#dirs
-        "DIRS": [str(APPS_DIR / "templates")],
+        "DIRS": [str(ASSETS_DIR / "templates")],
         # https://docs.djangoproject.com/en/dev/ref/settings/#app-dirs
         "APP_DIRS": True,
         "OPTIONS": {
@@ -191,7 +191,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-                "hpcaccess.users.context_processors.allauth_settings",
+                "hpc_access.users.context_processors.allauth_settings",
             ],
         },
     }
@@ -207,7 +207,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 # FIXTURES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#fixture-dirs
-FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
+FIXTURE_DIRS = (str(ASSETS_DIR / "fixtures"),)
 
 # SECURITY
 # ------------------------------------------------------------------------------
@@ -236,10 +236,7 @@ EMAIL_TIMEOUT = 5
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
 # Provide ADMINS as: Name:email,Name:email
-ADMINS = [
-    tuple(x.split(":"))
-    for x in env.list("ADMINS", default=["Admin User:admin@example.com"])
-]
+ADMINS = [tuple(x.split(":")) for x in env.list("ADMINS", default=["Admin User:admin@example.com"])]
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 
@@ -253,7 +250,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s " "%(process)d %(thread)d %(message)s"
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
         }
     },
     "handlers": {
@@ -277,13 +274,13 @@ ACCOUNT_EMAIL_REQUIRED = True
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "hpcaccess.users.adapters.AccountAdapter"
+ACCOUNT_ADAPTER = "hpc_access.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/forms.html
-ACCOUNT_FORMS = {"signup": "hpcaccess.users.forms.UserSignupForm"}
+ACCOUNT_FORMS = {"signup": "hpc_access.users.forms.UserSignupForm"}
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-SOCIALACCOUNT_ADAPTER = "hpcaccess.users.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "hpc_access.users.adapters.SocialAccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/forms.html
-SOCIALACCOUNT_FORMS = {"signup": "hpcaccess.users.forms.UserSocialSignupForm"}
+SOCIALACCOUNT_FORMS = {"signup": "hpc_access.users.forms.UserSocialSignupForm"}
 
 
 # Your stuff...
@@ -356,7 +353,7 @@ if ENABLE_LDAP:
 
     AUTHENTICATION_BACKENDS = tuple(
         itertools.chain(
-            ("hpcaccess.auth_backends.PrimaryLDAPBackend",),
+            ("hpc_access.auth_backends.PrimaryLDAPBackend",),
             AUTHENTICATION_BACKENDS,
         )
     )
@@ -392,7 +389,7 @@ if ENABLE_LDAP:
 
         AUTHENTICATION_BACKENDS = tuple(
             itertools.chain(
-                ("hpcaccess.auth_backends.SecondaryLDAPBackend",),
+                ("hpc_access.auth_backends.SecondaryLDAPBackend",),
                 AUTHENTICATION_BACKENDS,
             )
         )
@@ -405,7 +402,7 @@ if ENABLE_LDAP:
 
 SITE_TITLE = "HPC Access"
 SITE_SUBTITLE = "Beta"
-SITE_PACKAGE = "hpcaccess"
+SITE_PACKAGE = "hpc_access"
 
 # Email settings
 SEND_EMAIL = env.bool("SEND_EMAIL", False)
@@ -471,6 +468,6 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "knox.auth.TokenAuthentication",
     ),
-    "DEFAULT_PAGINATION_CLASS": "hpcaccess.utils.rest_framework.CursorPagination",
+    "DEFAULT_PAGINATION_CLASS": "hpc_access.utils.rest_framework.CursorPagination",
     "PAGE_SIZE": 100,
 }

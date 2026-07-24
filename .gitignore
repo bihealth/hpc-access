@@ -306,7 +306,7 @@ Session.vim
 tags
 
 ### Project template
-hpcaccess/media/
+hpc_access/media/
 
 .pytest_cache/
 .ipython/

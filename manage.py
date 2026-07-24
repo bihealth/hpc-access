@@ -23,9 +23,8 @@ if __name__ == "__main__":
 
         raise
 
-    # This allows easy placement of apps within the interior
-    # hpcaccess directory.
+    # Add src/ to Python path for the src layout.
     current_path = Path(__file__).parent.resolve()
-    sys.path.append(str(current_path / "hpcaccess"))
+    sys.path.insert(0, str(current_path / "src"))
 
     execute_from_command_line(sys.argv)
