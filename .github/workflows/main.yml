@@ -101,6 +101,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
+      pull-requests: write
     env:
       CELERY_BROKER_URL: redis://0.0.0.0:6379/0
       DATABASE_URL: 'postgres://hpcaccess:hpcaccess@0.0.0.0/hpcaccess'
