@@ -1601,3 +1601,25 @@ class TermsAndConditionsPublishView(HpcPermissionMixin, FormMixin, View):
                 send_notification_user_consent(user)
 
         return HttpResponseRedirect(self.success_url)
+
+
+class StorageByHpcGroupView(HpcPermissionMixin, ListView):
+    """Storage by Hpc Group"""
+
+    permission_required = "adminsec.is_hpcadmin"
+    template_name = "adminsec/storage_by_hpc_group.html"
+    model = HpcGroup
+
+    def get_context_data(self, *args, **kwargs):
+        resource_keys = ["tier1_work", "tier1_scratch", "tier2_unmirrored", "tier2_mirrored"]
+        for obj in self.object_list:
+            for k in resource_keys:
+                obj.resources_requested.setdefault(k, 0)
+                obj.resources_used.setdefault(k, 0)
+            for project in HpcProject.objects.filter(group=obj):
+                for k in resource_keys:
+                    obj.resources_requested[k] += project.resources_requested.get(k, 0)
+                    obj.resources_used[k] += project.resources_used.get(k, 0)
+        ctx = super().get_context_data(*args, **kwargs)
+        ctx["object_list"] = self.object_list
+        return ctx
