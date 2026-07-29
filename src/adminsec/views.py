@@ -27,6 +27,7 @@ from adminsec.constants import (
     DEFAULT_GROUP_DIRECTORY_TIER1_WORK,
     DEFAULT_GROUP_DIRECTORY_TIER2_MIRRORED,
     DEFAULT_GROUP_DIRECTORY_TIER2_UNMIRRORED,
+    DEFAULT_GROUP_RESOURCES,
     DEFAULT_HOME_DIRECTORY,
     DEFAULT_PROJECT_DIRECTORY_TIER1_SCRATCH,
     DEFAULT_PROJECT_DIRECTORY_TIER1_WORK,
@@ -1611,7 +1612,7 @@ class StorageByHpcGroupView(HpcPermissionMixin, ListView):
     model = HpcGroup
 
     def get_context_data(self, *args, **kwargs):
-        resource_keys = ["tier1_work", "tier1_scratch", "tier2_unmirrored", "tier2_mirrored"]
+        resource_keys = DEFAULT_GROUP_RESOURCES.keys()
         for obj in self.object_list:
             for k in resource_keys:
                 obj.resources_requested.setdefault(k, 0)
