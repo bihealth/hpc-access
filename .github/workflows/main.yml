@@ -114,6 +114,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.HPC_ACCESS_CLI_BOT_TOKEN }}
           lfs: true
 
       - name: Install Python
@@ -139,6 +140,7 @@ jobs:
       - name: Create pull request for the new schema (if changed)
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.HPC_ACCESS_CLI_BOT_TOKEN }}
           add-paths: |
             src/hpc_access/openapi-schema.json
           commit-message: 'chore: update OpenAPI schema'
