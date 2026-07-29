@@ -5,11 +5,13 @@
 {% block css %}
   {{ block.super }}
   <link href="https://cdn.datatables.net/v/dt/dt-3.0.0/datatables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/buttons/4.0.0/css/buttons.dataTables.min.css" rel="stylesheet">
 {% endblock css %}
 
 {% block javascript %}
   {{ block.super }}
   <script src="https://cdn.datatables.net/v/dt/dt-3.0.0/datatables.min.js" ></script>
+  <script src="https://cdn.datatables.net/buttons/4.0.0/js/dataTables.buttons.min.js" ></script>
 {% endblock javascript %}
 
 {% block content %}
@@ -62,7 +64,32 @@
   </table>
 
   <script>
-    const DT = new DataTable("#hpcaccess-storage-by-group");
+    const DT = new DataTable("#hpcaccess-storage-by-group", {
+      layout: {
+        topStart: 'pageLength',
+        topEnd: 'search',
+        bottomStart: 'info',
+        bottomEnd: 'paging',
+        bottom2: {
+          buttons: [
+            {
+              extend: 'copyHtml5',
+              text: 'Copy',
+              fieldSeparator: '\t',
+            },
+            {
+              extend: 'csvHtml5',
+              text: 'Export to CSV',
+              fieldSeparator: '\t',
+            },
+            {
+              extend: 'print',
+              text: 'Print'
+            },
+          ],
+        },
+      },
+    });
   </script>
 </div>
 {% endblock content %}
