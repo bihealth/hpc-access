@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "hpc-access API",
-    "version": "0.1.1",
+    "version": "0.4.0",
     "description": "API for hpc-access HPC cluster management"
   },
   "paths": {
