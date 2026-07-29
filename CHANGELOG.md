@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/bihealth/hpc-access/compare/v0.3.0...v0.4.0) (2026-07-29)
+
+
+### Features
+
+* add view for aggregate storage across projects ([#407](https://github.com/bihealth/hpc-access/issues/407)) ([#424](https://github.com/bihealth/hpc-access/issues/424)) ([10fedd2](https://github.com/bihealth/hpc-access/commit/10fedd2434f2887c70b4f2029274877fc195d99a))
+
 ## [0.3.0](https://github.com/bihealth/hpc-access/compare/v0.2.0...v0.3.0) (2026-07-24)
 
 
