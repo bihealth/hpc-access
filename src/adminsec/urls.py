@@ -270,6 +270,14 @@ urlpatterns_ui = [
         view=views.TermsAndConditionsPublishView.as_view(),
         name="termsandconditions-publish",
     ),
+    # ------------------------------------------------------------------------------
+    # Storage related
+    # ------------------------------------------------------------------------------
+    path(
+        "storage/hpcgroup",
+        view=views.StorageByHpcGroupView.as_view(),
+        name="storage-hpcgroup",
+    ),
 ]
 
 urlpatterns_api = [
