@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/bihealth/hpc-access/compare/v0.4.0...v0.4.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* make User.description and .removed optional for now ([#431](https://github.com/bihealth/hpc-access/issues/431)) ([f1ee9de](https://github.com/bihealth/hpc-access/commit/f1ee9de0e783a609a7e01b3cf1c0ac440d4faa2c))
+
 ## [0.4.0](https://github.com/bihealth/hpc-access/compare/v0.3.0...v0.4.0) (2026-07-29)
 
 
