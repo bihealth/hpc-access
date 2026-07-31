@@ -121,17 +121,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupRequest"
+                "$ref": "#/components/schemas/HpcGroup"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupRequest"
+                "$ref": "#/components/schemas/HpcGroup"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupRequest"
+                "$ref": "#/components/schemas/HpcGroup"
               }
             }
           },
@@ -182,17 +182,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroup"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroup"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroup"
               }
             }
           }
@@ -285,17 +285,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/HpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcGroupCreateRequest"
               }
             }
           },
@@ -346,17 +346,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcGroupCreateRequest"
               }
             }
           }
@@ -501,17 +501,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectRequest"
+                "$ref": "#/components/schemas/HpcProject"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectRequest"
+                "$ref": "#/components/schemas/HpcProject"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectRequest"
+                "$ref": "#/components/schemas/HpcProject"
               }
             }
           },
@@ -562,17 +562,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectRequest"
+                "$ref": "#/components/schemas/PatchedHpcProject"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectRequest"
+                "$ref": "#/components/schemas/PatchedHpcProject"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectRequest"
+                "$ref": "#/components/schemas/PatchedHpcProject"
               }
             }
           }
@@ -665,17 +665,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/HpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/HpcProjectCreateRequest"
               }
             }
           },
@@ -726,17 +726,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequestRequest"
+                "$ref": "#/components/schemas/PatchedHpcProjectCreateRequest"
               }
             }
           }
@@ -881,17 +881,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HpcUserRequest"
+                "$ref": "#/components/schemas/HpcUser"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/HpcUserRequest"
+                "$ref": "#/components/schemas/HpcUser"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/HpcUserRequest"
+                "$ref": "#/components/schemas/HpcUser"
               }
             }
           },
@@ -942,17 +942,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcUserRequest"
+                "$ref": "#/components/schemas/PatchedHpcUser"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcUserRequest"
+                "$ref": "#/components/schemas/PatchedHpcUser"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PatchedHpcUserRequest"
+                "$ref": "#/components/schemas/PatchedHpcUser"
               }
             }
           }
@@ -1053,34 +1053,6 @@
           },
           "tier2_unmirrored": {
             "type": "string"
-          }
-        },
-        "required": [
-          "tier1_scratch",
-          "tier1_work",
-          "tier2_mirrored",
-          "tier2_unmirrored"
-        ]
-      },
-      "GroupFoldersRequest": {
-        "type": "object",
-        "description": "Folders for a group or project.",
-        "properties": {
-          "tier1_work": {
-            "type": "string",
-            "minLength": 1
-          },
-          "tier1_scratch": {
-            "type": "string",
-            "minLength": 1
-          },
-          "tier2_mirrored": {
-            "type": "string",
-            "minLength": 1
-          },
-          "tier2_unmirrored": {
-            "type": "string",
-            "minLength": 1
           }
         },
         "required": [
@@ -1208,43 +1180,6 @@
         "required": [
           "folders",
           "name"
-        ]
-      },
-      "HpcGroupCreateRequestRequest": {
-        "type": "object",
-        "description": "Serializer for HpcGroupCreateRequest model.",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        },
-        "required": [
-          "folders",
-          "name"
-        ]
-      },
-      "HpcGroupRequest": {
-        "type": "object",
-        "description": "Serializer for HpcGroup model.",
-        "properties": {
-          "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataRequest"
-          },
-          "gid": {
-            "type": "integer"
-          },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        },
-        "required": [
-          "folders",
-          "gid",
-          "resources_used"
         ]
       },
       "HpcProject": {
@@ -1395,43 +1330,6 @@
           "name"
         ]
       },
-      "HpcProjectCreateRequestRequest": {
-        "type": "object",
-        "description": "Serializer for HpcProjectCreateRequest model.",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        },
-        "required": [
-          "folders",
-          "name"
-        ]
-      },
-      "HpcProjectRequest": {
-        "type": "object",
-        "description": "Serializer for HpcProject model.",
-        "properties": {
-          "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataRequest"
-          },
-          "gid": {
-            "type": "integer"
-          },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        },
-        "required": [
-          "folders",
-          "gid",
-          "resources_used"
-        ]
-      },
       "HpcUser": {
         "type": "object",
         "description": "Serializer for HpcUser model.",
@@ -1562,28 +1460,6 @@
           }
         }
       },
-      "HpcUserRequest": {
-        "type": "object",
-        "description": "Serializer for HpcUser model.",
-        "properties": {
-          "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataUserRequest"
-          },
-          "home_directory": {
-            "type": "string",
-            "minLength": 1
-          },
-          "login_shell": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "home_directory",
-          "login_shell",
-          "resources_used"
-        ]
-      },
       "PaginatedHpcGroupList": {
         "type": "object",
         "required": [
@@ -1688,76 +1564,355 @@
           }
         }
       },
-      "PatchedHpcGroupCreateRequestRequest": {
-        "type": "object",
-        "description": "Serializer for HpcGroupCreateRequest model.",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        }
-      },
-      "PatchedHpcGroupRequest": {
+      "PatchedHpcGroup": {
         "type": "object",
         "description": "Serializer for HpcGroup model.",
         "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
+            "readOnly": true
+          },
           "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataRequest"
+            "$ref": "#/components/schemas/ResourceData"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
           },
           "gid": {
             "type": "integer"
           },
-          "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
-          }
-        }
-      },
-      "PatchedHpcProjectCreateRequestRequest": {
-        "type": "object",
-        "description": "Serializer for HpcProjectCreateRequest model.",
-        "properties": {
           "name": {
             "type": "string",
-            "minLength": 1
+            "readOnly": true
           },
           "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
+            "$ref": "#/components/schemas/GroupFolders"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
           }
         }
       },
-      "PatchedHpcProjectRequest": {
+      "PatchedHpcGroupCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcGroupCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcProject": {
         "type": "object",
         "description": "Serializer for HpcProject model.",
         "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "delegate": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
+            "readOnly": true
+          },
           "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataRequest"
+            "$ref": "#/components/schemas/ResourceData"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
           },
           "gid": {
             "type": "integer"
           },
+          "name": {
+            "type": "string",
+            "readOnly": true
+          },
           "folders": {
-            "$ref": "#/components/schemas/GroupFoldersRequest"
+            "$ref": "#/components/schemas/GroupFolders"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
           }
         }
       },
-      "PatchedHpcUserRequest": {
+      "PatchedHpcProjectCreateRequest": {
+        "type": "object",
+        "description": "Serializer for HpcProjectCreateRequest model.",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceData"
+              }
+            ],
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Record UUID"
+            },
+            "readOnly": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_requested": {
+            "type": "string",
+            "readOnly": true
+          },
+          "folders": {
+            "$ref": "#/components/schemas/GroupFolders"
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
+          }
+        }
+      },
+      "PatchedHpcUser": {
         "type": "object",
         "description": "Serializer for HpcUser model.",
         "properties": {
+          "uuid": {
+            "type": "string",
+            "readOnly": true
+          },
+          "date_created": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "full_name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "primary_group": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record UUID",
+            "readOnly": true
+          },
+          "resources_requested": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceDataUser"
+              }
+            ],
+            "readOnly": true
+          },
           "resources_used": {
-            "$ref": "#/components/schemas/ResourceDataUserRequest"
+            "$ref": "#/components/schemas/ResourceDataUser"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "description": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
+          },
+          "uid": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "readOnly": true
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
           },
           "home_directory": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
           },
           "login_shell": {
-            "type": "string",
-            "minLength": 1
+            "type": "string"
+          },
+          "removed": {
+            "type": "boolean",
+            "readOnly": true,
+            "nullable": true
+          },
+          "current_version": {
+            "type": "integer",
+            "readOnly": true
           }
         }
       },
@@ -1787,44 +1942,7 @@
           }
         }
       },
-      "ResourceDataRequest": {
-        "type": "object",
-        "description": "Resource request/usage for a group or project.",
-        "properties": {
-          "tier1_work": {
-            "type": "number",
-            "format": "double",
-            "default": 0.0
-          },
-          "tier1_scratch": {
-            "type": "number",
-            "format": "double",
-            "default": 0.0
-          },
-          "tier2_mirrored": {
-            "type": "number",
-            "format": "double",
-            "default": 0.0
-          },
-          "tier2_unmirrored": {
-            "type": "number",
-            "format": "double",
-            "default": 0.0
-          }
-        }
-      },
       "ResourceDataUser": {
-        "type": "object",
-        "description": "Resource request/usage for a user.",
-        "properties": {
-          "tier1_home": {
-            "type": "number",
-            "format": "double",
-            "default": 0.0
-          }
-        }
-      },
-      "ResourceDataUserRequest": {
         "type": "object",
         "description": "Resource request/usage for a user.",
         "properties": {
