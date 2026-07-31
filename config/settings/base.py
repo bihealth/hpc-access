@@ -481,7 +481,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": get_version("hpc-access"),
     "SERVE_INCLUDE_SCHEMA": False,
     # stop drf-spectacular from adding read_only fields to the OpenAPI "required" list
-    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    "COMPONENT_NO_READ_ONLY_REQUIRED": True,
     # don't split schemas into separate Request and Response components, that's already the case
-    'COMPONENT_SPLIT_REQUEST': False,
+    "COMPONENT_SPLIT_REQUEST": False,
 }
