@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/bihealth/hpc-access/compare/v0.4.1...v1.0.0) (2026-07-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* update openApi schema generation settings ([#434](https://github.com/bihealth/hpc-access/issues/434))
+
+### Bug Fixes
+
+* update openApi schema generation settings ([#434](https://github.com/bihealth/hpc-access/issues/434)) ([cec3638](https://github.com/bihealth/hpc-access/commit/cec36385561e9d55f19c2ef5f24eb20157cae552))
+
 ## [0.4.1](https://github.com/bihealth/hpc-access/compare/v0.4.0...v0.4.1) (2026-07-31)
 
 
