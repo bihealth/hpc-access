@@ -92,7 +92,11 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     resources_used = ResourceDataUserJSONField()
 
     status = serializers.ChoiceField(choices=Status.choices, read_only=True)
-    description = serializers.CharField(read_only=True)
+    description = serializers.CharField(
+        read_only=True,
+        required=False,
+        allow_null=True,
+    )
     uid = serializers.IntegerField(read_only=True)
     username = serializers.CharField(read_only=True)
     expiration = serializers.DateTimeField(read_only=True)
@@ -104,7 +108,11 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
     phone_number = serializers.SerializerMethodField()
     home_directory = serializers.CharField()
     login_shell = serializers.CharField()
-    removed = serializers.BooleanField(read_only=True)
+    removed = serializers.BooleanField(
+        read_only=True,
+        required=False,
+        allow_null=True,
+    )
 
     def get_email(self, obj) -> Optional[str]:
         return obj.user.email

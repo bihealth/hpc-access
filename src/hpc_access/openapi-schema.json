@@ -1435,7 +1435,8 @@
           },
           "description": {
             "type": "string",
-            "readOnly": true
+            "readOnly": true,
+            "nullable": true
           },
           "uid": {
             "type": "integer",
@@ -1458,7 +1459,8 @@
           },
           "removed": {
             "type": "boolean",
-            "readOnly": true
+            "readOnly": true,
+            "nullable": true
           },
           "current_version": {
             "type": "integer",
@@ -1940,7 +1942,8 @@
           },
           "description": {
             "type": "string",
-            "readOnly": true
+            "readOnly": true,
+            "nullable": true
           },
           "uid": {
             "type": "integer",
@@ -1963,7 +1966,8 @@
           },
           "removed": {
             "type": "boolean",
-            "readOnly": true
+            "readOnly": true,
+            "nullable": true
           },
           "current_version": {
             "type": "integer",
