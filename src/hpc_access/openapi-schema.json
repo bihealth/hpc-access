@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "hpc-access API",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "description": "API for hpc-access HPC cluster management"
   },
   "paths": {
@@ -1131,19 +1131,9 @@
           }
         },
         "required": [
-          "current_version",
-          "date_created",
-          "delegate",
-          "description",
-          "expiration",
           "folders",
           "gid",
-          "name",
-          "owner",
-          "resources_requested",
-          "resources_used",
-          "status",
-          "uuid"
+          "resources_used"
         ]
       },
       "HpcGroupCreateRequest": {
@@ -1188,14 +1178,8 @@
           }
         },
         "required": [
-          "current_version",
-          "date_created",
-          "description",
-          "expiration",
           "folders",
-          "name",
-          "resources_requested",
-          "uuid"
+          "name"
         ]
       },
       "HpcProject": {
@@ -1276,20 +1260,9 @@
           }
         },
         "required": [
-          "current_version",
-          "date_created",
-          "delegate",
-          "description",
-          "expiration",
           "folders",
           "gid",
-          "group",
-          "members",
-          "name",
-          "resources_requested",
-          "resources_used",
-          "status",
-          "uuid"
+          "resources_used"
         ]
       },
       "HpcProjectCreateRequest": {
@@ -1353,17 +1326,8 @@
           }
         },
         "required": [
-          "current_version",
-          "date_created",
-          "description",
-          "expiration",
           "folders",
-          "group",
-          "members",
-          "name",
-          "name_requested",
-          "resources_requested",
-          "uuid"
+          "name"
         ]
       },
       "HpcUser": {
@@ -1468,26 +1432,9 @@
           }
         },
         "required": [
-          "current_version",
-          "date_created",
-          "description",
-          "display_name",
-          "email",
-          "expiration",
-          "first_name",
-          "full_name",
           "home_directory",
-          "last_name",
           "login_shell",
-          "phone_number",
-          "primary_group",
-          "removed",
-          "resources_requested",
-          "resources_used",
-          "status",
-          "uid",
-          "username",
-          "uuid"
+          "resources_used"
         ]
       },
       "HpcUserLookup": {
@@ -1511,13 +1458,7 @@
             "type": "string",
             "readOnly": true
           }
-        },
-        "required": [
-          "full_name",
-          "id",
-          "primary_group",
-          "username"
-        ]
+        }
       },
       "PaginatedHpcGroupList": {
         "type": "object",
