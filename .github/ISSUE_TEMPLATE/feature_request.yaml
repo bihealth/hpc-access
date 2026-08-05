@@ -1,8 +1,6 @@
 name: Feature Request
 description: File a feature request
 labels: ["enhancement"]
-assignees:
-  - stolpeo
 body:
   - type: markdown
     attributes:
