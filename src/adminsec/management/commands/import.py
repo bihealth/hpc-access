@@ -8,7 +8,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.timezone import localtime
 
-from adminsec.models import HpcAccessStatus
+from adminsec.models import HpcaccessState
 from adminsec.tasks import clean_db_of_hpc_objects
 from usersec.models import HpcGroup, HpcProject, HpcUser
 
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                         self.stderr.write("Failed to clean database of HPC objects ... aborting.")
                         return
 
-                data = HpcAccessStatus.model_validate_json(jsonfile.read())
+                data = HpcaccessState.model_validate_json(jsonfile.read())
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup(
                         uuid=group_uuid,
