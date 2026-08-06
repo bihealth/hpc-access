@@ -6,12 +6,11 @@ from contextlib import contextmanager
 from django.contrib import auth
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils.timezone import make_aware
+from django.utils.timezone import localtime
 
+from adminsec.models import HpcAccessStatus
 from adminsec.tasks import clean_db_of_hpc_objects
 from usersec.models import HpcGroup, HpcProject, HpcUser
-
-from .models import HpcaccessState
 
 User = auth.get_user_model()
 
@@ -57,7 +56,7 @@ class Command(BaseCommand):
                         self.stderr.write("Failed to clean database of HPC objects ... aborting.")
                         return
 
-                data = HpcaccessState.model_validate_json(jsonfile.read())
+                data = HpcAccessStatus.model_validate_json(jsonfile.read())
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup(
                         uuid=group_uuid,
@@ -69,7 +68,7 @@ class Command(BaseCommand):
                         folders=dict(group_data.folders),
                         resources_requested=dict(group_data.resources_requested),
                         resources_used=dict(group_data.resources_used),
-                        expiration=make_aware(group_data.expiration),
+                        expiration=localtime(group_data.expiration),
                     )
                     hpcgroup.save_with_version()
 
@@ -114,7 +113,7 @@ class Command(BaseCommand):
                         status=user_data.status.name,
                         home_directory=user_data.home_directory,
                         primary_group=hpcgroup,
-                        expiration=make_aware(user_data.expiration),
+                        expiration=localtime(user_data.expiration),
                         login_shell=user_data.login_shell,
                         username=user_data.username,
                         uid=user_data.uid,
@@ -167,7 +166,7 @@ class Command(BaseCommand):
                         delegate=delegate,
                         resources_requested=dict(project_data.resources_requested),
                         resources_used=dict(project_data.resources_used),
-                        expiration=make_aware(project_data.expiration),
+                        expiration=localtime(project_data.expiration),
                     )
                     hpcproject.save_with_version()
                     for member_uuid in project_data.members:
