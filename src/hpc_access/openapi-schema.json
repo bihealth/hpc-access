@@ -6,6 +6,38 @@
     "description": "API for hpc-access HPC cluster management"
   },
   "paths": {
+    "/adminsec/api/hpcaccessstate/": {
+      "get": {
+        "operationId": "adminsec_api_hpcaccessstate_retrieve",
+        "description": "API view for retrieving the cluster status (users, groups, and projects).",
+        "tags": [
+          "adminsec"
+        ],
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {
+            "knoxApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HpcaccessState"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/adminsec/api/hpcgroup/": {
       "get": {
         "operationId": "adminsec_api_hpcgroup_list",
@@ -1459,6 +1491,35 @@
             "readOnly": true
           }
         }
+      },
+      "HpcaccessState": {
+        "type": "object",
+        "description": "Cluster status (users, groups, and projects).",
+        "properties": {
+          "hpc_users": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HpcUser"
+            }
+          },
+          "hpc_groups": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HpcGroup"
+            }
+          },
+          "hpc_projects": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HpcProject"
+            }
+          }
+        },
+        "required": [
+          "hpc_groups",
+          "hpc_projects",
+          "hpc_users"
+        ]
       },
       "PaginatedHpcGroupList": {
         "type": "object",

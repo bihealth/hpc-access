@@ -5,6 +5,7 @@ import re
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     ListAPIView,
+    RetrieveAPIView,
     RetrieveUpdateAPIView,
     get_object_or_404,
 )
@@ -14,7 +15,9 @@ from adminsec.constants import (
     RE_FOLDER,
     RE_NAME,
 )
+from adminsec.models import HpcaccessState
 from adminsec.permissions_api import IsHpcAdminUser
+from adminsec.serializers import HpcaccessStateSerializer
 from hpc_access.utils.rest_framework import CursorPagination
 from usersec.models import (
     HpcGroup,
@@ -214,3 +217,16 @@ class HpcProjectCreateRequestRetrieveUpdateApiView(RetrieveUpdateAPIView):
             raise ValidationError(errors)
 
         super().perform_update(serializer)
+
+
+class HpcaccessStateApiView(RetrieveAPIView):
+    """API view for retrieving the cluster status (users, groups, and projects)."""
+
+    serializer_class = HpcaccessStateSerializer
+    permission_classes = [IsAdminUser | IsHpcAdminUser]
+
+    def get_object(self):
+        hpc_users = {user.uuid: user for user in HpcUser.objects.all()}
+        hpc_groups = {group.uuid: group for group in HpcGroup.objects.all()}
+        hpc_projects = {project.uuid: project for project in HpcProject.objects.all()}
+        return HpcaccessState(hpc_users, hpc_groups, hpc_projects)
