@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/bihealth/hpc-access/compare/v1.0.0...v1.1.0) (2026-08-07)
+
+
+### Features
+
+* add api endpoint and model for HpcaccessState ([#441](https://github.com/bihealth/hpc-access/issues/441)) ([3488f14](https://github.com/bihealth/hpc-access/commit/3488f14346dd9ec446aa4660b7e10406ac5bd165))
+
 ## [1.0.0](https://github.com/bihealth/hpc-access/compare/v0.4.1...v1.0.0) (2026-07-31)
 
 

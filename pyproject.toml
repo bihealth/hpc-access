@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hpc-access"
-version = "1.0.0"
+version = "1.1.0"
 description = "Django web application for managing access to the BIH HPC cluster"
 readme = "README.md"
 license = "MIT"
