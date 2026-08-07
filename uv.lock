@@ -1101,7 +1101,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "python-dotenv" },
     { name = "python-ldap", marker = "extra == 'ldap'", specifier = ">=3.4.0,<4" },
-    { name = "python-slugify", specifier = ">=6.1.1,<7" },
+    { name = "python-slugify", specifier = ">=8.0.4,<9" },
     { name = "pytz", specifier = ">=2024.1" },
     { name = "redis", specifier = ">=5.0,<6" },
     { name = "rules", specifier = ">=3.3,<4" },
@@ -2027,14 +2027,14 @@ sdist = { url = "https://files.pythonhosted.org/packages/b2/f4/60edeb794bbc9ed0f
 
 [[package]]
 name = "python-slugify"
-version = "6.1.2"
+version = "8.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "text-unidecode" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/45/915967d7bcc28fd12f36f554e1a64aeca36214f2be9caf87158168b5a575/python-slugify-6.1.2.tar.gz", hash = "sha256:272d106cb31ab99b3496ba085e3fea0e9e76dcde967b5e9992500d1f785ce4e1", size = 10821, upload-time = "2022-04-27T16:09:01.05Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/c7/5e1547c44e31da50a460df93af11a535ace568ef89d7a811069ead340c4a/python-slugify-8.0.4.tar.gz", hash = "sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856", size = 10921, upload-time = "2024-02-08T18:32:45.488Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/35/74ab800f1108b95ff9b8e7672a01dbf1f357159e6d06c1f16e983674ff0c/python_slugify-6.1.2-py2.py3-none-any.whl", hash = "sha256:7b2c274c308b62f4269a9ba701aa69a797e9bca41aeee5b3a9e79e36b6656927", size = 9403, upload-time = "2022-04-27T16:08:59.988Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/62/02da182e544a51a5c3ccf4b03ab79df279f9c60c5e82d5e8bec7ca26ac11/python_slugify-8.0.4-py2.py3-none-any.whl", hash = "sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8", size = 10051, upload-time = "2024-02-08T18:32:43.911Z" },
 ]
 
 [[package]]
