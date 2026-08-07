@@ -1,12 +1,13 @@
 """Command for importing data from a json file."""
 
+import json
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime
 
 from django.contrib import auth
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils.timezone import localtime
 
 from adminsec.models import HpcaccessState
 from adminsec.tasks import clean_db_of_hpc_objects
@@ -56,30 +57,30 @@ class Command(BaseCommand):
                         self.stderr.write("Failed to clean database of HPC objects ... aborting.")
                         return
 
-                data = HpcaccessState.model_validate_json(jsonfile.read())
+                data = HpcaccessState(**json.load(jsonfile))
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup(
                         uuid=group_uuid,
-                        name=group_data.name,
-                        description=group_data.description,
+                        name=group_data["name"],
+                        description=group_data["description"],
                         creator=worker_user,
-                        status=group_data.status.name,
-                        gid=group_data.gid,
-                        folders=dict(group_data.folders),
-                        resources_requested=dict(group_data.resources_requested),
-                        resources_used=dict(group_data.resources_used),
-                        expiration=localtime(group_data.expiration),
+                        status=group_data["status"],
+                        gid=group_data["gid"],
+                        folders=dict(group_data["folders"]),
+                        resources_requested=dict(group_data["resources_requested"]),
+                        resources_used=dict(group_data["resources_used"]),
+                        expiration=datetime.fromisoformat(group_data["expiration"]),
                     )
                     hpcgroup.save_with_version()
 
                 for user_uuid, user_data in data.hpc_users.items():
-                    ldap_user, suffix = user_data.username.split("_")
-                    if user_data.primary_group:
-                        hpcgroup = HpcGroup.objects.filter(uuid=user_data.primary_group)
+                    ldap_user, suffix = user_data["username"].split("_")
+                    if user_data["primary_group"]:
+                        hpcgroup = HpcGroup.objects.filter(uuid=user_data["primary_group"])
                         if not hpcgroup:
                             self.stderr.write(
-                                f"Primary group {user_data.primary_group} of user "
-                                f"{user_data.username} not found"
+                                f"Primary group {user_data['primary_group']} of user "
+                                f"{user_data['username']} not found"
                             )
                             continue
                         hpcgroup = hpcgroup.first()
@@ -88,35 +89,35 @@ class Command(BaseCommand):
 
                     username = f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
                     user = User.objects.create(
-                        first_name=user_data.first_name.strip(),
-                        last_name=user_data.last_name.strip(),
-                        name=user_data.full_name.strip(),
-                        display_name=user_data.display_name.strip(),
-                        email=user_data.email,
+                        first_name=user_data["first_name"].strip(),
+                        last_name=user_data["last_name"].strip(),
+                        name=user_data["full_name"].strip(),
+                        display_name=user_data["display_name"].strip(),
+                        email=user_data["email"],
                         is_staff=False,
                         is_superuser=False,
                         is_hpcadmin=False,
                         consented_to_terms=username in users_consented,
-                        phone=user_data.phone_number,
+                        phone=user_data["phone_number"],
                         username=username,
                     )
                     hpcuser = HpcUser(
                         uuid=user_uuid,
                         user=user,
                         resources_requested={
-                            "tier1_home": user_data.resources_requested.tier1_home,
+                            "tier1_home": user_data["resources_requested"]["tier1_home"],
                         },
                         resources_used={
-                            "tier1_home": user_data.resources_used.tier1_home,
+                            "tier1_home": user_data["resources_used"]["tier1_home"],
                         },
                         creator=worker_user,
-                        status=user_data.status.name,
-                        home_directory=user_data.home_directory,
+                        status=user_data["status"],
+                        home_directory=user_data["home_directory"],
                         primary_group=hpcgroup,
-                        expiration=localtime(user_data.expiration),
-                        login_shell=user_data.login_shell,
-                        username=user_data.username,
-                        uid=user_data.uid,
+                        expiration=datetime.fromisoformat(user_data["expiration"]),
+                        login_shell=user_data["login_shell"],
+                        username=user_data["username"],
+                        uid=user_data["uid"],
                     )
                     hpcuser.save_with_version()
 
@@ -126,54 +127,54 @@ class Command(BaseCommand):
                         self.stderr.write(f"Group {group_uuid} not found")
                         continue
                     hpcgroup = hpcgroup.first()
-                    owner = HpcUser.objects.filter(uuid=group_data.owner)
+                    owner = HpcUser.objects.filter(uuid=group_data["owner"])
                     if not owner:
                         self.stderr.write(
-                            f"Owner {group_data.owner} of group {group_data.name} not found"
+                            f"Owner {group_data['owner']} of group {group_data['name']} not found"
                         )
                         continue
                     hpcgroup.owner = owner.first()
-                    if group_data.delegate:
-                        delegate = HpcUser.objects.filter(uuid=group_data.delegate)
+                    if group_data["delegate"]:
+                        delegate = HpcUser.objects.filter(uuid=group_data["delegate"])
                         if not delegate:
                             self.stderr.write(
-                                f"Delegate {group_data.delegate} of group "
-                                f"{group_data.name} not found"
+                                f"Delegate {group_data['delegate']} of group "
+                                f"{group_data['name']} not found"
                             )
                             continue
                         hpcgroup.delegate = delegate.first()
                     hpcgroup.save_with_version()
 
                 for project_uuid, project_data in data.hpc_projects.items():
-                    hpcgroup = HpcGroup.objects.filter(uuid=project_data.group)
+                    hpcgroup = HpcGroup.objects.filter(uuid=project_data["group"])
                     if not hpcgroup:
                         self.stderr.write(
-                            f"Owning group {project_data.group} of project "
-                            f"{project_data.name} not found"
+                            f"Owning group {project_data['group']} of project "
+                            f"{project_data['name']} not found"
                         )
                         continue
                     hpcgroup = hpcgroup.first()
-                    delegate = HpcUser.objects.filter(uuid=project_data.delegate)
+                    delegate = HpcUser.objects.filter(uuid=project_data["delegate"])
                     delegate = delegate.first() if delegate else None
                     hpcproject = HpcProject(
                         uuid=project_uuid,
-                        name=project_data.name,
-                        gid=project_data.gid,
-                        folders=dict(project_data.folders),
-                        status=project_data.status.name,
+                        name=project_data["name"],
+                        gid=project_data["gid"],
+                        folders=dict(project_data["folders"]),
+                        status=project_data["status"],
                         creator=worker_user,
                         group=hpcgroup,
                         delegate=delegate,
-                        resources_requested=dict(project_data.resources_requested),
-                        resources_used=dict(project_data.resources_used),
-                        expiration=localtime(project_data.expiration),
+                        resources_requested=dict(project_data["resources_requested"]),
+                        resources_used=dict(project_data["resources_used"]),
+                        expiration=datetime.fromisoformat(project_data["expiration"]),
                     )
                     hpcproject.save_with_version()
-                    for member_uuid in project_data.members:
+                    for member_uuid in project_data["members"]:
                         member = HpcUser.objects.filter(uuid=member_uuid)
                         if not member:
                             self.stderr.write(
-                                f"Member {member_uuid} of project {project_data.name} not found"
+                                f"Member {member_uuid} of project {project_data['name']} not found"
                             )
                             continue
                         hpcproject.members.add(member.first())
