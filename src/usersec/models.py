@@ -866,7 +866,7 @@ class HpcGroup(
             f"{self.__class__.__name__}("
             f"id={self.id},"
             f"name={self.name},"
-            f"owner={self.owner.username},"
+            f"owner={self.owner.username if self.owner else None},"
             f"delegate={self.delegate.username if self.delegate else None},"
             f"gid={self.gid},"
             f"status={self.status},"
