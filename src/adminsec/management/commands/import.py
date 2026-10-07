@@ -135,6 +135,7 @@ class Command(BaseCommand):
                         "name"
                     ]
                     # changes["primary_group"] = primary_group_project_name
+                    changes["primary_group"] = None
                     self.stderr.write(
                         f"Cannot assign project {primary_group_project_name} "
                         f"as primary group for user {data['username']}"
@@ -154,6 +155,7 @@ class Command(BaseCommand):
             ):
                 primary_group_project_name = cli_import.hpc_projects[data["primary_group"]]["name"]
                 # changes["primary_group"] = primary_group_project_name
+                changes["primary_group"] = None
                 self.stderr.write(
                     f"Cannot assign project {primary_group_project_name} "
                     f"as primary group for user {data['username']}"
