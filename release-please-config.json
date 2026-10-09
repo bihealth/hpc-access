@@ -15,7 +15,7 @@
         },
         {
           "path": "src/hpc_access/openapi-schema.json",
-          "type": "toml",
+          "type": "json",
           "jsonpath": "$.info.version"
         }
       ]
