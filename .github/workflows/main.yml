@@ -68,7 +68,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run coverage run manage.py test -v 2 --settings=config.settings.test
+          uv run coverage run manage.py test src -v 2 --settings=config.settings.test
           uv run coverage xml
           uv run coverage report
 
