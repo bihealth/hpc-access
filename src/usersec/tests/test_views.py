@@ -96,7 +96,6 @@ class TestViewBase(TestCase):
         # Create project
         self.hpc_project = HpcProjectFactory(group=self.hpc_group)
         self.hpc_project.members.add(self.hpc_owner)
-        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
 
     def assertNoMessages(self, response):
         self.assertEqual(list(get_messages(response.wsgi_request)), [])

@@ -19,9 +19,12 @@ from usersec.models import (
     HpcGroupInvitation,
     HpcProject,
     HpcProjectChangeRequest,
+    HpcProjectChangeRequestMembers,
     HpcProjectCreateRequest,
+    HpcProjectCreateRequestMembers,
     HpcProjectDeleteRequest,
     HpcProjectInvitation,
+    HpcProjectMembers,
     HpcQuotaStatus,
     HpcUser,
     HpcUserChangeRequest,
@@ -208,6 +211,14 @@ def clean_db_of_hpc_objects():
     for model in hpc_object_to_delete:
         logger.info(f"Deleting {model.objects.count()} {model.__name__} objects")
         model.objects.all().delete()
+
+    # History of the deleted objects goes with them via cascade, except members history
+    for model in (
+        HpcProjectMembers,
+        HpcProjectCreateRequestMembers,
+        HpcProjectChangeRequestMembers,
+    ):
+        model.pgh_event_model.objects.all().delete()
 
     users_consented = [u.username for u in User.objects.filter(consented_to_terms=True)]
     User.objects.all().exclude(is_hpcadmin=True).exclude(is_superuser=True).exclude(

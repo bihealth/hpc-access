@@ -196,7 +196,7 @@ class OrphanUserView(HpcPermissionMixin, CreateView):
         obj.requester = self.request.user
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -271,7 +271,7 @@ class HpcGroupCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -294,7 +294,7 @@ class HpcGroupCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, Vi
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -317,7 +317,7 @@ class HpcGroupCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -355,7 +355,7 @@ class HpcGroupCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vi
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -531,7 +531,7 @@ class HpcUserCreateRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.group = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -605,7 +605,7 @@ class HpcUserCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -631,7 +631,7 @@ class HpcUserCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -654,7 +654,7 @@ class HpcUserCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -687,7 +687,7 @@ class HpcUserCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -775,7 +775,7 @@ class HpcGroupChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.group = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -849,7 +849,7 @@ class HpcGroupChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -872,7 +872,7 @@ class HpcGroupChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, Vi
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -895,7 +895,7 @@ class HpcGroupChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin,
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -928,7 +928,7 @@ class HpcGroupChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vi
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -971,7 +971,7 @@ class HpcUserDeleteRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.user = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1045,7 +1045,7 @@ class HpcUserDeleteRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1068,7 +1068,7 @@ class HpcUserDeleteRequestRetractView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -1091,7 +1091,7 @@ class HpcUserDeleteRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -1124,7 +1124,7 @@ class HpcUserDeleteRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -1170,7 +1170,7 @@ class HpcUserChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.user = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1242,7 +1242,7 @@ class HpcUserChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1265,7 +1265,7 @@ class HpcUserChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -1288,7 +1288,7 @@ class HpcUserChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixin, 
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -1321,7 +1321,7 @@ class HpcUserChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, Vie
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -1377,11 +1377,10 @@ class HpcProjectCreateRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.group = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         # Adding members possible only with saved object
         obj.members.set(form.cleaned_data["members"])
-        obj.version_history.last().members.set(form.cleaned_data["members"])
 
         if not obj:
             messages.error(self.request, "Couldn't create project request.")
@@ -1457,7 +1456,7 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1466,7 +1465,6 @@ class HpcProjectCreateRequestUpdateView(HpcPermissionMixin, UpdateView):
             return HttpResponseRedirect(reverse("home"))
 
         obj.members.set(form.cleaned_data["members"])
-        obj.version_history.last().members.set(form.cleaned_data["members"])
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -1483,7 +1481,7 @@ class HpcProjectCreateRequestRetractView(HpcPermissionMixin, SingleObjectMixin, 
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -1506,7 +1504,7 @@ class HpcProjectCreateRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -1539,7 +1537,7 @@ class HpcProjectCreateRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, 
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -1613,11 +1611,10 @@ class HpcProjectChangeRequestCreateView(HpcPermissionMixin, CreateView):
         obj.editor = self.request.user
         obj.status = REQUEST_STATUS_ACTIVE
         obj.project = self.get_object()
-        obj = obj.save_with_version()
+        obj.save()
 
         # Adding members possible only with saved object
         obj.members.set(form.cleaned_data["members"])
-        obj.version_history.last().members.set(form.cleaned_data["members"])
 
         if not obj:
             messages.error(
@@ -1692,7 +1689,7 @@ class HpcProjectChangeRequestUpdateView(HpcPermissionMixin, UpdateView):
         obj.editor = self.request.user
         if obj.status == REQUEST_STATUS_REVISION:
             obj.status = REQUEST_STATUS_ACTIVE
-        obj = obj.save_with_version()
+        obj.save()
 
         if not obj:
             messages.error(
@@ -1715,7 +1712,7 @@ class HpcProjectChangeRequestRetractView(HpcPermissionMixin, SingleObjectMixin, 
         obj = self.get_object()
         obj.editor = self.request.user
         obj.comment = ""
-        obj.retract_with_version()
+        obj.retract()
 
         return HttpResponseRedirect(
             reverse(
@@ -1738,7 +1735,7 @@ class HpcProjectChangeRequestReactivateView(HpcPermissionMixin, SingleObjectMixi
         obj.status = REQUEST_STATUS_ACTIVE
         obj.editor = self.request.user
         obj.comment = ""
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_admin_request(obj)
@@ -1771,7 +1768,7 @@ class HpcProjectChangeRequestArchiveView(HpcPermissionMixin, SingleObjectMixin, 
         obj = self.get_object()
         obj.status = REQUEST_STATUS_ARCHIVED
         obj.editor = self.request.user
-        obj.save_with_version()
+        obj.save()
 
         return HttpResponseRedirect(reverse("home"))
 
@@ -1815,14 +1812,14 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
             )
 
         obj.status = INVITATION_STATUS_ACCEPTED
-        obj.save_with_version()
+        obj.save()
 
         try:
             from adminsec.views import django_to_hpc_username
 
             username = django_to_hpc_username(obj.username)
 
-            hpcuser = HpcUser.objects.create_with_version(
+            hpcuser = HpcUser.objects.create(
                 user=request.user,
                 primary_group=obj.hpcusercreaterequest.group,
                 resources_requested=obj.hpcusercreaterequest.resources_requested,
@@ -1866,7 +1863,7 @@ class HpcGroupInvitationRejectView(HpcPermissionMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = INVITATION_STATUS_REJECTED
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_manager_user_decided_invitation(obj)
@@ -1898,14 +1895,13 @@ class HpcProjectInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View
             return HttpResponseRedirect(reverse("home"))
 
         obj.status = INVITATION_STATUS_ACCEPTED
-        obj.save_with_version()
+        obj.save()
 
         project = obj.project
 
         try:
-            project.save_with_version()
+            project.save()
             project.members.add(obj.user)
-            project.version_history.last().members.add(obj.user)
 
         except Exception as e:
             messages.error(request, MSG_INVITATION_PROJECT_USER_ADD_FAILURE.format(e))
@@ -1937,7 +1933,7 @@ class HpcProjectInvitationRejectView(HpcPermissionMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
         obj.status = INVITATION_STATUS_REJECTED
-        obj.save_with_version()
+        obj.save()
 
         if settings.SEND_EMAIL:
             send_notification_manager_user_decided_invitation(obj)
