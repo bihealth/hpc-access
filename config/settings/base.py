@@ -84,6 +84,9 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "knox",
     "impersonate",
+    "pgtrigger",
+    "pghistory",
+    "pghistory.admin",
 ]
 
 LOCAL_APPS = [

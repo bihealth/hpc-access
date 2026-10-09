@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
             options={
                 "unique_together": {("name",)},
             },
-            bases=(usersec.models.VersionManagerMixin, models.Model),
+            bases=(usersec.models.HpcObjectMixin, models.Model),
         ),
         migrations.CreateModel(
             name="HpcProjectChangeRequest",
@@ -215,7 +215,7 @@ class Migration(migrations.Migration):
             },
             bases=(
                 usersec.models.RequestManagerMixin,
-                usersec.models.VersionManagerMixin,
+                usersec.models.HpcObjectMixin,
                 models.Model,
             ),
         ),
@@ -327,7 +327,7 @@ class Migration(migrations.Migration):
             },
             bases=(
                 usersec.models.RequestManagerMixin,
-                usersec.models.VersionManagerMixin,
+                usersec.models.HpcObjectMixin,
                 models.Model,
             ),
         ),
@@ -408,7 +408,7 @@ class Migration(migrations.Migration):
             },
             bases=(
                 usersec.models.RequestManagerMixin,
-                usersec.models.VersionManagerMixin,
+                usersec.models.HpcObjectMixin,
                 models.Model,
             ),
         ),

@@ -44,6 +44,7 @@ dependencies = [
   "drf-spectacular~=0.28",
   "pydantic>=2,<3",
   "django-impersonate",
+  "django-pghistory>=3.9,<4",
 ]
 
 [project.optional-dependencies]

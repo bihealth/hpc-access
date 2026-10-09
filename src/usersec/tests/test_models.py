@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from factory import LazyAttribute, SubFactory
 from test_plus.test import TestCase
 
@@ -19,33 +20,20 @@ from usersec.models import (
     TERMS_AUDIENCE_ALL,
     HpcGroup,
     HpcGroupChangeRequest,
-    HpcGroupChangeRequestVersion,
     HpcGroupCreateRequest,
-    HpcGroupCreateRequestVersion,
     HpcGroupDeleteRequest,
-    HpcGroupDeleteRequestVersion,
     HpcGroupInvitation,
-    HpcGroupInvitationVersion,
-    HpcGroupVersion,
     HpcProject,
     HpcProjectChangeRequest,
-    HpcProjectChangeRequestVersion,
     HpcProjectCreateRequest,
-    HpcProjectCreateRequestVersion,
     HpcProjectDeleteRequest,
-    HpcProjectDeleteRequestVersion,
     HpcProjectInvitation,
-    HpcProjectInvitationVersion,
-    HpcProjectVersion,
+    HpcProjectMembersEvent,
     HpcQuotaStatus,
     HpcUser,
     HpcUserChangeRequest,
-    HpcUserChangeRequestVersion,
     HpcUserCreateRequest,
-    HpcUserCreateRequestVersion,
     HpcUserDeleteRequest,
-    HpcUserDeleteRequestVersion,
-    HpcUserVersion,
     TermsAndConditions,
     get_next_hpcgroup_gid,
     get_next_hpcproject_gid,
@@ -69,8 +57,8 @@ from usersec.tests.factories import (
     HpcUserDeleteRequestFactory,
     HpcUserFactory,
     TermsAndConditionsFactory,
+    hpc_event_obj_to_dict,
     hpc_obj_to_dict,
-    hpc_version_obj_to_dict,
 )
 
 
@@ -78,7 +66,6 @@ class RequestTesterMixin:
     """Mixin for testing methods of request objects."""
 
     model = None
-    version_model = None
     factory = None
 
     def _test_get_comment_history(self, comments):
@@ -86,25 +73,38 @@ class RequestTesterMixin:
         history = [
             (
                 self.user.username,
-                obj.get_latest_version().date_created,
+                obj.events.latest("pgh_id").pgh_created_at,
                 obj.comment,
             )
         ]
 
         for comment in comments:
             obj.comment = comment
-            obj = obj.save_with_version()
+            obj.save()
 
             if comment:
                 history.append(
                     (
                         self.user.username,
-                        obj.get_latest_version().date_created,
+                        obj.events.latest("pgh_id").pgh_created_at,
                         comment,
                     )
                 )
 
         self.assertEqual(history, obj.get_comment_history())
+
+    def _test_get_comment_history_skips_repeated_comment(self):
+        obj = self.factory(requester=self.user)
+        initial = obj.comment
+        obj.comment = "new comment"
+        obj.save()
+        obj.status = REQUEST_STATUS_ACTIVE  # leaves the comment as it is
+        obj.save()
+
+        self.assertEqual(
+            [comment for _, _, comment in obj.get_comment_history()],
+            [comment for comment in (initial, "new comment") if comment],
+        )
 
     def _test_is_decided(self):
         obj = self.factory(requester=self.user, status=REQUEST_STATUS_DENIED)
@@ -236,11 +236,10 @@ class RequestTesterMixin:
         self.assertEqual(obj.display_status(), "unknown status")
 
 
-class VersionTesterMixin:
-    """Mixin for testing version-related methods."""
+class HistoryTesterMixin:
+    """Mixin for testing the trigger-based history of a model."""
 
     model = None
-    version_model = None
     factory = None
 
     def setUp(self):
@@ -252,72 +251,48 @@ class VersionTesterMixin:
         self.hpcadmin.is_hpcadmin = True
         self.hpcadmin.save()
 
-    def _test_create_with_version(self):
-        self.assertFalse(self.model.objects.exists())
-        self.assertFalse(self.version_model.objects.exists())
-
-        # Factory calls create_with_version
+    def _test_create_records_insert_event(self):
         obj = self.factory()
-
-        self.assertEqual(self.model.objects.count(), 1)
-        self.assertEqual(self.version_model.objects.count(), 1)
-
         obj.refresh_from_db()
-        version_obj = self.version_model.objects.get(belongs_to=obj)
 
-        self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
+        events = list(obj.events.order_by("pgh_id"))
+        self.assertEqual([event.pgh_label for event in events], ["insert"])
+        self.assertEqual(hpc_obj_to_dict(obj), hpc_event_obj_to_dict(events[0]))
 
-    def _test_create_with_version_two(self):
-        obj1 = self.factory()
-        obj2 = self.factory()
+    def _test_create_two_records_one_event_each(self):
+        objs = [self.factory(), self.factory()]
 
-        self.assertEqual(self.model.objects.count(), 2)
-        self.assertEqual(self.version_model.objects.count(), 2)
+        for obj in objs:
+            obj.refresh_from_db()
+            events = list(obj.events.all())
+            self.assertEqual(len(events), 1)
+            self.assertEqual(hpc_obj_to_dict(obj), hpc_event_obj_to_dict(events[0]))
 
-        version_obj1 = self.version_model.objects.get(belongs_to=obj1)
-        version_obj2 = self.version_model.objects.get(belongs_to=obj2)
+    def __assert_update_event(self, obj, **update):
+        obj.refresh_from_db()
+        events = list(obj.events.order_by("pgh_id"))
+        self.assertEqual([event.pgh_label for event in events], ["insert", "update"])
 
-        obj1.refresh_from_db()
-        obj2.refresh_from_db()
-
-        self.assertEqual(hpc_obj_to_dict(obj1), hpc_version_obj_to_dict(version_obj1))
-        self.assertEqual(hpc_obj_to_dict(obj2), hpc_version_obj_to_dict(version_obj2))
-
-    def __assert_save_or_update_base(self, **update):
-        self.assertEqual(self.model.objects.count(), 1)
-        self.assertEqual(self.version_model.objects.count(), 2)
-
-        obj = self.model.objects.first()
-        version_objs = self.version_model.objects.all()
-
-        self.assertEqual(version_objs[0].version, 1)
-        self.assertEqual(version_objs[1].version, 2)
-        self.assertEqual(obj.current_version, 2)
-
-        version1_data = hpc_version_obj_to_dict(version_objs[0])
-        version2_data = hpc_version_obj_to_dict(version_objs[1])
-        data = hpc_obj_to_dict(obj)
-
-        self.assertNotEqual(version1_data, version2_data)
-        self.assertEqual(version2_data, data)
+        before = hpc_event_obj_to_dict(events[0])
+        after = hpc_event_obj_to_dict(events[1])
+        self.assertEqual(after, hpc_obj_to_dict(obj))
 
         for field, value in update.items():
-            self.assertEqual(data[field], value)
-            version1_data.pop(field)
-            version2_data.pop(field)
+            self.assertEqual(after[field], value)
+            self.assertNotEqual(before.pop(field), after.pop(field))
 
-        self.assertEqual(version1_data, version2_data)
+        self.assertEqual(before, after)
 
-    def _test_save_with_version_existing(self, **update):
+    def _test_save_existing(self, **update):
         obj = self.factory()
 
         for k, v in update.items():
             setattr(obj, k, v)
 
-        obj.save_with_version()
-        self.__assert_save_or_update_base(**update)
+        obj.save()
+        self.__assert_update_event(obj, **update)
 
-    def _test_save_with_version_new(self, **supplementaries):
+    def _test_save_new(self, **supplementaries):
         obj = self.model()
         data = {k: v for k, v in vars(self.factory).items() if not k.startswith("_")}
 
@@ -328,59 +303,68 @@ class VersionTesterMixin:
             if not isinstance(v, SubFactory) and not isinstance(v, LazyAttribute):
                 setattr(obj, k, v)
 
-        obj.save_with_version()
+        obj.save()
         obj.refresh_from_db()
 
         self.assertEqual(self.model.objects.count(), 1)
-        self.assertEqual(self.version_model.objects.count(), 1)
+        events = list(obj.events.all())
+        self.assertEqual([event.pgh_label for event in events], ["insert"])
+        self.assertEqual(hpc_obj_to_dict(obj), hpc_event_obj_to_dict(events[0]))
 
-        version_obj = self.version_model.objects.get(belongs_to=obj)
-
-        self.assertEqual(hpc_obj_to_dict(obj), hpc_version_obj_to_dict(version_obj))
-
-    def _test_update_with_version(self, **update):
+    def _test_queryset_update(self, **update):
         obj = self.factory()
-        obj.update_with_version(**update)
-        self.__assert_save_or_update_base(**update)
+        self.model.objects.filter(pk=obj.pk).update(**update)
+        self.__assert_update_event(obj, **update)
 
-    def _test_delete_with_version(self):
+    def _test_unchanged_save_records_no_event(self, **update):
+        obj = self.factory()
+
+        for k, v in update.items():
+            setattr(obj, k, v)
+
+        obj.save()
+        obj.save()
+        self.assertEqual(obj.events.count(), 2)
+
+    def _test_timestamp_only_update_records_no_event(self):
+        obj = self.factory()
+        self.model.objects.filter(pk=obj.pk).update(date_modified=timezone.now())
+        self.assertEqual(obj.events.count(), 1)
+
+    def _test_ignored_field_update_records_no_event(self, **update):
+        obj = self.factory()
+        self.model.objects.filter(pk=obj.pk).update(**update)
+        self.assertEqual(obj.events.count(), 1)
+
+    def _test_soft_delete(self):
         obj = self.factory()
         self.assertEqual(obj.status, OBJECT_STATUS_INITIAL)
-        obj.delete_with_version()
-        self.__assert_save_or_update_base(status=OBJECT_STATUS_DELETED)
+        obj.soft_delete()
+        self.__assert_update_event(obj, status=OBJECT_STATUS_DELETED)
 
-    def _test_retract_with_version(self):
+    def _test_retract(self):
         obj = self.factory()
         self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
-        obj.retract_with_version()
-        self.__assert_save_or_update_base(status=REQUEST_STATUS_RETRACTED)
+        obj.retract()
+        self.__assert_update_event(obj, status=REQUEST_STATUS_RETRACTED)
 
-    def _test_deny_with_version(self):
+    def _test_deny(self):
         obj = self.factory()
         self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
-        obj.deny_with_version()
-        self.__assert_save_or_update_base(status=REQUEST_STATUS_DENIED)
+        obj.deny()
+        self.__assert_update_event(obj, status=REQUEST_STATUS_DENIED)
 
-    def _test_approve_with_version(self):
+    def _test_approve(self):
         obj = self.factory()
         self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
-        obj.approve_with_version()
-        self.__assert_save_or_update_base(status=REQUEST_STATUS_APPROVED)
+        obj.approve()
+        self.__assert_update_event(obj, status=REQUEST_STATUS_APPROVED)
 
-    def _test_revision_with_version(self):
+    def _test_request_revision(self):
         obj = self.factory()
         self.assertEqual(obj.status, REQUEST_STATUS_INITIAL)
-        obj.revision_with_version()
-        self.__assert_save_or_update_base(status=REQUEST_STATUS_REVISION)
-
-    def _test_get_latest_version(self, **update):
-        obj = self.factory()
-        obj.update_with_version(**update)
-        self.assertEqual(obj.get_latest_version(), self.version_model.objects.last())
-
-    def _test_get_latest_version_not_available(self):
-        obj = self.model()
-        self.assertIsNone(obj.get_latest_version())
+        obj.request_revision()
+        self.__assert_update_event(obj, status=REQUEST_STATUS_REVISION)
 
     def _test_get_detail_url_user(self):
         obj = self.factory()
@@ -520,12 +504,11 @@ class TestGetNextIdFunctions(TestCase):
         self.assertEqual(get_next_hpcproject_gid(), 1)
 
 
-class TestHpcUser(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
+class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcUser model"""
 
-    # Version Tester Mixin
+    # History Tester Mixin
     model = HpcUser
-    version_model = HpcUserVersion
     factory = HpcUserFactory
 
     # Pending Request Tester Mixin
@@ -533,36 +516,39 @@ class TestHpcUser(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     change_request_factory = HpcUserChangeRequestFactory
     delete_request_factory = HpcUserDeleteRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {
             "primary_group": HpcGroupFactory(),
             "username": "user_" + settings.INSTITUTE_USERNAME_SUFFIX,
         }
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version_existing(self):
+    def test_save_existing(self):
         update = {"description": "description updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"description": "description updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_delete_with_version(self):
-        self._test_delete_with_version()
+    def test_soft_delete(self):
+        self._test_soft_delete()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"description": "description updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
+
+    def test_resources_used_only_update_records_no_event(self):
+        self._test_ignored_field_update_records_no_event(resources_used={"tier1_home": 99})
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -782,40 +768,42 @@ class TestHpcUser(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
             self.factory().get_manager_contact()
 
 
-class TestHpcGroup(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
+class TestHpcGroup(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcGroup model"""
 
     model = HpcGroup
-    version_model = HpcGroupVersion
     factory = HpcGroupFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {"name": "hpc-group"}
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"description": "description updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"description": "description updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_delete_with_version(self):
-        self._test_delete_with_version()
+    def test_soft_delete(self):
+        self._test_soft_delete()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"description": "description updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
+
+    def test_resources_used_only_update_records_no_event(self):
+        self._test_ignored_field_update_records_no_event(resources_used={"tier1_work": 99})
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1071,43 +1059,62 @@ class TestHpcGroup(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     #     self._test_has_pending_requests_false()
 
 
-class TestHpcProject(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
+class TestHpcProject(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
     """Tests for HpcProject model"""
 
     model = HpcProject
-    version_model = HpcProjectVersion
     factory = HpcProjectFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {
             "group": HpcGroupFactory(),
             "name": "hpc-project",
         }
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"description": "description updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"description": "description updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_delete_with_version(self):
-        self._test_delete_with_version()
+    def test_soft_delete(self):
+        self._test_soft_delete()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"description": "description updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
+
+    def test_resources_used_only_update_records_no_event(self):
+        self._test_ignored_field_update_records_no_event(resources_used={"tier1_work": 99})
+
+    def test_members_history(self):
+        project = self.factory()
+        user1, user2 = HpcUserFactory(), HpcUserFactory()
+        project.members.add(user1)
+        project.members.add(user2)
+        project.members.remove(user1)
+
+        self.assertEqual(
+            [
+                (event.pgh_label, event.hpcuser)
+                for event in HpcProjectMembersEvent.objects.filter(
+                    hpcproject=project, hpcuser__in=[user1, user2]
+                ).order_by("pgh_id")
+            ],
+            [("members.add", user1), ("members.add", user2), ("members.remove", user1)],
+        )
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1378,48 +1385,47 @@ class TestHpcProject(VersionTesterMixin, PendingRequestTesterMixin, TestCase):
     #     self._test_has_pending_requests_false()
 
 
-class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcGroupChangeRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcGroupChangeRequest model"""
 
     model = HpcGroupChangeRequest
-    version_model = HpcGroupChangeRequestVersion
     factory = HpcGroupChangeRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1480,48 +1486,47 @@ class TestHpcGroupChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase
         self._test_display_status()
 
 
-class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcGroupCreateRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcGroupCreateRequest model"""
 
     model = HpcGroupCreateRequest
-    version_model = HpcGroupCreateRequestVersion
     factory = HpcGroupCreateRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1532,6 +1537,9 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
     def test_get_comment_history(self):
         comments = ["new comment", "", "even more comments"]
         self._test_get_comment_history(comments)
+
+    def test_get_comment_history_skips_repeated_comment(self):
+        self._test_get_comment_history_skips_repeated_comment()
 
     def test_is_decided(self):
         self._test_is_decided()
@@ -1582,48 +1590,47 @@ class TestHpcGroupCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase
         self._test_display_status()
 
 
-class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcGroupDeleteRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcGroupDeleteRequest model"""
 
     model = HpcGroupDeleteRequest
-    version_model = HpcGroupDeleteRequestVersion
     factory = HpcGroupDeleteRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1684,48 +1691,47 @@ class TestHpcGroupDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase
         self._test_display_status()
 
 
-class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcUserChangeRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcUserChangeRequest model"""
 
     model = HpcUserChangeRequest
-    version_model = HpcUserChangeRequestVersion
     factory = HpcUserChangeRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1786,48 +1792,47 @@ class TestHpcUserChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
         self._test_display_status()
 
 
-class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcUserCreateRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcUserCreateRequest model"""
 
     model = HpcUserCreateRequest
-    version_model = HpcUserCreateRequestVersion
     factory = HpcUserCreateRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1888,48 +1893,47 @@ class TestHpcUserCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
         self._test_display_status()
 
 
-class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcUserDeleteRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcUserDeleteRequest model"""
 
     model = HpcUserDeleteRequest
-    version_model = HpcUserDeleteRequestVersion
     factory = HpcUserDeleteRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -1990,48 +1994,47 @@ class TestHpcUserDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase)
         self._test_display_status()
 
 
-class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcProjectChangeRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcProjectChangeRequest model"""
 
     model = HpcProjectChangeRequest
-    version_model = HpcProjectChangeRequestVersion
     factory = HpcProjectChangeRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -2092,52 +2095,51 @@ class TestHpcProjectChangeRequest(RequestTesterMixin, VersionTesterMixin, TestCa
         self._test_display_status()
 
 
-class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcProjectCreateRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcProjectCreateRequest model"""
 
     model = HpcProjectCreateRequest
-    version_model = HpcProjectCreateRequestVersion
     factory = HpcProjectCreateRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {
             "group": HpcGroupFactory(),
             "name_requested": "some-project",
         }
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -2198,48 +2200,47 @@ class TestHpcProjectCreateRequest(RequestTesterMixin, VersionTesterMixin, TestCa
         self._test_display_status()
 
 
-class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCase):
+class TestHpcProjectDeleteRequest(RequestTesterMixin, HistoryTesterMixin, TestCase):
     """Tests for HpcProjectDeleteRequest model"""
 
     model = HpcProjectDeleteRequest
-    version_model = HpcProjectDeleteRequestVersion
     factory = HpcProjectDeleteRequestFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
-        self._test_save_with_version_new()
+    def test_save_new(self):
+        self._test_save_new()
 
-    def test_save_with_version(self):
+    def test_save_existing(self):
         update = {"comment": "comment updated"}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_update_with_version(self):
+    def test_queryset_update(self):
         update = {"comment": "comment updated"}
-        self._test_update_with_version(**update)
+        self._test_queryset_update(**update)
 
-    def test_retract_with_version(self):
-        self._test_retract_with_version()
+    def test_retract(self):
+        self._test_retract()
 
-    def test_deny_with_version(self):
-        self._test_deny_with_version()
+    def test_deny(self):
+        self._test_deny()
 
-    def test_approve_with_version(self):
-        self._test_approve_with_version()
+    def test_approve(self):
+        self._test_approve()
 
-    def test_revision_with_version(self):
-        self._test_revision_with_version()
+    def test_request_revision(self):
+        self._test_request_revision()
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"comment": "comment updated"}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
     def test_get_detail_url_user(self):
         self._test_get_detail_url_user()
@@ -2300,69 +2301,67 @@ class TestHpcProjectDeleteRequest(RequestTesterMixin, VersionTesterMixin, TestCa
         self._test_display_status()
 
 
-class TestHpcGroupInvitation(VersionTesterMixin, TestCase):
+class TestHpcGroupInvitation(HistoryTesterMixin, TestCase):
     """Tests for HpcGroupInvitation model"""
 
     model = HpcGroupInvitation
-    version_model = HpcGroupInvitationVersion
     factory = HpcGroupInvitationFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {
             "hpcusercreaterequest": HpcUserCreateRequestFactory(),
             "username": "some-user",
         }
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version_existing(self):
+    def test_save_existing(self):
         update = {"status": INVITATION_STATUS_ACCEPTED}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"status": INVITATION_STATUS_ACCEPTED}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
 
-class TestHpcProjectInvitation(VersionTesterMixin, TestCase):
+class TestHpcProjectInvitation(HistoryTesterMixin, TestCase):
     """Tests for HpcProjectInvitation model"""
 
     model = HpcProjectInvitation
-    version_model = HpcProjectInvitationVersion
     factory = HpcProjectInvitationFactory
 
-    def test_create_with_version(self):
-        self._test_create_with_version()
+    def test_create_records_insert_event(self):
+        self._test_create_records_insert_event()
 
-    def test_create_with_version_two(self):
-        self._test_create_with_version_two()
+    def test_create_two_records_one_event_each(self):
+        self._test_create_two_records_one_event_each()
 
-    def test_save_with_version_new(self):
+    def test_save_new(self):
         supplementaries = {
             "project": HpcProjectFactory(),
             "hpcprojectcreaterequest": HpcProjectCreateRequestFactory(),
             "user": HpcUserFactory(),
         }
-        self._test_save_with_version_new(**supplementaries)
+        self._test_save_new(**supplementaries)
 
-    def test_save_with_version_existing(self):
+    def test_save_existing(self):
         update = {"status": INVITATION_STATUS_ACCEPTED}
-        self._test_save_with_version_existing(**update)
+        self._test_save_existing(**update)
 
-    def test_get_latest_version(self):
+    def test_unchanged_save_records_no_event(self):
         update = {"status": INVITATION_STATUS_ACCEPTED}
-        self._test_get_latest_version(**update)
+        self._test_unchanged_save_records_no_event(**update)
 
-    def test_get_latest_version_not_available(self):
-        self._test_get_latest_version_not_available()
+    def test_timestamp_only_update_records_no_event(self):
+        self._test_timestamp_only_update_records_no_event()
 
 
 class TestTermsAndConditions(TestCase):

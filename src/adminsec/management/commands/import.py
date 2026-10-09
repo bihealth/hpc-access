@@ -71,7 +71,7 @@ class Command(BaseCommand):
                         resources_used=dict(group_data["resources_used"]),
                         expiration=datetime.fromisoformat(group_data["expiration"]),
                     )
-                    hpcgroup.save_with_version()
+                    hpcgroup.save()
 
                 for user_uuid, user_data in data.hpc_users.items():
                     ldap_user, suffix = user_data["username"].split("_")
@@ -119,7 +119,7 @@ class Command(BaseCommand):
                         username=user_data["username"],
                         uid=user_data["uid"],
                     )
-                    hpcuser.save_with_version()
+                    hpcuser.save()
 
                 for group_uuid, group_data in data.hpc_groups.items():
                     hpcgroup = HpcGroup.objects.filter(uuid=group_uuid)
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                             )
                             continue
                         hpcgroup.delegate = delegate.first()
-                    hpcgroup.save_with_version()
+                    hpcgroup.save()
 
                 for project_uuid, project_data in data.hpc_projects.items():
                     hpcgroup = HpcGroup.objects.filter(uuid=project_data["group"])
@@ -169,7 +169,7 @@ class Command(BaseCommand):
                         resources_used=dict(project_data["resources_used"]),
                         expiration=datetime.fromisoformat(project_data["expiration"]),
                     )
-                    hpcproject.save_with_version()
+                    hpcproject.save()
                     for member_uuid in project_data["members"]:
                         member = HpcUser.objects.filter(uuid=member_uuid)
                         if not member:
@@ -178,7 +178,6 @@ class Command(BaseCommand):
                             )
                             continue
                         hpcproject.members.add(member.first())
-                        hpcproject.version_history.last().members.add(member.first())
 
         except Rollback:
             pass

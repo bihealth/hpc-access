@@ -308,7 +308,6 @@ class TestSendQuotaEmail(TestCase):
             folders={"work": "/data/work/project", "scratch": "/data/scratch/project"},
         )
         self.hpc_project.members.add(self.hpc_owner)
-        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
 
     def test_generate_quota_reports(self):
         expected = {
@@ -328,7 +327,6 @@ class TestSendQuotaEmail(TestCase):
     def test__send_quota_email_red_with_delegate(self):
         self.hpc_project.delegate = self.hpc_member
         self.hpc_project.members.add(self.hpc_member)
-        self.hpc_project.get_latest_version().members.add(self.hpc_member)
         self.hpc_project.save()
         _send_quota_email(HpcQuotaStatus.RED)
         self.assertEqual(len(mail.outbox), 1)
@@ -531,7 +529,6 @@ class CleanDbOfHpcObjects(TestCase):
         # Create project
         self.hpc_project = HpcProjectFactory(group=self.hpc_group, creator=self.user_hpcadmin)
         self.hpc_project.members.add(self.hpc_owner)
-        self.hpc_project.get_latest_version().members.add(self.hpc_owner)
 
         # Create group requests
         HpcGroupCreateRequestFactory(requester=self.user)
