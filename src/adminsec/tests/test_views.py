@@ -26,6 +26,7 @@ from usersec.models import (
     HpcGroupInvitation,
     HpcProject,
     HpcProjectInvitation,
+    HpcProjectMembersEvent,
     HpcUser,
     TermsAndConditions,
 )
@@ -306,7 +307,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
 
             hpcuser = hpcusers.last()  # noqa: E1101
             hpcgroup = hpcgroups.last()  # noqa: E1101
-            hpcgroup_version = hpcgroup.version_history.last()
+            hpcgroup_event = hpcgroup.events.latest("pgh_id")
 
             self.assertEqual(hpcuser.user, self.user)
             self.assertEqual(hpcuser.username, "user_" + settings.INSTITUTE_USERNAME_SUFFIX)
@@ -314,7 +315,7 @@ class TestHpcGroupCreateRequestApproveView(TestViewBase):
             self.assertEqual(hpcgroup.owner.user, self.user)
             self.assertEqual(hpcgroup.name, "doe")
             self.assertEqual(hpcgroup.folders, {"tier1": "/home/doe"})
-            self.assertEqual(hpcgroup_version.owner, hpcuser)
+            self.assertEqual(hpcgroup_event.owner, hpcuser)
             self.assertEqual(len(mail.outbox), 2)
 
     @override_settings(
@@ -1734,7 +1735,6 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertEqual(HpcProjectInvitation.objects.count(), 2)
 
             hpcproject = HpcProject.objects.get(name=self.obj.name)
-            hpcproject_version = hpcproject.version_history.last()
 
             invitation1, invitation2 = list(HpcProjectInvitation.objects.all())
 
@@ -1747,7 +1747,12 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
                 list(hpcproject.members.all()), [self.hpc_owner, self.hpc_member, self.hpc_delegate]
             )
             self.assertEqual(
-                list(hpcproject_version.members.all()),
+                [
+                    event.hpcuser
+                    for event in HpcProjectMembersEvent.objects.filter(
+                        hpcproject=hpcproject, pgh_label="members.add"
+                    ).order_by("pgh_id")
+                ],
                 [self.hpc_owner, self.hpc_member, self.hpc_delegate],
             )
 
@@ -1964,7 +1969,6 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
     def setUp(self):
         super().setUp()
         self.hpc_project.members.add(self.hpc_member)
-        self.hpc_project.get_latest_version().members.add(self.hpc_member)
 
         user_delegate = self.make_user("delegate")
         user_delegate.email = "delegate@example.com"
@@ -1977,7 +1981,6 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
             delegate=self.hpc_delegate,
         )
         self.obj.members.add(self.hpc_owner, self.hpc_delegate)
-        self.obj.get_latest_version().members.add(self.hpc_owner, self.hpc_delegate)
 
     def test_get(self):
         with self.login(self.user_hpcadmin):
@@ -2016,7 +2019,6 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
             self.assertEqual(HpcProjectInvitation.objects.count(), 1)
 
             self.hpc_project.refresh_from_db()
-            hpcproject_version = self.hpc_project.get_latest_version()
 
             invitation1 = HpcProjectInvitation.objects.first()
 
@@ -2025,7 +2027,19 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
             self.assertEqual(self.hpc_project.group.owner, self.hpc_owner)
             self.assertEqual(self.hpc_delegate, self.hpc_delegate)
             self.assertEqual(list(self.hpc_project.members.all()), [self.hpc_owner])
-            self.assertEqual(list(hpcproject_version.members.all()), [self.hpc_owner])
+            self.assertEqual(
+                [
+                    (event.pgh_label, event.hpcuser)
+                    for event in HpcProjectMembersEvent.objects.filter(
+                        hpcproject=self.hpc_project
+                    ).order_by("pgh_id")
+                ],
+                [
+                    ("members.add", self.hpc_owner),
+                    ("members.add", self.hpc_member),
+                    ("members.remove", self.hpc_member),
+                ],
+            )
 
             self.assertEqual(len(mail.outbox), 2)
 

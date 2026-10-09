@@ -7,7 +7,6 @@ from snapshottest import Snapshot
 snapshots = Snapshot()
 
 snapshots["TestHpcGroupCreateRequestSerializer::testSerializerExisting 1"] = {
-    "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "description": "some group create request",
     "expiration": "2050-01-01T00:00:00Z",
@@ -18,7 +17,6 @@ snapshots["TestHpcGroupCreateRequestSerializer::testSerializerExisting 1"] = {
 }
 
 snapshots["TestHpcGroupSerializer::testSerializerExisting 1"] = {
-    "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "delegate": None,
     "description": "this is a group",
@@ -49,7 +47,6 @@ snapshots["TestHpcGroupSerializer::testSerializerExisting 1"] = {
 }
 
 snapshots["TestHpcProjectCreateRequestSerializer::testSerializerExisting 1"] = {
-    "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "description": "some description",
     "expiration": "2050-01-01T00:00:00Z",
@@ -63,7 +60,6 @@ snapshots["TestHpcProjectCreateRequestSerializer::testSerializerExisting 1"] = {
 }
 
 snapshots["TestHpcProjectSerializer::testSerializerExisting 1"] = {
-    "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "delegate": None,
     "description": "this is a project",
@@ -95,7 +91,6 @@ snapshots["TestHpcProjectSerializer::testSerializerExisting 1"] = {
 }
 
 snapshots["TestHpcUserSerializer::testSerializerExisting 1"] = {
-    "current_version": 1,
     "date_created": "2019-01-01T00:00:00Z",
     "description": "this is a user",
     "display_name": None,

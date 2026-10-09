@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "hpc-access API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "API for hpc-access HPC cluster management"
   },
   "paths": {
@@ -1156,10 +1156,6 @@
             "type": "string",
             "format": "date-time",
             "readOnly": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         },
         "required": [
@@ -1203,10 +1199,6 @@
           },
           "folders": {
             "$ref": "#/components/schemas/GroupFolders"
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         },
         "required": [
@@ -1285,10 +1277,6 @@
               "description": "Record UUID"
             },
             "readOnly": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         },
         "required": [
@@ -1351,10 +1339,6 @@
           },
           "folders": {
             "$ref": "#/components/schemas/GroupFolders"
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         },
         "required": [
@@ -1457,10 +1441,6 @@
             "type": "boolean",
             "readOnly": true,
             "nullable": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         },
         "required": [
@@ -1687,10 +1667,6 @@
             "type": "string",
             "format": "date-time",
             "readOnly": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         }
       },
@@ -1729,10 +1705,6 @@
           },
           "folders": {
             "$ref": "#/components/schemas/GroupFolders"
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         }
       },
@@ -1807,10 +1779,6 @@
               "description": "Record UUID"
             },
             "readOnly": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         }
       },
@@ -1868,10 +1836,6 @@
           },
           "folders": {
             "$ref": "#/components/schemas/GroupFolders"
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         }
       },
@@ -1970,10 +1934,6 @@
             "type": "boolean",
             "readOnly": true,
             "nullable": true
-          },
-          "current_version": {
-            "type": "integer",
-            "readOnly": true
           }
         }
       },

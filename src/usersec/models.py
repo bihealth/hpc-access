@@ -2,9 +2,10 @@ import re
 import uuid as uuid_object
 from enum import Enum, unique
 
+import pghistory
 from django.apps import apps
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models
 from django.urls import reverse
 
 from adminsec.constants import TIER_USER_HOME
@@ -137,42 +138,32 @@ def get_next_hpcproject_gid():
 # ------------------------------------------------------------------------------
 
 
-class VersionManager(models.Manager):
-    """Functions for creating, updating and deleting objects with version objects."""
+def track_history(ignore=()):
+    """Record inserts and updates of a model in a generated ``<Model>Event`` model.
 
-    def version_model(self, **kwargs):
-        return get_model(APP_NAME, f"{self.model.__name__}Version")(**kwargs)
-
-    @transaction.atomic
-    def create_with_version(self, **kwargs):
-        """
-        Create a new object with the given kwargs, saving it to the database
-        and returning the created object.
-        """
-
-        # Allow passing version for testing reasons mainly
-        version = kwargs.pop("current_version", 1)
-
-        obj = self.model(**kwargs, current_version=version)
-        obj.save()
-
-        version_obj = self.version_model(**kwargs, version=version, belongs_to=obj)
-        version_obj.save()
-
-        # TODO: look up when version passed and not 1 if the version history is ok
-
-        return obj
-
-    # def update_with_version(self, **kwargs):
-    #     # TODO: update all from queryset with the given values
-    #     pass
-    #
-    # def delete_with_version(self):
-    #     # TODO delete all from queryset
-    #     pass
+    Postgres triggers write the events, so every save, ``QuerySet.update()`` and raw
+    SQL update is recorded. Updates that only change auto-updated timestamps or the
+    fields in ``ignore`` create no event.
+    """
+    return pghistory.track(
+        pghistory.InsertEvent(),
+        pghistory.UpdateEvent(
+            condition=pghistory.AnyChange(exclude=list(ignore), exclude_auto=True)
+        ),
+        obj_field=pghistory.ObjForeignKey(related_name="events", on_delete=models.CASCADE),
+    )
 
 
-class VersionRequestManager(VersionManager):
+def track_members_history():
+    """Record additions to and removals from a ``members`` many-to-many table."""
+    return pghistory.track(
+        pghistory.InsertEvent("members.add"),
+        pghistory.DeleteEvent("members.remove"),
+        obj_field=None,
+    )
+
+
+class RequestManager(models.Manager):
     """Custom manager for requests."""
 
     def active(self, **kwargs):
@@ -188,56 +179,15 @@ class VersionRequestManager(VersionManager):
         return self.get_queryset().filter(**kwargs)
 
 
-class VersionManagerMixin:
-    """Mixin for version functionality."""
+class HpcObjectMixin:
+    """Common functionality of HPC objects."""
 
-    def get_latest_version(self):
-        max_obj = None
-
-        if not self.current_version:
-            return max_obj
-
-        for obj in self.version_history.filter(version__gte=self.current_version):
-            if max_obj is None or max_obj.version > obj.version:
-                max_obj = obj
-
-        return max_obj
-
-    @transaction.atomic
-    def save_with_version(self):
-        latest = self.get_latest_version()
-        self.current_version = (latest.version + 1) if latest else 1
-        self.save()
-
-        # Create version object
-        version_obj = get_model(APP_NAME, f"{self.__class__.__name__}Version")()
-        version_obj.version = self.current_version
-        version_obj.belongs_to = self
-
-        for field in self._meta.fields:
-            if field.name in ("id", "uuid", "current_version", "date_created"):
-                continue
-
-            setattr(version_obj, field.name, getattr(self, field.name))
-
-        version_obj.save()
-
-        return self
-
-    def update_with_version(self, **kwargs):
-        """Update object and create new version object."""
-
-        # Update current object
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-        return self.save_with_version()
-
-    def delete_with_version(self):
-        """Mark object as deleted and create new version object."""
+    def soft_delete(self):
+        """Mark object as deleted."""
 
         self.status = OBJECT_STATUS_DELETED
-        return self.save_with_version()
+        self.save()
+        return self
 
     def get_detail_url(self, user):
         class_name = self.__class__.__name__.lower()
@@ -252,29 +202,26 @@ class VersionManagerMixin:
 
 
 class RequestManagerMixin:
-    def retract_with_version(self):
-        """Mark object as retracted and create new version object."""
+    def _set_status(self, status):
+        self.status = status
+        self.save()
+        return self
 
-        self.status = REQUEST_STATUS_RETRACTED
-        return self.save_with_version()
+    def retract(self):
+        """Mark object as retracted."""
+        return self._set_status(REQUEST_STATUS_RETRACTED)
 
-    def deny_with_version(self):
-        """Mark object as denied and create new version object."""
+    def deny(self):
+        """Mark object as denied."""
+        return self._set_status(REQUEST_STATUS_DENIED)
 
-        self.status = REQUEST_STATUS_DENIED
-        return self.save_with_version()
+    def approve(self):
+        """Mark object as approved."""
+        return self._set_status(REQUEST_STATUS_APPROVED)
 
-    def approve_with_version(self):
-        """Mark object as approved and create new version object."""
-
-        self.status = REQUEST_STATUS_APPROVED
-        return self.save_with_version()
-
-    def revision_with_version(self):
-        """Mark object as revision and create new version object."""
-
-        self.status = REQUEST_STATUS_REVISION
-        return self.save_with_version()
+    def request_revision(self):
+        """Mark object as needing revision by the requester."""
+        return self._set_status(REQUEST_STATUS_REVISION)
 
     def get_revision_url(self):
         class_name = self.__class__.__name__.lower()
@@ -661,23 +608,18 @@ class HpcObjectPendingRequestMixin:
         return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().first()
 
 
+@track_history(ignore=["resources_used"])
 class HpcUser(
     ContactMixin,
-    VersionManagerMixin,
+    HpcObjectMixin,
     CheckQuotaMixin,
     HpcObjectPendingRequestMixin,
     HpcUserAbstract,
 ):
     """HpcUser model"""
 
-    #: Set custom manager
-    objects = VersionManager()
-
     class Meta:
         unique_together = ("username",)
-
-    #: Currently active version of the user object.
-    current_version = models.IntegerField(help_text="Currently active version of the user object")
 
     def __repr__(self):
         return (
@@ -688,8 +630,7 @@ class HpcUser(
             f"uid={self.uid},"
             f"primary_group={self.primary_group.name if self.primary_group else None},"
             f"status={self.status},"
-            f"creator={self.creator.username if self.creator else None},"
-            f"current_version={self.current_version})"
+            f"creator={self.creator.username if self.creator else None})"
         )
 
     def __str__(self):
@@ -731,38 +672,6 @@ class HpcUser(
     @property
     def is_member(self):
         return not (self.is_alumni or self.is_pi or self.is_delegate)
-
-
-class HpcUserVersion(HpcUserAbstract):
-    """HpcUserVersion model"""
-
-    class Meta:
-        unique_together = ("username", "version")
-
-    #: Version number of the user object.
-    version = models.IntegerField(help_text="Version of this user object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcUser,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}("
-            f"id={self.id},"
-            f"user={self.user.username if self.user else None},"
-            f"username={self.username},"
-            f"uid={self.uid},"
-            f"primary_group={self.primary_group.name if self.primary_group else None},"
-            f"status={self.status},"
-            f"creator={self.creator.username if self.creator else None},"
-            f"version={self.version})"
-        )
 
 
 # ------------------------------------------------------------------------------
@@ -843,23 +752,18 @@ class HpcGroupAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
+@track_history(ignore=["resources_used"])
 class HpcGroup(
     ContactMixin,
-    VersionManagerMixin,
+    HpcObjectMixin,
     CheckQuotaMixin,
     # HpcObjectPendingRequestMixin,
     HpcGroupAbstract,
 ):
     """HpcGroup model"""
 
-    #: Set custom manager
-    objects = VersionManager()
-
     class Meta:
         unique_together = ("name",)
-
-    #: Currently active version of the group object.
-    current_version = models.IntegerField(help_text="Currently active version of the group object")
 
     def __repr__(self):
         return (
@@ -870,8 +774,7 @@ class HpcGroup(
             f"delegate={self.delegate.username if self.delegate else None},"
             f"gid={self.gid},"
             f"status={self.status},"
-            f"creator={self.creator.username if self.creator else None},"
-            f"current_version={self.current_version})"
+            f"creator={self.creator.username if self.creator else None})"
         )
 
     def __str__(self):
@@ -885,38 +788,6 @@ class HpcGroup(
             self.name,
             self_owner_username,
             self_delegate_username,
-        )
-
-
-class HpcGroupVersion(HpcGroupAbstract):
-    """HpcGroupVersion model"""
-
-    class Meta:
-        unique_together = ("name", "version")
-
-    #: Version number of the group object.
-    version = models.IntegerField(help_text="Version number of this group object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroup,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}("
-            f"id={self.id},"
-            f"name={self.name},"
-            f"owner={self.owner.username},"
-            f"delegate={self.delegate.username if self.delegate else None},"
-            f"gid={self.gid},"
-            f"status={self.status},"
-            f"creator={self.creator.username if self.creator else None},"
-            f"version={self.version})"
         )
 
 
@@ -1003,30 +874,22 @@ class HpcProjectAbstract(HpcObjectAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
+@track_history(ignore=["resources_used"])
 class HpcProject(
     ContactMixin,
-    VersionManagerMixin,
+    HpcObjectMixin,
     CheckQuotaMixin,
     # HpcObjectPendingRequestMixin,
     HpcProjectAbstract,
 ):
     """HpcProject model"""
 
-    #: Set custom manager
-    objects = VersionManager()
-
     class Meta:
         unique_together = ("name",)
 
-    #: Currently active version of the project object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the project object"
-    )
-
     def __repr__(self):
         return (
-            "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={},"
-            "current_version={})"
+            "{}(id={},name={},group={},delegate={},gid={},status={},members={},creator={})"
         ).format(
             self.__class__.__name__,
             self.id,
@@ -1037,7 +900,6 @@ class HpcProject(
             self.status,
             self.members.count(),
             self.creator.username if self.creator else None,
-            self.current_version,
         )
 
     def __str__(self):
@@ -1051,39 +913,6 @@ class HpcProject(
             self.name,
             self_group_owner_username,
             self_delegate_username,
-        )
-
-
-class HpcProjectVersion(HpcProjectAbstract):
-    """HpcProjectVersion model"""
-
-    class Meta:
-        unique_together = ("name", "version")
-
-    #: Version number of the project object.
-    version = models.IntegerField(help_text="Version number of this project object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcProject,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}("
-            f"id={self.id},"
-            f"name={self.name},"
-            f"group={self.group.name},"
-            f"delegate={self.delegate.username if self.delegate else None},"
-            f"gid={self.gid},"
-            f"status={self.status},"
-            f"members={self.members.count()},"
-            f"creator={self.creator.username if self.creator else None},"
-            f"version={self.version})"
         )
 
 
@@ -1132,11 +961,21 @@ class HpcRequestAbstract(HpcObjectAbstract):
     )
 
     def get_comment_history(self):
-        history = self.version_history.exclude(comment__exact="").exclude(comment__isnull=True)
-        comments = []
+        """Return ``(editor username, date, comment)`` for each new comment, oldest first.
 
-        for h in history:
-            comments.append((h.editor.username, h.date_created, h.comment))
+        Events that repeat the previous comment of the same editor are skipped, as they
+        come from saves that did not touch the comment.
+        """
+        comments = []
+        previous = None
+
+        for event in self.events.order_by("pgh_id"):
+            current = (event.editor_id, event.comment)
+
+            if event.comment and current != previous:
+                comments.append((event.editor.username, event.pgh_created_at, event.comment))
+
+            previous = current
 
         return comments
 
@@ -1242,18 +1081,12 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroupCreateRequest(
-    RequestManagerMixin, VersionManagerMixin, HpcGroupCreateRequestAbstract
-):
+@track_history()
+class HpcGroupCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupCreateRequestAbstract):
     """HpcGroupCreateRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the group create request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group create request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "group create"
@@ -1263,25 +1096,6 @@ class HpcGroupCreateRequest(
         return reverse(
             f"{section}:hpcgroupcreaterequest-detail", kwargs={"hpcgroupcreaterequest": self.uuid}
         )
-
-
-class HpcGroupCreateRequestVersion(HpcGroupCreateRequestAbstract):
-    """HpcGroupCreateRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the group create request object.
-    version = models.IntegerField(help_text="Version number of this group create request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroupCreateRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # HpcGroupChangeRequest related
@@ -1322,18 +1136,12 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
 
-class HpcGroupChangeRequest(
-    RequestManagerMixin, VersionManagerMixin, HpcGroupChangeRequestAbstract
-):
+@track_history()
+class HpcGroupChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupChangeRequestAbstract):
     """HpcGroupChangeRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the group change request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group change request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "group change"
@@ -1345,39 +1153,16 @@ class HpcGroupChangeRequest(
         )
 
 
-class HpcGroupChangeRequestVersion(HpcGroupChangeRequestAbstract):
-    """HpcGroupChangeRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the group change request object.
-    version = models.IntegerField(help_text="Version number of this group change request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroupChangeRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
-
-
 # HpcGroupDeleteRequest related
 # ------------------------------------------------------------------------------
 
 
-class HpcGroupDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcGroupRequestAbstract):
+@track_history()
+class HpcGroupDeleteRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupRequestAbstract):
     """HpcGroupDeleteRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the group delete request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group delete request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "group delete"
@@ -1387,25 +1172,6 @@ class HpcGroupDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcGroupRe
         return reverse(
             f"{section}:hpcgroupdeleterequest-detail", kwargs={"hpcgroupdeleterequest": self.uuid}
         )
-
-
-class HpcGroupDeleteRequestVersion(HpcGroupRequestAbstract):
-    """HpcGroupDeleteRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the group delete request object.
-    version = models.IntegerField(help_text="Version number of this group delete request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroupDeleteRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # ------------------------------------------------------------------------------
@@ -1460,16 +1226,12 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
 
-class HpcUserCreateRequest(RequestManagerMixin, VersionManagerMixin, HpcUserCreateRequestAbstract):
+@track_history()
+class HpcUserCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcUserCreateRequestAbstract):
     """HpcUserCreateRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the user create request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the user create request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "user create"
@@ -1479,22 +1241,6 @@ class HpcUserCreateRequest(RequestManagerMixin, VersionManagerMixin, HpcUserCrea
         return reverse(
             f"{section}:hpcusercreaterequest-detail", kwargs={"hpcusercreaterequest": self.uuid}
         )
-
-
-class HpcUserCreateRequestVersion(HpcUserCreateRequestAbstract):
-    """HpcUserCreateRequestVersion model"""
-
-    #: Version number of the user create request object.
-    version = models.IntegerField(help_text="Version number of this user create request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcUserCreateRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # HpcUserChangeRequest related
@@ -1511,16 +1257,12 @@ class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
 
-class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChangeRequestAbstract):
+@track_history()
+class HpcUserChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcUserChangeRequestAbstract):
     """HpcUserChangeRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the user change request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the user change request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "user change"
@@ -1532,39 +1274,16 @@ class HpcUserChangeRequest(RequestManagerMixin, VersionManagerMixin, HpcUserChan
         )
 
 
-class HpcUserChangeRequestVersion(HpcUserChangeRequestAbstract):
-    """HpcUserChangeRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the user change request object.
-    version = models.IntegerField(help_text="Version number of this user change request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcUserChangeRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
-
-
 # HpcUserDeleteRequest related
 # ------------------------------------------------------------------------------
 
 
-class HpcUserDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcUserRequestAbstract):
+@track_history()
+class HpcUserDeleteRequest(RequestManagerMixin, HpcObjectMixin, HpcUserRequestAbstract):
     """HpcUserDeleteRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the user delete request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the user delete request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "user delete"
@@ -1574,25 +1293,6 @@ class HpcUserDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcUserRequ
         return reverse(
             f"{section}:hpcuserdeleterequest-detail", kwargs={"hpcuserdeleterequest": self.uuid}
         )
-
-
-class HpcUserDeleteRequestVersion(HpcUserRequestAbstract):
-    """HpcUserDeleteRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the user delete request object.
-    version = models.IntegerField(help_text="Version number of this user delete request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcUserDeleteRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # ------------------------------------------------------------------------------
@@ -1685,18 +1385,12 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProjectCreateRequest(
-    RequestManagerMixin, VersionManagerMixin, HpcProjectCreateRequestAbstract
-):
+@track_history()
+class HpcProjectCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectCreateRequestAbstract):
     """HpcProjectCreateRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the project create request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the project create request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "project create"
@@ -1707,22 +1401,6 @@ class HpcProjectCreateRequest(
             f"{section}:hpcprojectcreaterequest-detail",
             kwargs={"hpcprojectcreaterequest": self.uuid},
         )
-
-
-class HpcProjectCreateRequestVersion(HpcProjectCreateRequestAbstract):
-    """HpcProjectCreateRequestVersion model"""
-
-    #: Version number of the project create request object.
-    version = models.IntegerField(help_text="Version number of this project create request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcProjectCreateRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # HpcProjectChangeRequest related
@@ -1767,18 +1445,12 @@ class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
 
-class HpcProjectChangeRequest(
-    RequestManagerMixin, VersionManagerMixin, HpcProjectChangeRequestAbstract
-):
+@track_history()
+class HpcProjectChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectChangeRequestAbstract):
     """HpcProjectChangeRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the project change request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the project change request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "project change"
@@ -1791,39 +1463,40 @@ class HpcProjectChangeRequest(
         )
 
 
-class HpcProjectChangeRequestVersion(HpcProjectChangeRequestAbstract):
-    """HpcProjectChangeRequestVersion model"""
+# Members history
+# ------------------------------------------------------------------------------
+# Django does not allow references to auto-created many-to-many tables, so the
+# history of ``members`` is tracked through proxies of these tables.
 
+
+@track_members_history()
+class HpcProjectMembers(HpcProject.members.through):
     class Meta:
-        unique_together = ("belongs_to", "version")
+        proxy = True
 
-    #: Version number of the project change request object.
-    version = models.IntegerField(help_text="Version number of this project change request object")
 
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcProjectChangeRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
+@track_members_history()
+class HpcProjectCreateRequestMembers(HpcProjectCreateRequest.members.through):
+    class Meta:
+        proxy = True
+
+
+@track_members_history()
+class HpcProjectChangeRequestMembers(HpcProjectChangeRequest.members.through):
+    class Meta:
+        proxy = True
 
 
 # HpcProjectDeleteRequest related
 # ------------------------------------------------------------------------------
 
 
-class HpcProjectDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcProjectRequestAbstract):
+@track_history()
+class HpcProjectDeleteRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectRequestAbstract):
     """HpcProjectDeleteRequest model"""
 
     #: Set custom manager
-    objects = VersionRequestManager()
-
-    #: Currently active version of the project delete request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the project delete request object"
-    )
+    objects = RequestManager()
 
     def get_request_type(self):
         return "project delete"
@@ -1834,25 +1507,6 @@ class HpcProjectDeleteRequest(RequestManagerMixin, VersionManagerMixin, HpcProje
             f"{section}:hpcprojectdeleterequest-detail",
             kwargs={"hpcprojectdeleterequest": self.uuid},
         )
-
-
-class HpcProjectDeleteRequestVersion(HpcProjectRequestAbstract):
-    """HpcProjectDeleteRequestVersion model"""
-
-    class Meta:
-        unique_together = ("belongs_to", "version")
-
-    #: Version number of the project delete request object.
-    version = models.IntegerField(help_text="Version number of this project delete request object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcProjectDeleteRequest,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 class HpcInvitationAbstract(HpcObjectAbstract):
@@ -1905,35 +1559,12 @@ class HpcProjectInvitationAbstract(HpcInvitationAbstract):
     )
 
 
-class HpcProjectInvitation(VersionManagerMixin, HpcProjectInvitationAbstract):
+@track_history()
+class HpcProjectInvitation(HpcObjectMixin, HpcProjectInvitationAbstract):
     """HpcProjectInvitation model."""
-
-    #: Set custom manager
-    objects = VersionManager()
-
-    #: Currently active version of the project delete request object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the project delete request object"
-    )
 
     def get_invitation_type(self):
         return "project"
-
-
-class HpcProjectInvitationVersion(HpcProjectInvitationAbstract):
-    """HpcProjectInvitationVersion model."""
-
-    #: Version number of the project invitation object.
-    version = models.IntegerField(help_text="Version number of this project invitation object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcProjectInvitation,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 class HpcGroupInvitationAbstract(HpcInvitationAbstract):
@@ -1953,35 +1584,12 @@ class HpcGroupInvitationAbstract(HpcInvitationAbstract):
     username = models.CharField(max_length=255, help_text="Username the invitation is valid for")
 
 
-class HpcGroupInvitation(VersionManagerMixin, HpcGroupInvitationAbstract):
+@track_history()
+class HpcGroupInvitation(HpcObjectMixin, HpcGroupInvitationAbstract):
     """HpcGroupInvitation model."""
-
-    #: Set custom manager
-    objects = VersionManager()
-
-    #: Currently active version of the group invitation object.
-    current_version = models.IntegerField(
-        help_text="Currently active version of the group invitation object"
-    )
 
     def get_invitation_type(self):
         return "group"
-
-
-class HpcGroupInvitationVersion(HpcGroupInvitationAbstract):
-    """HpcGroupInvitationVersion model."""
-
-    #: Version number of the group invitation object.
-    version = models.IntegerField(help_text="Version number of this group invitation object")
-
-    #: Link to actual (non-version) object.
-    belongs_to = models.ForeignKey(
-        HpcGroupInvitation,
-        null=True,
-        related_name="version_history",
-        help_text="Object this version belongs to",
-        on_delete=models.CASCADE,
-    )
 
 
 # ------------------------------------------------------------------------------

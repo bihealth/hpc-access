@@ -30,12 +30,14 @@ from usersec.models import (
 # ------------------------------------------------------------------------------
 
 
-def hpc_version_obj_to_dict(obj):
-    return model_to_dict(obj, exclude=["id", "uuid", "version", "belongs_to"])
-
-
 def hpc_obj_to_dict(obj):
-    return model_to_dict(obj, exclude=["id", "uuid", "current_version"])
+    return model_to_dict(obj, exclude=["members"])
+
+
+def hpc_event_obj_to_dict(event):
+    return model_to_dict(
+        event, exclude=["pgh_id", "pgh_created_at", "pgh_label", "pgh_obj", "pgh_context"]
+    )
 
 
 # ------------------------------------------------------------------------------
@@ -128,15 +130,6 @@ class HpcObjectFactoryBase(factory.django.DjangoModelFactory):
 
     class Meta:
         abstract = True
-
-    current_version = 1
-
-    @classmethod
-    def _create(cls, model_class, *args, **kwargs):
-        """Override the default ``_create`` with custom call."""
-        manager = cls._get_manager(model_class)
-        # The default would use ``manager.create(*args, **kwargs)``
-        return manager.create_with_version(*args, **kwargs)
 
 
 class HpcRequestFactoryBase(HpcObjectFactoryBase):

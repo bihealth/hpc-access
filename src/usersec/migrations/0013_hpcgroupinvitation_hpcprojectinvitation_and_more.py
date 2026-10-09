@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
-            bases=(usersec.models.VersionManagerMixin, models.Model),
+            bases=(usersec.models.HpcObjectMixin, models.Model),
         ),
         migrations.CreateModel(
             name="HpcProjectInvitation",
@@ -149,7 +149,7 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
-            bases=(usersec.models.VersionManagerMixin, models.Model),
+            bases=(usersec.models.HpcObjectMixin, models.Model),
         ),
         migrations.CreateModel(
             name="HpcProjectInvitationVersion",
