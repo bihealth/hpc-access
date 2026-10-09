@@ -22,5 +22,18 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: python
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
           token: ${{ secrets.HPCACCESS_RELEASE_PLEASE_TOKEN }}
+
+  # Let hpc-access-cli pin the new release and regenerate its API models
+  update-cli-pin:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the hpc-access update in hpc-access-cli
+        env:
+          GH_TOKEN: ${{ secrets.HPCACCESS_RELEASE_PLEASE_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh workflow run update-hpc-access.yml --repo bihealth/hpc-access-cli --field ref="$TAG"
