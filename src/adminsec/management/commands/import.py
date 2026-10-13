@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from adminsec.models import HpcaccessState
-from usersec.models import HpcGroup, HpcProject, HpcUser
+from usersec.models import HpcGroup, HpcProject, HpcUser, OBJECT_STATUS_DELETED
 
 User = auth.get_user_model()
 
@@ -91,7 +91,7 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcUser.objects.exclude(username__in=usernames),  # old objects queryset
+            "removed": HpcUser.objects.exclude(username__in=usernames).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
             "count": HpcUser.objects.count(),
         }
         for uuid, data in cli_import.hpc_users.items():
@@ -181,7 +181,7 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcGroup.objects.exclude(gid__in=gids),  # old objects queryset
+            "removed": HpcGroup.objects.exclude(gid__in=gids).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
             "count": HpcGroup.objects.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
@@ -247,7 +247,7 @@ class Command(BaseCommand):
         update = {
             "added": [],  # tuple of (new, members)
             "changed": [],  # tuple of (old, changes, members) objects
-            "removed": HpcProject.objects.exclude(name__in=names),  # old objects queryset
+            "removed": HpcProject.objects.exclude(name__in=names).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
             "count": HpcProject.objects.count(),
         }
         for uuid, data in cli_import.hpc_projects.items():
@@ -404,21 +404,27 @@ class Command(BaseCommand):
                 for new in hpc_users_update["added"]:
                     pg = new.primary_group
                     new.primary_group = None
-                    new.save_with_version()
+                    new.save()
                     new.primary_group = pg
                 for old, changes in hpc_users_update["changed"]:
                     if "primary_group" in changes:
                         pg = changes["primary_group"]
                         changes["primary_group"] = None
-                        old.update_with_version(**changes)
+                        for field, value in changes.items():
+                            setattr(old, field, value)
+                        old.save()
                         old.primary_group = pg
                     else:
-                        old.update_with_version(**changes)
+                        for field, value in changes.items():
+                            setattr(old, field, value)
+                        old.save()
 
                 for new in hpc_groups_update["added"]:
-                    new.save_with_version()
+                    new.save()
                 for old, changes in hpc_groups_update["changed"]:
-                    old.update_with_version(**changes)
+                    for field, value in changes.items():
+                        setattr(old, field, value)
+                    old.save()
 
                 # Save users again to apply the primary_group changes
                 for new in hpc_users_update["added"]:
@@ -427,20 +433,25 @@ class Command(BaseCommand):
                     old.save()
 
                 for new, members in hpc_projects_update["added"]:
-                    new.save_with_version()
+                    new.save()
                     for member in members:
                         new.members.add(member)
                 for old, changes, members in hpc_projects_update["changed"]:
-                    old.update_with_version(**changes)
+                    for field, value in changes.items():
+                        setattr(old, field, value)
+                    old.save()
                     old.members.clear()
                     for member in members:
                         old.members.add(member)
 
                 # Delete objects at the end and in reverse order to avoid
                 # side effects of cascade-deletion.
-                hpc_projects_update["removed"].delete()
-                hpc_groups_update["removed"].delete()
-                hpc_users_update["removed"].delete()
+                for old in hpc_projects_update["removed"]:
+                    old.soft_delete()
+                for old in hpc_groups_update["removed"]:
+                    old.soft_delete()
+                for old in hpc_users_update["removed"]:
+                    old.soft_delete()
                 users_update["removed"].delete()
 
                 self.stdout.write("Done.")

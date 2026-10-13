@@ -12,7 +12,13 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 
-from usersec.models import HpcGroup, HpcProject, HpcUser
+from usersec.models import (
+    OBJECT_STATUS_ACTIVE,
+    OBJECT_STATUS_DELETED,
+    HpcGroup,
+    HpcProject,
+    HpcUser,
+)
 
 User = get_user_model()
 
@@ -167,9 +173,9 @@ class ImportCommandTestBase(TestCase):
     def db_snapshot(self):
         return (
             sorted(User.objects.values_list("username", "email")),
-            sorted(HpcUser.objects.values_list("pk", "username", "current_version")),
-            sorted(HpcGroup.objects.values_list("pk", "gid", "current_version")),
-            sorted(HpcProject.objects.values_list("pk", "name", "current_version")),
+            sorted(HpcUser.objects.values_list("pk", "username")),
+            sorted(HpcGroup.objects.values_list("pk", "gid")),
+            sorted(HpcProject.objects.values_list("pk", "name")),
         )
 
 
@@ -214,12 +220,15 @@ class TestInitialImport(ImportCommandTestBase):
         self.assertEqual(p1.delegate, bob)
         self.assertEqual({m.username for m in p1.members.all()}, {"alice_c", "bob_c"})
 
-    def test_creates_version_history(self):
+    def test_creates_history_events(self):
+        """django-pghistory records at least one event per imported object."""
         self.run_import(baseline())
-        for obj in (HpcUser.objects.get(username="alice_c"), HpcGroup.objects.get(gid=1001)):
-            self.assertEqual(obj.current_version, 1)
-            self.assertEqual(obj.version_history.count(), 1)
-        self.assertEqual(HpcProject.objects.get(name="proj1").version_history.count(), 1)
+        for obj in (
+            HpcUser.objects.get(username="alice_c"),
+            HpcGroup.objects.get(gid=1001),
+            HpcProject.objects.get(name="proj1"),
+        ):
+            self.assertGreaterEqual(obj.events.count(), 1, obj)
 
     def test_names_are_stripped_and_empty_values_tolerated(self):
         s = baseline()
@@ -260,7 +269,7 @@ class TestIdempotencyAndKeys(ImportCommandTestBase):
 
         out, _ = self.run_import(baseline(salt="second-export"))
 
-        self.assertEqual(self.db_snapshot(), before)  # same pks, same versions
+        self.assertEqual(self.db_snapshot(), before)  # same pks, same rows
         self.assertEqual(set(HpcUser.objects.values_list("uuid", flat=True)), uuids_before)
         self.assertEqual(summary(out)["HpcGroup"]["added"], 0)
         # relationships survive
@@ -276,6 +285,7 @@ class TestUpdates(ImportCommandTestBase):
     def test_hpc_user_fields_updated_but_expiration_and_consent_preserved(self):
         HpcUser.objects.filter(username="bob_c").update(expiration="2099-12-31T00:00:00Z")
         User.objects.filter(username="bob@CHARITE").update(consented_to_terms=True)
+        events_before = HpcUser.objects.get(username="bob_c").events.count()
         s = baseline()
         s.users["bob"].update(
             uid=9999,
@@ -295,8 +305,7 @@ class TestUpdates(ImportCommandTestBase):
         )
         self.assertEqual(bob.resources_requested, {"tier1_home": 7})
         self.assertEqual(bob.expiration, parse_datetime("2099-12-31T00:00:00Z"))
-        self.assertEqual(bob.current_version, 2)
-        self.assertEqual(bob.version_history.count(), 2)
+        self.assertGreater(bob.events.count(), events_before)
         self.assertTrue(User.objects.get(username="bob@CHARITE").consented_to_terms)
 
     def test_django_user_fields_updated(self):
@@ -323,6 +332,7 @@ class TestUpdates(ImportCommandTestBase):
 
     def test_group_fields_owner_and_delegate_updated(self):
         HpcGroup.objects.filter(gid=1001).update(expiration="2099-12-31T00:00:00Z")
+        events_before = HpcGroup.objects.get(gid=1001).events.count()
         s = baseline()
         s.groups["g1"].update(
             owner="bob", delegate=None, description="new", status="EXPIRED", name="renamed"
@@ -335,7 +345,7 @@ class TestUpdates(ImportCommandTestBase):
         self.assertIsNone(g1.delegate)
         self.assertEqual((g1.description, g1.status, g1.name), ("new", "EXPIRED", "renamed"))
         self.assertEqual(g1.expiration, parse_datetime("2099-12-31T00:00:00Z"))
-        self.assertEqual(g1.current_version, 2)
+        self.assertGreater(g1.events.count(), events_before)
 
     def test_group_delegate_added(self):
         s = baseline()
@@ -344,6 +354,7 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(HpcGroup.objects.get(gid=1002).delegate.username, "carol_m")
 
     def test_project_members_delegate_group_and_fields_updated(self):
+        events_before = HpcProject.objects.get(name="proj1").events.count()
         s = baseline()
         s.projects["p1"].update(
             members=["bob", "carol"], delegate=None, group="g2", status="EXPIRED"
@@ -355,7 +366,7 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual({m.username for m in p1.members.all()}, {"bob_c", "carol_m"})
         self.assertIsNone(p1.delegate)
         self.assertEqual((p1.group.gid, p1.status), (1002, "EXPIRED"))
-        self.assertEqual(p1.current_version, 2)
+        self.assertGreater(p1.events.count(), events_before)
 
     def test_project_with_only_membership_change_is_detected(self):
         s = baseline()
@@ -386,25 +397,35 @@ class TestRemovals(ImportCommandTestBase):
         super().setUp()
         self.run_import(baseline())
 
-    def test_removed_project_is_deleted(self):
+    def test_removed_project_is_marked_deleted(self):
+        """Removal is a soft delete: the row stays, with status DELETED."""
         s = baseline()
         del s.projects["p1"]
         out, _ = self.run_import(s)
         self.assertEqual(summary(out)["HpcProject"]["removed"], 1)
-        self.assertFalse(HpcProject.objects.exists())
+        self.assertEqual(HpcProject.objects.count(), 1)
+        self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_DELETED)
+        self.assertFalse(HpcProject.objects.filter(status=OBJECT_STATUS_ACTIVE).exists())
+        # the group is untouched
         self.assertEqual(HpcGroup.objects.count(), 2)
+        self.assertEqual(HpcGroup.objects.filter(status=OBJECT_STATUS_ACTIVE).count(), 2)
 
     def test_changed_key_means_delete_and_recreate(self):
-        """A new gid / project name is a different object, old one is dropped."""
+        """A new gid / project name is a different object, old one is marked deleted."""
         old_pk = HpcGroup.objects.get(gid=1002).pk
         s = baseline("salt")
         s.groups["g2"]["gid"] = 1999
         s.groups["g2"]["name"] = "grp-g2-new"  # name is unique in the db
         s.projects["p1"]["name"] = "proj1-renamed"
         self.run_import(s)
-        self.assertFalse(HpcGroup.objects.filter(gid=1002).exists())
+        self.assertTrue(HpcGroup.objects.filter(gid=1002, status=OBJECT_STATUS_DELETED).exists())
+        self.assertFalse(HpcGroup.objects.filter(gid=1002, status=OBJECT_STATUS_ACTIVE).exists())
         self.assertNotEqual(HpcGroup.objects.get(gid=1999).pk, old_pk)
-        self.assertEqual(HpcProject.objects.get().name, "proj1-renamed")
+        self.assertEqual(HpcGroup.objects.get(gid=1999).status, OBJECT_STATUS_ACTIVE)
+        self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_DELETED)
+        self.assertEqual(
+            HpcProject.objects.get(name="proj1-renamed").status, OBJECT_STATUS_ACTIVE
+        )
         self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1999)
 
     def test_removed_group_keeps_users_that_moved_elsewhere(self):
@@ -413,29 +434,31 @@ class TestRemovals(ImportCommandTestBase):
         s.users["dave"]["primary_group"] = "g1"
         del s.groups["g2"]
         self.run_import(s)
-        self.assertFalse(HpcGroup.objects.filter(gid=1002).exists())
+        self.assertEqual(HpcGroup.objects.get(gid=1002).status, OBJECT_STATUS_DELETED)
         self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1001)
 
-    def test_removed_hpc_user_is_deleted_but_django_user_is_kept(self):
+    def test_removed_hpc_user_is_marked_deleted_but_django_user_is_kept(self):
         s = baseline()
         del s.users["carol"]
         out, _ = self.run_import(s)
         self.assertEqual(summary(out)["HpcUser"]["removed"], 1)
-        self.assertFalse(HpcUser.objects.filter(username="carol_m").exists())
+        self.assertEqual(HpcUser.objects.get(username="carol_m").status, OBJECT_STATUS_DELETED)
         self.assertTrue(User.objects.filter(username="carol@MDC-BERLIN").exists())
 
     def test_removed_group_does_not_take_users_down_when_json_primary_group_is_a_project(self):
         """Regression: HpcUser.primary_group is on_delete=CASCADE.
 
         If the json says a user's primary group is a *project* (which cannot
-        be represented), the importer keeps the old FK; deleting the old group
-        then silently cascades to the user.
+        be represented), the importer keeps the old FK; the old group is only
+        soft-deleted, so the user must neither disappear nor be marked deleted.
         """
         s = baseline()
         s.users["dave"]["primary_group"] = "p1"
         del s.groups["g2"]
         self.run_import(s)
-        self.assertTrue(HpcUser.objects.filter(username="dave_c").exists())
+        dave = HpcUser.objects.get(username="dave_c")
+        self.assertEqual(dave.status, OBJECT_STATUS_ACTIVE)
+        self.assertEqual(HpcGroup.objects.get(gid=1002).status, OBJECT_STATUS_DELETED)
 
     def test_replacing_a_group_owner_who_is_removed_keeps_group_and_projects(self):
         """Regression: HpcGroup.owner is on_delete=CASCADE.
@@ -448,9 +471,11 @@ class TestRemovals(ImportCommandTestBase):
         s.groups["g1"]["owner"] = "bob"
         s.projects["p1"]["members"] = ["bob"]
         self.run_import(s)
-        self.assertFalse(HpcUser.objects.filter(username="alice_c").exists())
+        self.assertEqual(HpcUser.objects.get(username="alice_c").status, OBJECT_STATUS_DELETED)
+        self.assertEqual(HpcUser.objects.get(username="carol_m").status, OBJECT_STATUS_ACTIVE)
         self.assertEqual(HpcGroup.objects.get(gid=1001).owner.username, "bob_c")
-        self.assertTrue(HpcProject.objects.filter(name="proj1").exists())
+        self.assertEqual(HpcGroup.objects.get(gid=1001).status, OBJECT_STATUS_ACTIVE)
+        self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_ACTIVE)
 
 
 class TestCommandBehaviour(ImportCommandTestBase):
@@ -497,7 +522,7 @@ class TestCommandBehaviour(ImportCommandTestBase):
         s = baseline()
         s.users["erin"] = dict(s.users["alice"], username="erin_c", uid=7777, primary_group=None)
         s.projects["p1"]["status"] = "EXPIRED"  # forces the project-update step
-        with mock.patch.object(HpcProject, "update_with_version", side_effect=RuntimeError("boom")):
+        with mock.patch.object(HpcProject, "save", side_effect=RuntimeError("boom")):
             with self.assertRaisesMessage(RuntimeError, "boom"):
                 self.run_import(s)
         self.assertEqual(self.db_snapshot(), before)  # nothing from the failed run persisted
