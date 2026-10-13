@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from adminsec.models import HpcaccessState
-from usersec.models import HpcGroup, HpcProject, HpcUser, OBJECT_STATUS_DELETED
+from usersec.models import OBJECT_STATUS_DELETED, HpcGroup, HpcProject, HpcUser
 
 User = auth.get_user_model()
 
@@ -91,7 +91,9 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcUser.objects.exclude(username__in=usernames).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
+            "removed": HpcUser.objects.exclude(username__in=usernames).exclude(
+                status=OBJECT_STATUS_DELETED
+            ),  # old objects queryset
             "count": HpcUser.objects.count(),
         }
         for uuid, data in cli_import.hpc_users.items():
@@ -181,7 +183,9 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcGroup.objects.exclude(gid__in=gids).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
+            "removed": HpcGroup.objects.exclude(gid__in=gids).exclude(
+                status=OBJECT_STATUS_DELETED
+            ),  # old objects queryset
             "count": HpcGroup.objects.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
@@ -247,7 +251,9 @@ class Command(BaseCommand):
         update = {
             "added": [],  # tuple of (new, members)
             "changed": [],  # tuple of (old, changes, members) objects
-            "removed": HpcProject.objects.exclude(name__in=names).exclude(status=OBJECT_STATUS_DELETED),  # old objects queryset
+            "removed": HpcProject.objects.exclude(name__in=names).exclude(
+                status=OBJECT_STATUS_DELETED
+            ),  # old objects queryset
             "count": HpcProject.objects.count(),
         }
         for uuid, data in cli_import.hpc_projects.items():
