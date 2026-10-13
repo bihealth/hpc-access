@@ -78,8 +78,8 @@ class HpcObjectAbstractSerializer(serializers.Serializer):
         ]
 
 
-class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
-    """Common base class for HPC user serializers."""
+class HpcUserSerializer(HpcObjectAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcUser model."""
 
     primary_group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
 
@@ -128,6 +128,7 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
         return obj.user.display_name
 
     class Meta:
+        model = HpcUser
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "email",
             "full_name",
@@ -149,16 +150,8 @@ class HpcUserAbstractSerializer(HpcObjectAbstractSerializer):
         ]
 
 
-class HpcUserSerializer(HpcUserAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcUser model."""
-
-    class Meta:
-        model = HpcUser
-        fields = HpcUserAbstractSerializer.Meta.fields
-
-
-class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
-    """Common base class for HPC group serializers."""
+class HpcGroupSerializer(HpcObjectAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcGroup model."""
 
     owner = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
@@ -174,6 +167,7 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
     expiration = serializers.DateTimeField(read_only=True)
 
     class Meta:
+        model = HpcGroup
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "owner",
             "delegate",
@@ -188,16 +182,8 @@ class HpcGroupAbstractSerializer(HpcObjectAbstractSerializer):
         ]
 
 
-class HpcGroupSerializer(HpcGroupAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcGroup model."""
-
-    class Meta:
-        model = HpcGroup
-        fields = HpcGroupAbstractSerializer.Meta.fields
-
-
-class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
-    """Common base class for HPC project serializers."""
+class HpcProjectSerializer(HpcObjectAbstractSerializer, serializers.ModelSerializer):
+    """Serializer for HpcProject model."""
 
     group = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
     delegate = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
@@ -215,6 +201,7 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
     members = serializers.SlugRelatedField(slug_field="uuid", many=True, read_only=True)
 
     class Meta:
+        model = HpcProject
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "group",
             "delegate",
@@ -228,14 +215,6 @@ class HpcProjectAbstractSerializer(HpcObjectAbstractSerializer):
             "expiration",
             "members",
         ]
-
-
-class HpcProjectSerializer(HpcProjectAbstractSerializer, serializers.ModelSerializer):
-    """Serializer for HpcProject model."""
-
-    class Meta:
-        model = HpcProject
-        fields = HpcProjectAbstractSerializer.Meta.fields
 
 
 class HpcRequestAbstractSerializer(HpcObjectAbstractSerializer):
@@ -264,8 +243,8 @@ class HpcGroupRequestAbstract(HpcRequestAbstractSerializer):
         ]
 
 
-class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
-    """Common base class for HPC group create request serializers."""
+class HpcGroupCreateRequestSerializer(HpcGroupRequestAbstract, serializers.ModelSerializer):
+    """Serializer for HpcGroupCreateRequest model."""
 
     resources_requested = ResourceDataJSONField(read_only=True)
     description = serializers.CharField(read_only=True)
@@ -274,6 +253,7 @@ class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
     name = serializers.CharField()
 
     class Meta:
+        model = HpcGroupCreateRequest
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "resources_requested",
             "description",
@@ -281,16 +261,6 @@ class HpcGroupCreateRequestAbstractSerializer(HpcGroupRequestAbstract):
             "name",
             "folders",
         ]
-
-
-class HpcGroupCreateRequestSerializer(
-    HpcGroupCreateRequestAbstractSerializer, serializers.ModelSerializer
-):
-    """Serializer for HpcGroupCreateRequest model."""
-
-    class Meta:
-        model = HpcGroupCreateRequest
-        fields = HpcGroupCreateRequestAbstractSerializer.Meta.fields
 
 
 class HpcProjectRequestAbstract(HpcRequestAbstractSerializer):
@@ -304,8 +274,8 @@ class HpcProjectRequestAbstract(HpcRequestAbstractSerializer):
         ]
 
 
-class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
-    """Common base class for HPC group create request serializers."""
+class HpcProjectCreateRequestSerializer(HpcProjectRequestAbstract, serializers.ModelSerializer):
+    """Serializer for HpcProjectCreateRequest model."""
 
     resources_requested = ResourceDataJSONField(read_only=True)
     description = serializers.CharField(read_only=True)
@@ -318,6 +288,7 @@ class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
     folders = GroupFoldersJSONField()
 
     class Meta:
+        model = HpcProjectCreateRequest
         fields = HpcObjectAbstractSerializer.Meta.fields + [
             "resources_requested",
             "description",
@@ -328,16 +299,6 @@ class HpcProjectCreateRequestAbstractSerializer(HpcProjectRequestAbstract):
             "name_requested",
             "folders",
         ]
-
-
-class HpcProjectCreateRequestSerializer(
-    HpcProjectCreateRequestAbstractSerializer, serializers.ModelSerializer
-):
-    """Serializer for HpcProjectCreateRequest model."""
-
-    class Meta:
-        model = HpcProjectCreateRequest
-        fields = HpcProjectCreateRequestAbstractSerializer.Meta.fields
 
 
 class HpcUserLookupSerializer(serializers.ModelSerializer):

@@ -494,11 +494,53 @@ class HpcObjectAbstract(models.Model):
 # ------------------------------------------------------------------------------
 
 
-class HpcUserAbstract(HpcObjectAbstract):
-    """HpcUser abstract base class"""
+ROLE_ALUMNI = "Alumni"
+ROLE_DELEGATE = "Delegate"
+ROLE_PI = "PI"
+ROLE_MEMBER = "Member"
+
+
+class HpcObjectPendingRequestMixin:
+    """Mixin for objects with pending requests."""
+
+    def has_pending_delete_request(self):
+        return (
+            getattr(self, f"{self.__class__.__name__.lower()}deleterequest").in_process().exists()
+        )
+
+    def has_pending_change_request(self):
+        return (
+            getattr(self, f"{self.__class__.__name__.lower()}changerequest").in_process().exists()
+        )
+
+    def has_pending_requests(self):
+        return self.has_pending_delete_request() or self.has_pending_change_request()
+
+    def has_retracted_delete_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().exists()
+
+    def has_retracted_change_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().exists()
+
+    def retracted_delete_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().first()
+
+    def retracted_change_request(self):
+        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().first()
+
+
+@track_history(ignore=["resources_used"])
+class HpcUser(
+    ContactMixin,
+    HpcObjectMixin,
+    CheckQuotaMixin,
+    HpcObjectPendingRequestMixin,
+    HpcObjectAbstract,
+):
+    """HpcUser model"""
 
     class Meta:
-        abstract = True
+        unique_together = ("username",)
 
     #: Associated Django user.
     user = models.ForeignKey(
@@ -572,55 +614,6 @@ class HpcUserAbstract(HpcObjectAbstract):
         default=LOGIN_SHELL_BASH,
     )
 
-
-ROLE_ALUMNI = "Alumni"
-ROLE_DELEGATE = "Delegate"
-ROLE_PI = "PI"
-ROLE_MEMBER = "Member"
-
-
-class HpcObjectPendingRequestMixin:
-    """Mixin for objects with pending requests."""
-
-    def has_pending_delete_request(self):
-        return (
-            getattr(self, f"{self.__class__.__name__.lower()}deleterequest").in_process().exists()
-        )
-
-    def has_pending_change_request(self):
-        return (
-            getattr(self, f"{self.__class__.__name__.lower()}changerequest").in_process().exists()
-        )
-
-    def has_pending_requests(self):
-        return self.has_pending_delete_request() or self.has_pending_change_request()
-
-    def has_retracted_delete_request(self):
-        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().exists()
-
-    def has_retracted_change_request(self):
-        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().exists()
-
-    def retracted_delete_request(self):
-        return getattr(self, f"{self.__class__.__name__.lower()}deleterequest").retracted().first()
-
-    def retracted_change_request(self):
-        return getattr(self, f"{self.__class__.__name__.lower()}changerequest").retracted().first()
-
-
-@track_history(ignore=["resources_used"])
-class HpcUser(
-    ContactMixin,
-    HpcObjectMixin,
-    CheckQuotaMixin,
-    HpcObjectPendingRequestMixin,
-    HpcUserAbstract,
-):
-    """HpcUser model"""
-
-    class Meta:
-        unique_together = ("username",)
-
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
@@ -679,11 +672,18 @@ class HpcUser(
 # ------------------------------------------------------------------------------
 
 
-class HpcGroupAbstract(HpcObjectAbstract):
-    """HpcGroup abstract base class"""
+@track_history(ignore=["resources_used"])
+class HpcGroup(
+    ContactMixin,
+    HpcObjectMixin,
+    CheckQuotaMixin,
+    # HpcObjectPendingRequestMixin,
+    HpcObjectAbstract,
+):
+    """HpcGroup model"""
 
     class Meta:
-        abstract = True
+        unique_together = ("name",)
 
     #: Owner of the group.
     owner = models.ForeignKey(
@@ -751,20 +751,6 @@ class HpcGroupAbstract(HpcObjectAbstract):
     #: Expiration date of the group
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
-
-@track_history(ignore=["resources_used"])
-class HpcGroup(
-    ContactMixin,
-    HpcObjectMixin,
-    CheckQuotaMixin,
-    # HpcObjectPendingRequestMixin,
-    HpcGroupAbstract,
-):
-    """HpcGroup model"""
-
-    class Meta:
-        unique_together = ("name",)
-
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
@@ -796,11 +782,18 @@ class HpcGroup(
 # ------------------------------------------------------------------------------
 
 
-class HpcProjectAbstract(HpcObjectAbstract):
-    """HpcProject abstract base class"""
+@track_history(ignore=["resources_used"])
+class HpcProject(
+    ContactMixin,
+    HpcObjectMixin,
+    CheckQuotaMixin,
+    # HpcObjectPendingRequestMixin,
+    HpcObjectAbstract,
+):
+    """HpcProject model"""
 
     class Meta:
-        abstract = True
+        unique_together = ("name",)
 
     #: Group that requested the project. Group PI is owner of project.
     group = models.ForeignKey(
@@ -872,20 +865,6 @@ class HpcProjectAbstract(HpcObjectAbstract):
 
     #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
-
-
-@track_history(ignore=["resources_used"])
-class HpcProject(
-    ContactMixin,
-    HpcObjectMixin,
-    CheckQuotaMixin,
-    # HpcObjectPendingRequestMixin,
-    HpcProjectAbstract,
-):
-    """HpcProject model"""
-
-    class Meta:
-        unique_together = ("name",)
 
     def __repr__(self):
         return (
@@ -1048,11 +1027,9 @@ class HpcGroupRequestAbstract(HpcRequestAbstract):
 # ------------------------------------------------------------------------------
 
 
-class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
-    """HpcGroupCreateRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcGroupCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupRequestAbstract):
+    """HpcGroupCreateRequest model"""
 
     #: Groups requested resources as JSON.
     resources_requested = models.JSONField()
@@ -1080,11 +1057,6 @@ class HpcGroupCreateRequestAbstract(HpcGroupRequestAbstract):
     #: Expiration date of the group.
     expiration = models.DateTimeField(help_text="Expiration date of the group")
 
-
-@track_history()
-class HpcGroupCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupCreateRequestAbstract):
-    """HpcGroupCreateRequest model"""
-
     #: Set custom manager
     objects = RequestManager()
 
@@ -1102,11 +1074,9 @@ class HpcGroupCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupCreateR
 # ------------------------------------------------------------------------------
 
 
-class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
-    """HpcGroupChangeRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcGroupChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupRequestAbstract):
+    """HpcGroupChangeRequest model"""
 
     #: Groups requested resources as JSON.
     resources_requested = models.JSONField()
@@ -1134,11 +1104,6 @@ class HpcGroupChangeRequestAbstract(HpcGroupRequestAbstract):
 
     #: Expiration date of the group
     expiration = models.DateTimeField(help_text="Expiration date of the group")
-
-
-@track_history()
-class HpcGroupChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcGroupChangeRequestAbstract):
-    """HpcGroupChangeRequest model"""
 
     #: Set custom manager
     objects = RequestManager()
@@ -1199,11 +1164,9 @@ class HpcUserRequestAbstract(HpcRequestAbstract):
 # ------------------------------------------------------------------------------
 
 
-class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
-    """HpcUserCreateRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcUserCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcUserRequestAbstract):
+    """HpcUserCreateRequest model"""
 
     #: Users requested resources as JSON.
     resources_requested = models.JSONField()
@@ -1225,11 +1188,6 @@ class HpcUserCreateRequestAbstract(HpcUserRequestAbstract):
     #: Expiration date of the user
     expiration = models.DateTimeField(help_text="Expiration date of the user")
 
-
-@track_history()
-class HpcUserCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcUserCreateRequestAbstract):
-    """HpcUserCreateRequest model"""
-
     #: Set custom manager
     objects = RequestManager()
 
@@ -1247,19 +1205,12 @@ class HpcUserCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcUserCreateReq
 # ------------------------------------------------------------------------------
 
 
-class HpcUserChangeRequestAbstract(HpcUserRequestAbstract):
-    """HpcUserChangeRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcUserChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcUserRequestAbstract):
+    """HpcUserChangeRequest model"""
 
     #: Expiration date of the user
     expiration = models.DateTimeField(help_text="Expiration date of the user")
-
-
-@track_history()
-class HpcUserChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcUserChangeRequestAbstract):
-    """HpcUserChangeRequest model"""
 
     #: Set custom manager
     objects = RequestManager()
@@ -1320,11 +1271,9 @@ class HpcProjectRequestAbstract(HpcRequestAbstract):
 # ------------------------------------------------------------------------------
 
 
-class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
-    """HpcProjectCreateRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcProjectCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectRequestAbstract):
+    """HpcProjectCreateRequest model"""
 
     #: Projects requested resources as JSON.
     resources_requested = models.JSONField()
@@ -1384,11 +1333,6 @@ class HpcProjectCreateRequestAbstract(HpcProjectRequestAbstract):
     #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
 
-
-@track_history()
-class HpcProjectCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectCreateRequestAbstract):
-    """HpcProjectCreateRequest model"""
-
     #: Set custom manager
     objects = RequestManager()
 
@@ -1407,11 +1351,9 @@ class HpcProjectCreateRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectCre
 # ------------------------------------------------------------------------------
 
 
-class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
-    """HpcProjectChangeRequest abstract base class"""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcProjectChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectRequestAbstract):
+    """HpcProjectChangeRequest model"""
 
     #: Projects requested resources as JSON.
     resources_requested = models.JSONField()
@@ -1443,11 +1385,6 @@ class HpcProjectChangeRequestAbstract(HpcProjectRequestAbstract):
 
     #: Expiration date of the project
     expiration = models.DateTimeField(help_text="Expiration date of the project")
-
-
-@track_history()
-class HpcProjectChangeRequest(RequestManagerMixin, HpcObjectMixin, HpcProjectChangeRequestAbstract):
-    """HpcProjectChangeRequest model"""
 
     #: Set custom manager
     objects = RequestManager()
@@ -1524,11 +1461,9 @@ class HpcInvitationAbstract(HpcObjectAbstract):
     )
 
 
-class HpcProjectInvitationAbstract(HpcInvitationAbstract):
-    """HpcProjectInvitation abstract base class."""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcProjectInvitation(HpcObjectMixin, HpcInvitationAbstract):
+    """HpcProjectInvitation model."""
 
     #: Link to HPC project
     project = models.ForeignKey(
@@ -1558,20 +1493,13 @@ class HpcProjectInvitationAbstract(HpcInvitationAbstract):
         HpcUser, help_text="Invited user", on_delete=models.CASCADE, related_name="%(class)ss"
     )
 
-
-@track_history()
-class HpcProjectInvitation(HpcObjectMixin, HpcProjectInvitationAbstract):
-    """HpcProjectInvitation model."""
-
     def get_invitation_type(self):
         return "project"
 
 
-class HpcGroupInvitationAbstract(HpcInvitationAbstract):
-    """HpcGroupInvitation abstract base class."""
-
-    class Meta:
-        abstract = True
+@track_history()
+class HpcGroupInvitation(HpcObjectMixin, HpcInvitationAbstract):
+    """HpcGroupInvitation model."""
 
     #: Link to HPC user create request
     hpcusercreaterequest = models.ForeignKey(
@@ -1582,11 +1510,6 @@ class HpcGroupInvitationAbstract(HpcInvitationAbstract):
 
     #: Username
     username = models.CharField(max_length=255, help_text="Username the invitation is valid for")
-
-
-@track_history()
-class HpcGroupInvitation(HpcObjectMixin, HpcGroupInvitationAbstract):
-    """HpcGroupInvitation model."""
 
     def get_invitation_type(self):
         return "group"
