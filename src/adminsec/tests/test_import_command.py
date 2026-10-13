@@ -423,9 +423,7 @@ class TestRemovals(ImportCommandTestBase):
         self.assertNotEqual(HpcGroup.objects.get(gid=1999).pk, old_pk)
         self.assertEqual(HpcGroup.objects.get(gid=1999).status, OBJECT_STATUS_ACTIVE)
         self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_DELETED)
-        self.assertEqual(
-            HpcProject.objects.get(name="proj1-renamed").status, OBJECT_STATUS_ACTIVE
-        )
+        self.assertEqual(HpcProject.objects.get(name="proj1-renamed").status, OBJECT_STATUS_ACTIVE)
         self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1999)
 
     def test_removed_group_keeps_users_that_moved_elsewhere(self):
