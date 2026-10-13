@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
   "python-dotenv",
   "pytz>=2024.1",
-  "python-slugify>=6.1.1,<7",
+  "python-slugify>=8.0.4,<9",
   "Pillow>=10.0,<14",
   "argon2-cffi>=23.1,<25",
   "redis>=5.0,<6",
