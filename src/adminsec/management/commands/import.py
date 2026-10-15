@@ -76,7 +76,6 @@ class Command(BaseCommand):
                 all[new.username] = new
                 update["added"].append(new)
                 continue
-            # XXX: "consented_to_terms" field is not changed
             changes = {}
             for field in ("first_name", "last_name", "name", "display_name", "email", "phone"):
                 if (new_field := data[field]) != getattr(old, field):
@@ -91,8 +90,10 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcUser.objects.exclude(username__in=usernames).exclude(
-                status=OBJECT_STATUS_DELETED
+            "removed": (
+                HpcUser.objects.exclude(username__in=usernames).exclude(
+                    status=OBJECT_STATUS_DELETED
+                )
             ),  # old objects queryset
             "count": HpcUser.objects.count(),
         }
@@ -162,7 +163,6 @@ class Command(BaseCommand):
                     f"Cannot assign project {primary_group_project_name} "
                     f"as primary group for user {data['username']}"
                 )
-            # XXX: expiration field is not touched
             for field in (
                 "resources_requested",
                 "resources_used",
@@ -183,8 +183,8 @@ class Command(BaseCommand):
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, changes) objects
-            "removed": HpcGroup.objects.exclude(gid__in=gids).exclude(
-                status=OBJECT_STATUS_DELETED
+            "removed": (
+                HpcGroup.objects.exclude(gid__in=gids).exclude(status=OBJECT_STATUS_DELETED)
             ),  # old objects queryset
             "count": HpcGroup.objects.count(),
         }
@@ -229,7 +229,6 @@ class Command(BaseCommand):
                 and fk_delegate.username != old.delegate.username
             ):
                 changes["delegate"] = fk_delegate
-            # XXX: expiration field is not touched
             for field in (
                 "name",
                 "description",
@@ -251,8 +250,8 @@ class Command(BaseCommand):
         update = {
             "added": [],  # tuple of (new, members)
             "changed": [],  # tuple of (old, changes, members) objects
-            "removed": HpcProject.objects.exclude(name__in=names).exclude(
-                status=OBJECT_STATUS_DELETED
+            "removed": (
+                HpcProject.objects.exclude(name__in=names).exclude(status=OBJECT_STATUS_DELETED)
             ),  # old objects queryset
             "count": HpcProject.objects.count(),
         }
@@ -299,7 +298,6 @@ class Command(BaseCommand):
                 and fk_delegate.username != old.delegate.username
             ):
                 changes["delegate"] = fk_delegate
-            # XXX: expiration field is not touched
             for field in (
                 "gid",
                 "folders",
