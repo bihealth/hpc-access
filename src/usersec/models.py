@@ -551,14 +551,9 @@ class HpcUser(
         on_delete=models.SET_NULL,
     )
 
-    #: Primary group the user belongs to.
-    primary_group = models.ForeignKey(
-        "HpcGroup",
-        related_name="%(class)s",
-        help_text="Primary group the user belongs to",
-        null=True,
-        on_delete=models.CASCADE,
-    )
+    #: gid of the primary group or project for this user. Not a foreign key: the
+    #: related object must be resolved manually.
+    primary_group_gid = models.IntegerField(help_text="gid of the primary group/project the user belongs to.")
 
     #: Users requested resources as JSON.
     resources_requested = models.JSONField()
@@ -621,7 +616,7 @@ class HpcUser(
             f"user={self.user.username if self.user else None},"
             f"username={self.username},"
             f"uid={self.uid},"
-            f"primary_group={self.primary_group.name if self.primary_group else None},"
+            f"primary_group={self.primary_group()},"
             f"status={self.status},"
             f"creator={self.creator.username if self.creator else None})"
         )
@@ -633,6 +628,17 @@ class HpcUser(
 
     def get_pending_invitations(self):
         return self.hpcprojectinvitations.filter(status=INVITATION_STATUS_PENDING)
+
+    @property
+    def primary_group(self):
+        gid = self.primary_group_gid
+        try:
+            return HpcGroup.objects.get(gid=gid)
+        except HpcGroup.DoesNotExist:
+            try:
+                return HpcProject.objects.get(gid=gid)
+            except HpcProject.DoesNotExist:
+                return None
 
     @property
     def role(self):
@@ -775,6 +781,10 @@ class HpcGroup(
             self_owner_username,
             self_delegate_username,
         )
+
+    @property
+    def hpcuser(self):
+        return HpcUser.objects.filter(gid=self.gid)
 
 
 # ------------------------------------------------------------------------------
