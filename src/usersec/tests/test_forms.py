@@ -74,7 +74,7 @@ class TestHpcGroupChangeRequestForm(TestCase):
         self.user_hpcadmin.save()
 
         self.hpc_group = HpcGroupFactory()
-        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
+        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group_gid=self.hpc_group.gid)
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
 
@@ -268,7 +268,7 @@ class TestHpcProjectCreateRequestForm(TestCase):
         self.user_hpcadmin.save()
 
         self.hpc_group = HpcGroupFactory()
-        self.hpc_owner = HpcUserFactory(user=user_owner, primary_group=self.hpc_group)
+        self.hpc_owner = HpcUserFactory(user=user_owner, primary_group_gid=self.hpc_group.gid)
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
 
@@ -326,7 +326,7 @@ class TestUserSelectForm(TestCase):
         user_owner = self.make_user("owner")
 
         self.hpc_group = HpcGroupFactory()
-        self.hpc_owner = HpcUserFactory(user=user_owner, primary_group=self.hpc_group)
+        self.hpc_owner = HpcUserFactory(user=user_owner, primary_group_gid=self.hpc_group.gid)
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
 
@@ -360,9 +360,9 @@ class TestProjectSelectForm(TestCase):
         self.hpc_group2 = HpcGroupFactory()
         self.hpc_group3 = HpcGroupFactory()
 
-        self.hpc_owner1 = HpcUserFactory(user=user_owner1, primary_group=self.hpc_group1)
-        self.hpc_owner2 = HpcUserFactory(user=user_owner2, primary_group=self.hpc_group2)
-        self.hpc_owner3 = HpcUserFactory(user=user_owner3, primary_group=self.hpc_group3)
+        self.hpc_owner1 = HpcUserFactory(user=user_owner1, primary_group_gid=self.hpc_group1.gid)
+        self.hpc_owner2 = HpcUserFactory(user=user_owner2, primary_group_gid=self.hpc_group2.gid)
+        self.hpc_owner3 = HpcUserFactory(user=user_owner3, primary_group_gid=self.hpc_group3.gid)
 
         self.hpc_group1.owner = self.hpc_owner1
         self.hpc_group1.save()

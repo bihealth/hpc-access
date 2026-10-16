@@ -94,13 +94,19 @@ class TestRulesBase(TestCase):
         self.hpc_project = HpcProjectFactory(group=self.hpc_group)
 
         # Create HPC users
-        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group=self.hpc_group)
-        self.hpc_delegate = HpcUserFactory(user=self.user_delegate, primary_group=self.hpc_group)
-        self.hpc_member = HpcUserFactory(user=self.user_member, primary_group=self.hpc_group)
-        self.hpc_member2 = HpcUserFactory(user=self.user_member2, primary_group=self.hpc_group)
+        self.hpc_owner = HpcUserFactory(user=self.user_owner, primary_group_gid=self.hpc_group.gid)
+        self.hpc_delegate = HpcUserFactory(
+            user=self.user_delegate, primary_group_gid=self.hpc_group.gid
+        )
+        self.hpc_member = HpcUserFactory(
+            user=self.user_member, primary_group_gid=self.hpc_group.gid
+        )
+        self.hpc_member2 = HpcUserFactory(
+            user=self.user_member2, primary_group_gid=self.hpc_group.gid
+        )
         self.hpc_member_other_group = HpcUserFactory(
             user=self.user_member_other_group,
-            primary_group=self.hpc_other_group,
+            primary_group_gid=self.hpc_other_group.gid,
         )
 
         # Set group owner and delegate
