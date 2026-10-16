@@ -8,6 +8,7 @@ from django.contrib import auth
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from adminsec.management.commands.anonymize import anonymize_user
 from adminsec.models import HpcaccessState
 from usersec.models import OBJECT_STATUS_DELETED, HpcGroup, HpcProject, HpcUser
 
@@ -23,16 +24,7 @@ SUFFIX_MAPPING = {
 class Command(BaseCommand):
     help = "Import HPC objects from a json file."
 
-    def add_arguments(self, parser):
-        parser.add_argument("json", type=str)
-        parser.add_argument(
-            "-f",
-            "--force",
-            action="store_true",
-            help="Write the changes immediately, without asking for confirmation",
-        )
-
-    def read_hpcaccess_state(self, cluster_state):
+    def _read_hpcaccess_state(self, cluster_state):
         """Read and normalize the json file from hpc-access-cli"""
         with open(cluster_state, "r") as jsonfile:
             hpc_state = HpcaccessState(**json.load(jsonfile))
@@ -46,15 +38,15 @@ class Command(BaseCommand):
             data["phone"] = data["phone_number"]
         return hpc_state
 
-    def users_update_plan(self, cli_import):
-        # NOTE: hpc-access user accounts are not removed to avoid wiping out system
-        # accounts. GDPR policy for regular user accounts needed?
+    def _users_update_plan(self, cli_import):
         usernames = set([data["login_name"] for data in cli_import.hpc_users.values()])
         all = {obj.username: obj for obj in User.objects.filter(username__in=usernames)}
         update = {
             "added": [],  # new objects
             "changed": [],  # tuple of (old, fields) objects
-            "removed": User.objects.none(),  # old objects queryset
+            "removed": list(
+                User.objects.exclude(is_staff=True).exclude(is_active=False).exclude(username__in=usernames).annotate(hpcuser_count=Count("hpcuser_user")).exclude(hpcuser_count=0)  # old objects, avoid removing system accounts which are not associated with any HpcUser (e.g. hpc-worker)
+            ),
             "count": User.objects.count(),
         }
         for _uuid, data in cli_import.hpc_users.items():
@@ -69,22 +61,32 @@ class Command(BaseCommand):
                     is_staff=False,
                     is_superuser=False,
                     is_hpcadmin=False,
-                    consented_to_terms=False,  # XXX: this info is not in cluster-state.json
+                    consented_to_terms=False,  # XXX: this info is not in the imported file: what should the default be?
                     phone=data["phone"],
                     username=data["login_name"],
                 )
                 all[new.username] = new
                 update["added"].append(new)
                 continue
+            if old.is_active and data["status"] == OBJECT_STATUS_DELETED:
+                # Anonymize the object (changes are ignored)
+                update["removed"].append(old)
+                continue
             changes = {}
             for field in ("first_name", "last_name", "name", "display_name", "email", "phone"):
                 if (new_field := data[field]) != getattr(old, field):
                     changes[field] = new_field
+            if not old.is_active and (data["status"] != OBJECT_STATUS_DELETED or changes):
+                self.stderr.write(
+                    f'Warning: user "{old.username}" is not active, but its data changed. '
+                    f'Imported data for "{old.username}" will be ignored.'
+                )
+                continue
             if changes:
                 update["changed"].append((old, changes))
         return all, update
 
-    def hpc_users_update_plan(self, cli_import, users):
+    def _hpc_users_update_plan(self, cli_import, users):
         usernames = set([data["username"] for data in cli_import.hpc_users.values()])
         all = {obj.username: obj for obj in HpcUser.objects.filter(username__in=usernames)}
         update = {
@@ -177,7 +179,7 @@ class Command(BaseCommand):
                 update["changed"].append((old, changes))
         return all, update
 
-    def hpc_groups_update_plan(self, cli_import, hpc_users):
+    def _hpc_groups_update_plan(self, cli_import, hpc_users):
         gids = set([data["gid"] for data in cli_import.hpc_groups.values()])
         all = {obj.gid: obj for obj in HpcGroup.objects.filter(gid__in=gids)}
         update = {
@@ -244,7 +246,7 @@ class Command(BaseCommand):
                 update["changed"].append((old, changes))
         return all, update
 
-    def hpc_projects_update_plan(self, cli_import, hpc_users, hpc_groups):
+    def _hpc_projects_update_plan(self, cli_import, hpc_users, hpc_groups):
         names = set([data["name"] for data in cli_import.hpc_projects.values()])
         all = {obj.name: obj for obj in HpcProject.objects.filter(name__in=names)}
         update = {
@@ -313,14 +315,23 @@ class Command(BaseCommand):
                 update["changed"].append((old, changes, members))
         return all, update
 
+    def add_arguments(self, parser):
+        parser.add_argument("json", type=str)
+        parser.add_argument(
+            "-f",
+            "--force",
+            action="store_true",
+            help="Write the changes immediately, without asking for confirmation",
+        )
+
     def handle(self, *args, **options):
         self.worker_user = User.objects.get(username="hpc-worker")
         with transaction.atomic():
-            cli_import = self.read_hpcaccess_state(options["json"])
-            users, users_update = self.users_update_plan(cli_import)
-            hpc_users, hpc_users_update = self.hpc_users_update_plan(cli_import, users)
-            hpc_groups, hpc_groups_update = self.hpc_groups_update_plan(cli_import, hpc_users)
-            hpc_projects, hpc_projects_update = self.hpc_projects_update_plan(
+            cli_import = self._read_hpcaccess_state(options["json"])
+            users, users_update = self._users_update_plan(cli_import)
+            hpc_users, hpc_users_update = self._hpc_users_update_plan(cli_import, users)
+            hpc_groups, hpc_groups_update = self._hpc_groups_update_plan(cli_import, hpc_users)
+            hpc_projects, hpc_projects_update = self._hpc_projects_update_plan(
                 cli_import, hpc_users, hpc_groups
             )
 
@@ -456,7 +467,8 @@ class Command(BaseCommand):
                     old.soft_delete()
                 for old in hpc_users_update["removed"]:
                     old.soft_delete()
-                users_update["removed"].delete()
+                for old in users_udpate["removed"]:
+                    anonymize_user(old)
 
                 self.stdout.write("Done.")
 
