@@ -1,5 +1,11 @@
-"""Tests for the ``import`` management command"""
+"""Database tests for the ``import`` management command.
 
+Run with ``./manage.py test -v2 adminsec.tests.test_import_command`` (adjust
+the module path to where this file is installed). Requires the project's
+normal test database, including django-pghistory triggers.
+"""
+
+import importlib
 import json
 import re
 import tempfile
@@ -23,6 +29,7 @@ from usersec.models import (
 User = get_user_model()
 
 COMMAND = "import"
+COMMAND_MODULE = importlib.import_module("adminsec.management.commands.import")
 NS = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
 
@@ -101,7 +108,6 @@ class State:
         return str(uuid.uuid5(NS, self.salt + key)) if key else None
 
     def to_dict(self):
-        pg_keys = {**{k: k for k in self.groups}, **{k: k for k in self.projects}}
         users = {}
         for key, d in self.users.items():
             d = dict(d)
@@ -120,7 +126,6 @@ class State:
                 members=[self._id(m) for m in d["members"]],
             )
             projects[self._id(key)] = d
-        assert not (set(pg_keys) - set(self.groups) - set(self.projects))
         return {"hpc_users": users, "hpc_groups": groups, "hpc_projects": projects}
 
 
@@ -159,24 +164,40 @@ class ImportCommandTestBase(TestCase):
         super().setUp()
         self.worker, _ = User.objects.get_or_create(username="hpc-worker")
 
-    def run_import(self, state, *args, force=True):
-        """Run the command on ``state`` (a State or dict); return (stdout, stderr)."""
+    def run_import(self, state, *args, force=False, answer="y", stdout=None, stderr=None):
+        """Confirm ordinary imports; use force explicitly when testing its guardrail.
+
+        Caller-supplied streams remain available when the command raises.
+        """
         doc = state.to_dict() if isinstance(state, State) else state
-        out, err = StringIO(), StringIO()
+        out = stdout if stdout is not None else StringIO()
+        err = stderr if stderr is not None else StringIO()
         with tempfile.NamedTemporaryFile("w", suffix=".json") as fp:
             json.dump(doc, fp)
             fp.flush()
             extra = ["--force"] if force else []
-            call_command(COMMAND, fp.name, *extra, *args, stdout=out, stderr=err)
+            with mock.patch("builtins.input", return_value=answer) as prompt:
+                try:
+                    call_command(COMMAND, fp.name, *extra, *args, stdout=out, stderr=err)
+                finally:
+                    if force:
+                        prompt.assert_not_called()
+            if not force:
+                prompt.assert_called_once()
         return out.getvalue(), err.getvalue()
 
     def db_snapshot(self):
-        return (
-            sorted(User.objects.values_list("username", "email")),
-            sorted(HpcUser.objects.values_list("pk", "username")),
-            sorted(HpcGroup.objects.values_list("pk", "gid")),
-            sorted(HpcProject.objects.values_list("pk", "name")),
-        )
+        """Capture all concrete fields and memberships, including soft deletes."""
+        return {
+            "rows": {
+                model._meta.label: list(model.objects.order_by("pk").values())
+                for model in (User, HpcUser, HpcGroup, HpcProject)
+            },
+            "members": {
+                project.pk: list(project.members.order_by("pk").values_list("pk", flat=True))
+                for project in HpcProject.objects.order_by("pk")
+            },
+        }
 
 
 class TestInitialImport(ImportCommandTestBase):
@@ -205,10 +226,10 @@ class TestInitialImport(ImportCommandTestBase):
         self.assertEqual(carol.user.username, "carol@MDC-BERLIN")
         self.assertEqual(alice.creator, self.worker)
 
-        # Circular references: user -> primary group -> owner/delegate -> user
-        self.assertEqual(alice.primary_group, g1)
-        self.assertEqual(bob.primary_group, g1)
-        self.assertIsNone(carol.primary_group)
+        # Primary groups are stored as GIDs, independent of group/project UUIDs.
+        self.assertEqual(alice.primary_group_gid, g1.gid)
+        self.assertEqual(bob.primary_group_gid, g1.gid)
+        self.assertIsNone(carol.primary_group_gid)
         self.assertEqual(g1.owner, alice)
         self.assertEqual(g1.delegate, bob)
         self.assertIsNone(HpcGroup.objects.get(gid=1002).delegate)
@@ -240,13 +261,12 @@ class TestInitialImport(ImportCommandTestBase):
         self.assertEqual((u.first_name, u.last_name), ("Carol", ""))
         self.assertEqual((u.name, u.display_name), ("Carol X", ""))
 
-    def test_primary_group_pointing_to_project_is_reported_not_assigned(self):
+    def test_primary_group_can_point_to_project(self):
         s = baseline()
         s.users["carol"]["primary_group"] = "p1"
         _, err = self.run_import(s)
-        self.assertIsNone(HpcUser.objects.get(username="carol_m").primary_group)
-        self.assertIn("Cannot assign project", err)
-        self.assertIn("carol_m", err)
+        self.assertEqual(HpcUser.objects.get(username="carol_m").primary_group_gid, 2001)
+        self.assertEqual(err, "")
 
 
 class TestIdempotencyAndKeys(ImportCommandTestBase):
@@ -276,6 +296,23 @@ class TestIdempotencyAndKeys(ImportCommandTestBase):
         self.assertEqual(HpcGroup.objects.get(gid=1001).owner.username, "alice_c")
         self.assertEqual(HpcProject.objects.get(name="proj1").members.count(), 2)
 
+    def test_member_order_does_not_count_as_a_change(self):
+        self.run_import(baseline())
+        s = baseline()
+        s.projects["p1"]["members"].reverse()
+        out, _ = self.run_import(s, force=True)
+        self.assertEqual(summary(out)["HpcProject"]["changed"], 0)
+
+    def test_existing_account_without_hpc_user_is_reused(self):
+        account = User.objects.create(
+            username="alice@CHARITE", email="old@example.com", consented_to_terms=True
+        )
+        self.run_import(baseline())
+        account.refresh_from_db()
+        self.assertEqual(account.email, "alice@example.com")
+        self.assertTrue(account.consented_to_terms)
+        self.assertEqual(HpcUser.objects.get(username="alice_c").user_id, account.pk)
+
 
 class TestUpdates(ImportCommandTestBase):
     def setUp(self):
@@ -293,6 +330,7 @@ class TestUpdates(ImportCommandTestBase):
             login_shell="/usr/bin/zsh",
             home_directory="/new/home",
             resources_requested={"tier1_home": 7},
+            resources_used={"tier1_home": 3},
             expiration="2001-01-01T00:00:00+00:00",
         )
         out, _ = self.run_import(s)
@@ -304,38 +342,84 @@ class TestUpdates(ImportCommandTestBase):
             (9999, "EXPIRED", "/usr/bin/zsh", "/new/home"),
         )
         self.assertEqual(bob.resources_requested, {"tier1_home": 7})
+        self.assertEqual(bob.resources_used, {"tier1_home": 3})
         self.assertEqual(bob.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(bob.events.count(), events_before)
         self.assertTrue(User.objects.get(username="bob@CHARITE").consented_to_terms)
 
     def test_django_user_fields_updated(self):
         s = baseline()
-        s.users["alice"].update(email="new@example.com", phone_number="123", full_name="A. T.")
+        s.users["alice"].update(
+            email="new@example.com",
+            phone_number="123",
+            full_name="A. T.",
+            first_name=" Alicia ",
+            last_name=" Test ",
+            display_name=" A ",
+        )
         out, _ = self.run_import(s)
         self.assertEqual(summary(out)["User"]["changed"], 1)
         u = User.objects.get(username="alice@CHARITE")
         self.assertEqual((u.email, u.phone, u.name), ("new@example.com", "123", "A. T."))
+        self.assertEqual((u.first_name, u.last_name, u.display_name), ("Alicia", "Test", "A"))
+
+    def test_inactive_account_is_updated_with_warning_without_reactivation(self):
+        User.objects.filter(username="bob@CHARITE").update(is_active=False)
+        s = baseline()
+        s.users["bob"]["email"] = "new@example.com"
+        _, err = self.run_import(s)
+        bob = User.objects.get(username="bob@CHARITE")
+        self.assertFalse(bob.is_active)
+        self.assertEqual(bob.email, "new@example.com")
+        self.assertIn('Warning: user "bob@CHARITE" is not active', err)
+
+    def test_primary_group_moves_to_project_and_tracks_its_gid(self):
+        s = baseline()
+        s.users["dave"]["primary_group"] = "p1"
+        self.run_import(s)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 2001)
+        s.projects["p1"]["gid"] = 2999
+        self.run_import(s)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 2999)
+        self.assertEqual(HpcProject.objects.get(name="proj1").gid, 2999)
+
+    def test_missing_primary_group_reports_and_skips_hpc_user_update(self):
+        s = baseline()
+        s.users["dave"].update(primary_group="missing", uid=9999)
+        before = HpcUser.objects.get(username="dave_c")
+        out, err = self.run_import(s)
+        dave = HpcUser.objects.get(username="dave_c")
+        self.assertEqual((dave.uid, dave.primary_group_gid), (before.uid, before.primary_group_gid))
+        self.assertEqual(summary(out)["HpcUser"]["changed"], 0)
+        self.assertIn(f"Primary group {s._id('missing')} not found for user dave_c", err)
 
     def test_primary_group_moves_between_groups(self):
         s = baseline()
         s.users["dave"]["primary_group"] = "g1"
         self.run_import(s)
-        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1001)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 1001)
 
     def test_primary_group_set_and_cleared(self):
         s = baseline()
         s.users["carol"]["primary_group"] = "g1"  # alumna joins a group
         s.users["bob"]["primary_group"] = None  # member becomes alumnus
         self.run_import(s)
-        self.assertEqual(HpcUser.objects.get(username="carol_m").primary_group.gid, 1001)
-        self.assertIsNone(HpcUser.objects.get(username="bob_c").primary_group)
+        self.assertEqual(HpcUser.objects.get(username="carol_m").primary_group_gid, 1001)
+        self.assertIsNone(HpcUser.objects.get(username="bob_c").primary_group_gid)
 
     def test_group_fields_owner_and_delegate_updated(self):
         HpcGroup.objects.filter(gid=1001).update(expiration="2099-12-31T00:00:00Z")
         events_before = HpcGroup.objects.get(gid=1001).events.count()
         s = baseline()
         s.groups["g1"].update(
-            owner="bob", delegate=None, description="new", status="EXPIRED", name="renamed"
+            owner="bob",
+            delegate=None,
+            description="new",
+            status="EXPIRED",
+            name="renamed",
+            folders={"tier1_work": "/new/group"},
+            resources_requested={"tier1_work": 20},
+            resources_used={"tier1_work": 4},
         )
         out, _ = self.run_import(s)
 
@@ -344,6 +428,9 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(g1.owner.username, "bob_c")
         self.assertIsNone(g1.delegate)
         self.assertEqual((g1.description, g1.status, g1.name), ("new", "EXPIRED", "renamed"))
+        self.assertEqual(g1.folders, {"tier1_work": "/new/group"})
+        self.assertEqual(g1.resources_requested, {"tier1_work": 20})
+        self.assertEqual(g1.resources_used, {"tier1_work": 4})
         self.assertEqual(g1.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(g1.events.count(), events_before)
 
@@ -354,10 +441,19 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(HpcGroup.objects.get(gid=1002).delegate.username, "carol_m")
 
     def test_project_members_delegate_group_and_fields_updated(self):
+        HpcProject.objects.filter(name="proj1").update(expiration="2099-12-31T00:00:00Z")
         events_before = HpcProject.objects.get(name="proj1").events.count()
         s = baseline()
         s.projects["p1"].update(
-            members=["bob", "carol"], delegate=None, group="g2", status="EXPIRED"
+            members=["bob", "carol"],
+            delegate=None,
+            group="g2",
+            status="EXPIRED",
+            gid=2999,
+            folders={"tier1_work": "/new/project"},
+            resources_requested={"tier1_work": 12},
+            resources_used={"tier1_work": 3},
+            expiration="2001-01-01T00:00:00+00:00",
         )
         out, _ = self.run_import(s)
 
@@ -366,6 +462,11 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual({m.username for m in p1.members.all()}, {"bob_c", "carol_m"})
         self.assertIsNone(p1.delegate)
         self.assertEqual((p1.group.gid, p1.status), (1002, "EXPIRED"))
+        self.assertEqual(p1.gid, 2999)
+        self.assertEqual(p1.folders, {"tier1_work": "/new/project"})
+        self.assertEqual(p1.resources_requested, {"tier1_work": 12})
+        self.assertEqual(p1.resources_used, {"tier1_work": 3})
+        self.assertEqual(p1.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(p1.events.count(), events_before)
 
     def test_project_with_only_membership_change_is_detected(self):
@@ -375,6 +476,38 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(summary(out)["HpcProject"]["changed"], 1)
         members = HpcProject.objects.get(name="proj1").members.all()
         self.assertEqual([m.username for m in members], ["alice_c"])
+
+    def test_project_members_can_be_cleared(self):
+        s = baseline()
+        s.projects["p1"]["members"] = []
+        out, _ = self.run_import(s)
+        self.assertEqual(summary(out)["HpcProject"]["changed"], 1)
+        self.assertFalse(HpcProject.objects.get(name="proj1").members.exists())
+
+    def test_delegates_can_be_replaced_and_project_delegate_added(self):
+        s = baseline()
+        s.groups["g1"]["delegate"] = "carol"
+        for delegate in ("carol", None, "alice"):
+            with self.subTest(delegate=delegate):
+                s.projects["p1"]["delegate"] = delegate
+                self.run_import(s)
+                self.assertEqual(HpcGroup.objects.get(gid=1001).delegate.username, "carol_m")
+                project_delegate = HpcProject.objects.get(name="proj1").delegate
+                self.assertEqual(
+                    project_delegate.username if project_delegate else None,
+                    s.users[delegate]["username"] if delegate else None,
+                )
+
+    def test_expiration_only_changes_are_ignored(self):
+        s = baseline()
+        for collection in (s.users, s.groups, s.projects):
+            for data in collection.values():
+                data["expiration"] = "2001-01-01T00:00:00+00:00"
+        before = self.db_snapshot()
+        out, _ = self.run_import(s, force=True)
+        self.assertEqual(self.db_snapshot(), before)
+        for counts in summary(out).values():
+            self.assertEqual(counts["changed"], 0)
 
     def test_new_objects_added_next_to_existing_ones(self):
         s = baseline()
@@ -387,9 +520,26 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual([counts[k]["added"] for k in ("User", "HpcUser", "HpcGroup")], [1] * 3)
         self.assertEqual(counts["HpcProject"]["added"], 1)
         erin = HpcUser.objects.get(username="erin_m")
-        self.assertEqual(erin.primary_group.owner, erin)
+        self.assertEqual(erin.primary_group_gid, 1003)
+        self.assertEqual(HpcGroup.objects.get(gid=1003).owner, erin)
         self.assertEqual(HpcGroup.objects.get(gid=1003).delegate.username, "alice_c")
         self.assertEqual(HpcProject.objects.get(name="proj2").members.count(), 2)
+
+    def test_existing_objects_can_reference_new_users_and_groups(self):
+        s = baseline()
+        s.user("erin", "erin_m", primary_group="g3")
+        s.group("g3", gid=1003, owner="erin")
+        s.groups["g1"].update(owner="erin", delegate="erin")
+        s.users["dave"]["primary_group"] = "g3"
+        s.projects["p1"].update(group="g3", delegate="erin", members=["erin"])
+        self.run_import(s)
+        erin = HpcUser.objects.get(username="erin_m")
+        g1 = HpcGroup.objects.get(gid=1001)
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertEqual((g1.owner, g1.delegate, p1.delegate), (erin, erin, erin))
+        self.assertEqual(p1.group.gid, 1003)
+        self.assertEqual(list(p1.members.all()), [erin])
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 1003)
 
 
 class TestRemovals(ImportCommandTestBase):
@@ -424,7 +574,7 @@ class TestRemovals(ImportCommandTestBase):
         self.assertEqual(HpcGroup.objects.get(gid=1999).status, OBJECT_STATUS_ACTIVE)
         self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_DELETED)
         self.assertEqual(HpcProject.objects.get(name="proj1-renamed").status, OBJECT_STATUS_ACTIVE)
-        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1999)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 1999)
 
     def test_removed_group_keeps_users_that_moved_elsewhere(self):
         """dave leaves g2, which disappears; dave himself must survive."""
@@ -433,29 +583,31 @@ class TestRemovals(ImportCommandTestBase):
         del s.groups["g2"]
         self.run_import(s)
         self.assertEqual(HpcGroup.objects.get(gid=1002).status, OBJECT_STATUS_DELETED)
-        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group.gid, 1001)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").primary_group_gid, 1001)
 
-    def test_removed_hpc_user_is_marked_deleted_but_django_user_is_kept(self):
+    def test_removed_hpc_user_is_soft_deleted_and_account_is_anonymized(self):
         s = baseline()
         del s.users["carol"]
-        out, _ = self.run_import(s)
+        carol_pk = User.objects.get(username="carol@MDC-BERLIN").pk
+        with mock.patch.object(
+            COMMAND_MODULE, "anonymize_user", wraps=COMMAND_MODULE.anonymize_user
+        ) as anonymize:
+            out, _ = self.run_import(s)
+        anonymize.assert_called_once()
+        self.assertEqual(anonymize.call_args.args[0].pk, carol_pk)
+        self.assertEqual(summary(out)["User"]["removed"], 1)
         self.assertEqual(summary(out)["HpcUser"]["removed"], 1)
         self.assertEqual(HpcUser.objects.get(username="carol_m").status, OBJECT_STATUS_DELETED)
-        self.assertTrue(User.objects.filter(username="carol@MDC-BERLIN").exists())
 
     def test_removed_group_does_not_take_users_down_when_json_primary_group_is_a_project(self):
-        """Regression: HpcUser.primary_group is on_delete=CASCADE.
-
-        If the json says a user's primary group is a *project* (which cannot
-        be represented), the importer keeps the old FK; the old group is only
-        soft-deleted, so the user must neither disappear nor be marked deleted.
-        """
+        """Moving a user to a project's GID survives deletion of their old group."""
         s = baseline()
         s.users["dave"]["primary_group"] = "p1"
         del s.groups["g2"]
         self.run_import(s)
         dave = HpcUser.objects.get(username="dave_c")
         self.assertEqual(dave.status, OBJECT_STATUS_ACTIVE)
+        self.assertEqual(dave.primary_group_gid, 2001)
         self.assertEqual(HpcGroup.objects.get(gid=1002).status, OBJECT_STATUS_DELETED)
 
     def test_replacing_a_group_owner_who_is_removed_keeps_group_and_projects(self):
@@ -475,28 +627,89 @@ class TestRemovals(ImportCommandTestBase):
         self.assertEqual(HpcGroup.objects.get(gid=1001).status, OBJECT_STATUS_ACTIVE)
         self.assertEqual(HpcProject.objects.get(name="proj1").status, OBJECT_STATUS_ACTIVE)
 
+    def test_staff_inactive_and_non_hpc_accounts_are_not_anonymized(self):
+        User.objects.filter(username="carol@MDC-BERLIN").update(is_staff=True)
+        User.objects.filter(username="dave@CHARITE").update(is_active=False)
+        standalone = User.objects.create(username="standalone@CHARITE")
+        s = baseline()
+        del s.users["carol"]
+        del s.users["dave"]
+        del s.groups["g2"]
+        with mock.patch.object(COMMAND_MODULE, "anonymize_user") as anonymize:
+            out, _ = self.run_import(s)
+        anonymize.assert_not_called()
+        self.assertEqual(summary(out)["User"]["removed"], 0)
+        self.assertTrue(User.objects.filter(pk=standalone.pk).exists())
+        self.assertEqual(HpcUser.objects.get(username="carol_m").status, OBJECT_STATUS_DELETED)
+        self.assertEqual(HpcUser.objects.get(username="dave_c").status, OBJECT_STATUS_DELETED)
+
+    def test_already_deleted_objects_are_not_removed_again(self):
+        s = baseline()
+        del s.projects["p1"]
+        del s.groups["g2"]
+        del s.users["dave"]
+        self.run_import(s)
+        before = self.db_snapshot()
+        with mock.patch.object(COMMAND_MODULE, "anonymize_user") as anonymize:
+            out, _ = self.run_import(s, force=True)
+        anonymize.assert_not_called()
+        self.assertEqual(self.db_snapshot(), before)
+        counts = summary(out)
+        for model in ("HpcUser", "HpcGroup", "HpcProject"):
+            self.assertEqual(counts[model]["removed"], 0)
+        self.assertEqual(counts["HpcUser"]["initial"], 3)
+        self.assertEqual(counts["HpcGroup"]["initial"], 1)
+        self.assertEqual(counts["HpcProject"]["initial"], 0)
+
+    def test_deleted_group_and_project_are_reused_when_they_reappear(self):
+        group = HpcGroup.objects.get(gid=1002)
+        project = HpcProject.objects.get(name="proj1")
+        s = baseline()
+        s.users["dave"]["primary_group"] = None
+        del s.groups["g2"]
+        del s.projects["p1"]
+        self.run_import(s)
+        out, _ = self.run_import(baseline("fresh-export"))
+        for model, obj in ((HpcGroup, group), (HpcProject, project)):
+            obj.refresh_from_db()
+            self.assertEqual(obj.status, OBJECT_STATUS_ACTIVE)
+            self.assertEqual(summary(out)[model.__name__]["added"], 0)
+            self.assertEqual(summary(out)[model.__name__]["changed"], 1)
+        self.assertEqual(HpcProject.objects.get(name="proj1").members.count(), 2)
+
 
 class TestCommandBehaviour(ImportCommandTestBase):
     def test_confirmation_declined_leaves_database_untouched(self):
-        with mock.patch("builtins.input", return_value="n"):
-            out, _ = self.run_import(baseline(), force=False)
+        before = self.db_snapshot()
+        out, _ = self.run_import(baseline(), answer="n")
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertIn("The database was not changed", out)
         self.assertFalse(HpcUser.objects.exists())
         self.assertFalse(User.objects.filter(username="alice@CHARITE").exists())
 
     def test_confirmation_accepted_applies_changes(self):
-        for answer in ("", "y"):
-            with self.subTest(answer=answer), mock.patch("builtins.input", return_value=answer):
-                HpcProject.objects.all().delete()
-                HpcGroup.objects.all().delete()
-                HpcUser.objects.all().delete()
-                self.run_import(baseline(), force=False)
+        for index, answer in enumerate(("", "y", "Y")):
+            with self.subTest(answer=answer):
+                s = baseline()
+                s.users["alice"]["email"] = f"alice{index}@example.com"
+                self.run_import(s, answer=answer)
                 self.assertEqual(HpcUser.objects.count(), 4)
+                self.assertEqual(
+                    User.objects.get(username="alice@CHARITE").email,
+                    f"alice{index}@example.com",
+                )
 
     def test_report_is_printed_before_writing(self):
-        out, _ = self.run_import(baseline())
+        out = StringIO()
+        with mock.patch.object(
+            User, "save", autospec=True, side_effect=RuntimeError("stop before saving")
+        ):
+            with self.assertRaisesMessage(RuntimeError, "stop before saving"):
+                self.run_import(baseline(), stdout=out)
+        out = out.getvalue()
         counts = summary(out)
         self.assertEqual(counts["HpcUser"], {"initial": 0, "added": 4, "removed": 0, "changed": 0})
-        self.assertIn("Done.", out)
+        self.assertNotIn("Done.", out)
 
     def test_missing_worker_user_fails_cleanly(self):
         User.objects.filter(username="hpc-worker").delete()
@@ -519,8 +732,98 @@ class TestCommandBehaviour(ImportCommandTestBase):
         before = self.db_snapshot()
         s = baseline()
         s.users["erin"] = dict(s.users["alice"], username="erin_c", uid=7777, primary_group=None)
+        s.users["bob"]["email"] = "changed@example.com"
+        del s.users["carol"]  # exercise anonymization and soft deletion before failure
         s.projects["p1"]["status"] = "EXPIRED"  # forces the project-update step
-        with mock.patch.object(HpcProject, "save", side_effect=RuntimeError("boom")):
+        error = RuntimeError("boom")
+        err = StringIO()
+        with mock.patch.object(HpcProject, "save", side_effect=error):
             with self.assertRaisesMessage(RuntimeError, "boom"):
-                self.run_import(s)
+                try:
+                    self.run_import(s, stderr=err)
+                except RuntimeError as exc:
+                    self.assertIs(exc, error)
+                    raise
         self.assertEqual(self.db_snapshot(), before)  # nothing from the failed run persisted
+        self.assertIn("Transaction will be aborted due to RuntimeError: boom", err.getvalue())
+
+    def test_failure_setting_project_members_rolls_back_field_changes(self):
+        self.run_import(baseline())
+        before = self.db_snapshot()
+        s = baseline()
+        s.users["bob"]["email"] = "changed@example.com"
+        s.projects["p1"].update(status="EXPIRED", members=["carol"])
+        manager_type = type(HpcProject.objects.get(name="proj1").members)
+        with mock.patch.object(manager_type, "set", side_effect=RuntimeError("members failed")):
+            with self.assertRaisesMessage(RuntimeError, "members failed"):
+                self.run_import(s)
+        self.assertEqual(self.db_snapshot(), before)
+
+
+class TestForceGuardrail(ImportCommandTestBase):
+    def seeded_state(self, size):
+        """Seed N accounts: one account-only change contributes 100/N percent."""
+        s = baseline()
+        for index in range(4, size):
+            s.user(f"extra{index}", f"extra{index}_c")
+        self.run_import(s)
+        return s
+
+    def test_force_allows_initial_import_with_no_existing_objects(self):
+        out, _ = self.run_import(baseline(), force=True)
+        self.assertEqual(HpcUser.objects.count(), 4)
+        self.assertIn("0% of the database has changed.", out)
+        self.assertIn("Done.", out)
+
+    def test_force_allows_changes_below_threshold(self):
+        s = self.seeded_state(6)
+        s.users["bob"]["email"] = "new@example.com"
+        out, err = self.run_import(s, force=True)
+        self.assertEqual(User.objects.get(username="bob@CHARITE").email, "new@example.com")
+        self.assertIn("17% of the database has changed.", out)
+        self.assertEqual(err, "")
+
+    def test_force_rejects_changes_at_and_above_threshold(self):
+        s = self.seeded_state(4)
+        for size, percent in ((4, 25), (5, 20)):
+            with self.subTest(percent=percent):
+                if size == 5:
+                    s.user("extra4", "extra4_c")
+                    self.run_import(s)
+                s.users["bob"]["email"] = f"changed{size}@example.com"
+                before = self.db_snapshot()
+                out, err = StringIO(), StringIO()
+                with self.assertRaisesMessage(RuntimeError, "Too many changes"):
+                    self.run_import(s, force=True, stdout=out, stderr=err)
+                self.assertEqual(self.db_snapshot(), before)
+                self.assertIn(f"{percent}% of the database has changed.", out.getvalue())
+                self.assertIn("--force cannot be used", err.getvalue())
+                self.assertNotIn("Applying changes", out.getvalue())
+
+    def test_force_sums_percentages_across_model_types(self):
+        s = self.seeded_state(6)
+        s.users["bob"].update(email="new@example.com", uid=9999)
+        before = self.db_snapshot()
+        out = StringIO()
+        with self.assertRaisesMessage(RuntimeError, "Too many changes"):
+            self.run_import(s, force=True, stdout=out)
+        # Each of User and HpcUser changes by 1/6; their percentages are summed.
+        self.assertIn("33% of the database has changed.", out.getvalue())
+        self.assertEqual(self.db_snapshot(), before)
+
+    def test_force_guardrail_counts_removals_and_additions(self):
+        self.seeded_state(6)
+        for operation in ("add", "remove"):
+            with self.subTest(operation=operation):
+                candidate = baseline()
+                candidate.user("extra4", "extra4_c").user("extra5", "extra5_c")
+                if operation == "add":
+                    candidate.user("erin", "erin_m")
+                else:
+                    del candidate.users["carol"]
+                before = self.db_snapshot()
+                out = StringIO()
+                with self.assertRaisesMessage(RuntimeError, "Too many changes"):
+                    self.run_import(candidate, force=True, stdout=out)
+                self.assertIn("33% of the database has changed.", out.getvalue())
+                self.assertEqual(self.db_snapshot(), before)

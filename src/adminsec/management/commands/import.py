@@ -7,6 +7,7 @@ from datetime import datetime
 from django.contrib import auth
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Count
 
 from adminsec.management.commands.anonymize import anonymize_user
 from adminsec.models import HpcaccessState
@@ -39,15 +40,23 @@ class Command(BaseCommand):
         return hpc_state
 
     def _users_update_plan(self, cli_import):
-        usernames = set([data["login_name"] for data in cli_import.hpc_users.values()])
+        usernames = {data["login_name"] for data in cli_import.hpc_users.values()}
         all = {obj.username: obj for obj in User.objects.filter(username__in=usernames)}
+        existing = (
+            User.objects.exclude(is_active=False)
+            .exclude(is_staff=True)
+            .annotate(hpcuser_count=Count("hpcuser_user"))
+            .exclude(hpcuser_count=0)
+        )
         update = {
-            "added": [],  # new objects
-            "changed": [],  # tuple of (old, fields) objects
-            "removed": list(
-                User.objects.exclude(is_staff=True).exclude(is_active=False).exclude(username__in=usernames).annotate(hpcuser_count=Count("hpcuser_user")).exclude(hpcuser_count=0)  # old objects, avoid removing system accounts which are not associated with any HpcUser (e.g. hpc-worker)
-            ),
-            "count": User.objects.count(),
+            # new objects
+            "added": [],
+            # tuple of (old, updated_fields) objects
+            "changed": [],
+            # queryset of old objects to be removed
+            "removed": existing.exclude(username__in=usernames),
+            # count of existing and active objects
+            "count": existing.count(),
         }
         for _uuid, data in cli_import.hpc_users.items():
             old = all.get(data["login_name"])
@@ -61,48 +70,58 @@ class Command(BaseCommand):
                     is_staff=False,
                     is_superuser=False,
                     is_hpcadmin=False,
-                    consented_to_terms=False,  # XXX: this info is not in the imported file: what should the default be?
+                    # XXX: this info is not in the imported file: what should the default be?
+                    consented_to_terms=False,
                     phone=data["phone"],
                     username=data["login_name"],
                 )
                 all[new.username] = new
                 update["added"].append(new)
                 continue
-            if old.is_active and data["status"] == OBJECT_STATUS_DELETED:
-                # Anonymize the object (changes are ignored)
-                update["removed"].append(old)
-                continue
             changes = {}
             for field in ("first_name", "last_name", "name", "display_name", "email", "phone"):
                 if (new_field := data[field]) != getattr(old, field):
                     changes[field] = new_field
-            if not old.is_active and (data["status"] != OBJECT_STATUS_DELETED or changes):
-                self.stderr.write(
-                    f'Warning: user "{old.username}" is not active, but its data changed. '
-                    f'Imported data for "{old.username}" will be ignored.'
-                )
-                continue
             if changes:
+                if not old.is_active:
+                    self.stderr.write(
+                        f'Warning: user "{old.username}" is not active, but its data have changed.'
+                    )
                 update["changed"].append((old, changes))
         return all, update
 
     def _hpc_users_update_plan(self, cli_import, users):
-        usernames = set([data["username"] for data in cli_import.hpc_users.values()])
+        usernames = {data["username"] for data in cli_import.hpc_users.values()}
         all = {obj.username: obj for obj in HpcUser.objects.filter(username__in=usernames)}
+        existing = HpcUser.objects.exclude(status=OBJECT_STATUS_DELETED)
         update = {
-            "added": [],  # new objects
-            "changed": [],  # tuple of (old, changes) objects
-            "removed": (
-                HpcUser.objects.exclude(username__in=usernames).exclude(
-                    status=OBJECT_STATUS_DELETED
-                )
-            ),  # old objects queryset
-            "count": HpcUser.objects.count(),
+            "added": [],
+            "changed": [],
+            "removed": existing.exclude(username__in=usernames),
+            "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_users.items():
-            ldap_user, suffix = data["username"].split("_")
-            login_name = f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
-            fk_user = users[login_name]  # XXX Will crash if user is missing
+            fk_user = users.get(data["login_name"])
+            if not fk_user:
+                self.stderr.write(
+                    f'Error: HpcUser "{data["username"]}" does not have an associated '
+                    "User account. If the account was just anonymized, this HpcUser "
+                    "should not be in the state json file."
+                )
+                raise KeyError(data["login_name"])
+            if data["primary_group"]:
+                if data["primary_group"] in cli_import.hpc_groups:
+                    primary_group_gid = int(cli_import.hpc_groups[data["primary_group"]]["gid"])
+                elif data["primary_group"] in cli_import.hpc_projects:
+                    primary_group_gid = int(cli_import.hpc_projects[data["primary_group"]]["gid"])
+                else:
+                    self.stderr.write(
+                        f"Primary group {data['primary_group']} not found "
+                        f"for user {data['username']}"
+                    )
+                    continue
+            else:
+                primary_group_gid = None
             old = all.get(data["username"])
             if not old:
                 new = HpcUser(
@@ -113,7 +132,7 @@ class Command(BaseCommand):
                     creator=self.worker_user,
                     status=data["status"],
                     home_directory=data["home_directory"],
-                    primary_group=None,
+                    primary_group_gid=primary_group_gid,
                     expiration=datetime.fromisoformat(data["expiration"]),
                     login_shell=data["login_shell"],
                     username=data["username"],
@@ -125,46 +144,8 @@ class Command(BaseCommand):
             changes = {}
             if data["login_name"] != old.user.username:
                 changes["user"] = fk_user
-            # XXX: The primary_group field here, when it is not None, is just a
-            # reference to the group id: the actual primary group will be assigned
-            # after the HpcGroup object is created.
-            # XXX: In some cases the primary group is actually a project and
-            # hpc-access cannot handle this (yet?).
-            if data["primary_group"] is None and old.primary_group is not None:
-                changes["primary_group"] = None
-            elif data["primary_group"] is not None and old.primary_group is None:
-                if data["primary_group"] in cli_import.hpc_groups:
-                    changes["primary_group"] = cli_import.hpc_groups[data["primary_group"]]["gid"]
-                elif data["primary_group"] in cli_import.hpc_projects:
-                    primary_group_project_name = cli_import.hpc_projects[data["primary_group"]][
-                        "name"
-                    ]
-                    # changes["primary_group"] = primary_group_project_name
-                    changes["primary_group"] = None
-                    self.stderr.write(
-                        f"Cannot assign project {primary_group_project_name} "
-                        f"as primary group for user {data['username']}"
-                    )
-            elif (
-                data["primary_group"] is not None
-                and old.primary_group is not None
-                and data["primary_group"] in cli_import.hpc_groups
-                and cli_import.hpc_groups[data["primary_group"]]["gid"] != old.primary_group.gid
-            ):
-                changes["primary_group"] = cli_import.hpc_groups[data["primary_group"]]["gid"]
-            elif (
-                data["primary_group"] is not None
-                and old.primary_group is not None
-                and data["primary_group"] in cli_import.hpc_projects
-                and cli_import.hpc_projects[data["primary_group"]]["gid"] != old.primary_group.gid
-            ):
-                primary_group_project_name = cli_import.hpc_projects[data["primary_group"]]["name"]
-                # changes["primary_group"] = primary_group_project_name
-                changes["primary_group"] = None
-                self.stderr.write(
-                    f"Cannot assign project {primary_group_project_name} "
-                    f"as primary group for user {data['username']}"
-                )
+            if old.primary_group_gid != primary_group_gid:
+                changes["primary_group_gid"] = primary_group_gid
             for field in (
                 "resources_requested",
                 "resources_used",
@@ -180,20 +161,18 @@ class Command(BaseCommand):
         return all, update
 
     def _hpc_groups_update_plan(self, cli_import, hpc_users):
-        gids = set([data["gid"] for data in cli_import.hpc_groups.values()])
+        gids = {data["gid"] for data in cli_import.hpc_groups.values()}
         all = {obj.gid: obj for obj in HpcGroup.objects.filter(gid__in=gids)}
+        existing = HpcGroup.objects.exclude(status=OBJECT_STATUS_DELETED)
         update = {
-            "added": [],  # new objects
-            "changed": [],  # tuple of (old, changes) objects
-            "removed": (
-                HpcGroup.objects.exclude(gid__in=gids).exclude(status=OBJECT_STATUS_DELETED)
-            ),  # old objects queryset
-            "count": HpcGroup.objects.count(),
+            "added": [],
+            "changed": [],
+            "removed": existing.exclude(gid__in=gids),
+            "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
-            # fk_user = users[f"{ldap_user}{SUFFIX_MAPPING[suffix]}"]
             owner_username = cli_import.hpc_users[data["owner"]]["username"]
-            fk_owner = hpc_users[owner_username]
+            fk_owner = hpc_users.get(owner_username)
             if data["delegate"]:
                 delegate_username = cli_import.hpc_users[data["delegate"]]["username"]
                 fk_delegate = hpc_users[delegate_username]
@@ -235,7 +214,6 @@ class Command(BaseCommand):
                 "name",
                 "description",
                 "status",
-                "gid",
                 "folders",
                 "resources_requested",
                 "resources_used",
@@ -247,15 +225,14 @@ class Command(BaseCommand):
         return all, update
 
     def _hpc_projects_update_plan(self, cli_import, hpc_users, hpc_groups):
-        names = set([data["name"] for data in cli_import.hpc_projects.values()])
+        names = {data["name"] for data in cli_import.hpc_projects.values()}
         all = {obj.name: obj for obj in HpcProject.objects.filter(name__in=names)}
+        existing = HpcProject.objects.exclude(status=OBJECT_STATUS_DELETED)
         update = {
-            "added": [],  # tuple of (new, members)
-            "changed": [],  # tuple of (old, changes, members) objects
-            "removed": (
-                HpcProject.objects.exclude(name__in=names).exclude(status=OBJECT_STATUS_DELETED)
-            ),  # old objects queryset
-            "count": HpcProject.objects.count(),
+            "added": [],
+            "changed": [],
+            "removed": existing.exclude(name__in=names),
+            "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_projects.items():
             group_gid = cli_import.hpc_groups[data["group"]]["gid"]
@@ -309,14 +286,14 @@ class Command(BaseCommand):
             ):
                 if (new_field := data[field]) != getattr(old, field):
                     changes[field] = new_field
-            old_members = set([member.username for member in old.members.all()])
-            new_members = set([member.username for member in members])
+            old_members = {member.username for member in old.members.all()}
+            new_members = {member.username for member in members}
             if changes or old_members ^ new_members:
                 update["changed"].append((old, changes, members))
         return all, update
 
     def add_arguments(self, parser):
-        parser.add_argument("json", type=str)
+        parser.add_argument("state_json_file", type=str)
         parser.add_argument(
             "-f",
             "--force",
@@ -327,7 +304,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.worker_user = User.objects.get(username="hpc-worker")
         with transaction.atomic():
-            cli_import = self._read_hpcaccess_state(options["json"])
+            cli_import = self._read_hpcaccess_state(options["state_json_file"])
             users, users_update = self._users_update_plan(cli_import)
             hpc_users, hpc_users_update = self._hpc_users_update_plan(cli_import, users)
             hpc_groups, hpc_groups_update = self._hpc_groups_update_plan(cli_import, hpc_users)
@@ -335,144 +312,82 @@ class Command(BaseCommand):
                 cli_import, hpc_users, hpc_groups
             )
 
-            # Update HpcUser objects with the actual primary group
-            for obj in hpc_users_update["added"]:
-                primary_group_id = cli_import.hpc_users[obj.uuid]["primary_group"]
-                if primary_group_id is None:
-                    pass
-                elif primary_group_id in cli_import.hpc_groups:
-                    primary_group_gid = cli_import.hpc_groups[primary_group_id]["gid"]
-                    obj.primary_group = hpc_groups[primary_group_gid]
-                elif primary_group_id in cli_import.hpc_projects:
-                    # XXX: assigning an HpcProject as primary group is a
-                    # TypeError (we could perhaps change the field type but I'm
-                    # not sure whether Django knows about unions...)
-                    # primary_group_project_name = cli_import.hpc_projects[primary_group_id]["name"]
-                    # obj.primary_group = hpc_projects[primary_group_project_name]
-                    self.stderr.write(
-                        f"Cannot assign project {primary_group_id} "
-                        f"as primary group for user {obj.username}"
+            percent_change = 0
+            for title, update in [
+                ("User", users_update),
+                ("HpcUser", hpc_users_update),
+                ("HpcGroup", hpc_groups_update),
+                ("HpcProject", hpc_projects_update),
+            ]:
+                if update["count"] > 0:
+                    percent_change += (
+                        (len(update["added"]) + len(update["changed"]) + len(update["removed"]))
+                        / update["count"]
+                        * 100
                     )
-                else:
-                    self.stderr.write(
-                        f"Primary group {primary_group_id} not found for user {obj.username}"
-                    )
-            for obj, changes in hpc_users_update["changed"]:
-                if "primary_group" not in changes or changes["primary_group"] is None:
-                    continue
-                if changes["primary_group"] in hpc_groups:
-                    changes["primary_group"] = hpc_groups[changes["primary_group"]]
-                elif changes["primary_group"] in hpc_projects:
-                    # XXX: assigning an HpcProject as primary group is a TypeError
-                    # changes["primary_group"] = hpc_projects[changes["primary_group"]]
-                    self.stderr.write(
-                        f"Cannot assign project {changes['primary_group']} "
-                        f"as primary group for user {obj.username}"
-                    )
-                    changes["primary_group"] = None
-                else:
-                    self.stderr.write(
-                        f"Primary group {changes['primary_group']} not found "
-                        f"for user {obj.username}"
-                    )
-                    changes["primary_group"] = None
-
-            self.stdout.write(
-                "--- User updates ---\n"
-                f" * {users_update['count']} initial objects\n"
-                f" * {len(users_update['added'])} added\n"
-                f" * {len(users_update['removed'])} removed\n"
-                f" * {len(users_update['changed'])} changed\n\n"
-                "--- HpcUser updates ---\n"
-                f" * {hpc_users_update['count']} initial objects\n"
-                f" * {len(hpc_users_update['added'])} added\n"
-                f" * {len(hpc_users_update['removed'])} removed\n"
-                f" * {len(hpc_users_update['changed'])} changed\n\n"
-                "--- HpcGroup updates ---\n"
-                f" * {hpc_groups_update['count']} initial objects\n"
-                f" * {len(hpc_groups_update['added'])} added\n"
-                f" * {len(hpc_groups_update['removed'])} removed\n"
-                f" * {len(hpc_groups_update['changed'])} changed\n\n"
-                "--- HpcProject updates ---\n"
-                f" * {hpc_projects_update['count']} initial objects\n"
-                f" * {len(hpc_projects_update['added'])} added\n"
-                f" * {len(hpc_projects_update['removed'])} removed\n"
-                f" * {len(hpc_projects_update['changed'])} changed\n\n"
-            )
+                self.stdout.write(
+                    f"--- {title} updates ---\n"
+                    f" * {update['count']} initial objects\n"
+                    f" * {len(update['added'])} added\n"
+                    f" * {len(update['removed'])} removed\n"
+                    f" * {len(update['changed'])} changed\n\n"
+                )
+            self.stdout.write(f"{round(percent_change)}% of the database has changed.")
 
             if not options["force"]:
                 ans = input("Do you want to proceed? [Y/n]: ")
                 if ans and not ans.lower().startswith("y"):
                     self.stdout.write("The database was not changed, bye for now.")
                     return
+            # XXX Do we want this guardrail? If so, what threshold?
+            elif percent_change >= 20:
+                self.stderr.write(
+                    "The fraction of changed objects exceeds 20%, which seems odd. "
+                    "--force cannot be used under these circumstance. Aborting..."
+                )
+                raise RuntimeError("Too many changes")
 
             try:
-                # Write to the db
                 self.stdout.write("Applying changes to the database, please be patient...")
-                for new in users_update["added"]:
+
+                for new in (
+                    users_update["added"] + hpc_users_update["added"] + hpc_groups_update["added"]
+                ):
                     new.save()
-                for old, changes in users_update["changed"]:
+
+                for old, changes in (
+                    users_update["changed"]
+                    + hpc_users_update["changed"]
+                    + hpc_groups_update["changed"]
+                ):
                     for field, value in changes.items():
                         setattr(old, field, value)
                     old.save()
 
-                for new in hpc_users_update["added"]:
-                    pg = new.primary_group
-                    new.primary_group = None
-                    new.save()
-                    new.primary_group = pg
-                for old, changes in hpc_users_update["changed"]:
-                    if "primary_group" in changes:
-                        pg = changes["primary_group"]
-                        changes["primary_group"] = None
-                        for field, value in changes.items():
-                            setattr(old, field, value)
-                        old.save()
-                        old.primary_group = pg
-                    else:
-                        for field, value in changes.items():
-                            setattr(old, field, value)
-                        old.save()
+                for old in users_update["removed"]:
+                    anonymize_user(old)
 
-                for new in hpc_groups_update["added"]:
-                    new.save()
-                for old, changes in hpc_groups_update["changed"]:
-                    for field, value in changes.items():
-                        setattr(old, field, value)
-                    old.save()
-
-                # Save users again to apply the primary_group changes
-                for new in hpc_users_update["added"]:
-                    new.save()
-                for old, _changes in hpc_users_update["changed"]:
-                    old.save()
+                for old in (
+                    list(hpc_users_update["removed"])
+                    + list(hpc_groups_update["removed"])
+                    + list(hpc_projects_update["removed"])
+                ):
+                    old.soft_delete()
 
                 for new, members in hpc_projects_update["added"]:
                     new.save()
                     for member in members:
                         new.members.add(member)
+
                 for old, changes, members in hpc_projects_update["changed"]:
                     for field, value in changes.items():
                         setattr(old, field, value)
                     old.save()
-                    old.members.clear()
-                    for member in members:
-                        old.members.add(member)
-
-                # Delete objects at the end and in reverse order to avoid
-                # side effects of cascade-deletion.
-                for old in hpc_projects_update["removed"]:
-                    old.soft_delete()
-                for old in hpc_groups_update["removed"]:
-                    old.soft_delete()
-                for old in hpc_users_update["removed"]:
-                    old.soft_delete()
-                for old in users_udpate["removed"]:
-                    anonymize_user(old)
+                    old.members.set(members)
 
                 self.stdout.write("Done.")
 
             except Exception as ex:
-                self.stderr.write(f"Transaction aborted due to {type(ex).__name__}: {ex}")
+                self.stderr.write(f"Transaction will be aborted due to {type(ex).__name__}: {ex}")
                 self.stderr.write(traceback.format_exc())
-                raise ex
+                raise
