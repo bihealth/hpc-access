@@ -401,8 +401,8 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             return list(
                 chain(
                     HpcUserCreateRequest.objects.filter(group=group, status=status),
-                    HpcUserChangeRequest.objects.filter(user__primary_group=group, status=status),
-                    HpcUserDeleteRequest.objects.filter(user__primary_group=group, status=status),
+                    HpcUserChangeRequest.objects.filter(user__primary_group_gid=group.gid, status=status),
+                    HpcUserDeleteRequest.objects.filter(user__primary_group_gid=group.gid, status=status),
                     HpcGroupChangeRequest.objects.filter(group=group, status=status),
                     HpcProjectCreateRequest.objects.filter(group=group, status=status),
                     HpcProjectChangeRequest.objects.filter(
@@ -419,7 +419,7 @@ class HpcUserView(HpcPermissionMixin, DetailView):
             )
             context["hpcuserchangerequests"] = HpcUserChangeRequest.objects.prefetch_related(
                 "user"
-            ).filter(user__primary_group=group)
+            ).filter(user__primary_group_gid=group.gid)
             context["hpcgroupchangerequests"] = HpcGroupChangeRequest.objects.filter(group=group)
             context["hpcprojectchangerequests"] = HpcProjectChangeRequest.objects.prefetch_related(
                 "project__group", "project__delegate"
@@ -1821,7 +1821,7 @@ class HpcGroupInvitationAcceptView(HpcPermissionMixin, SingleObjectMixin, View):
 
             hpcuser = HpcUser.objects.create(
                 user=request.user,
-                primary_group=obj.hpcusercreaterequest.group,
+                primary_group_gid=obj.hpcusercreaterequest.group.gid,
                 resources_requested=obj.hpcusercreaterequest.resources_requested,
                 creator=obj.hpcusercreaterequest.editor,
                 username=username,

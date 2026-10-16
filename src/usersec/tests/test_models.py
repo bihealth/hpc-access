@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from factory import LazyAttribute, SubFactory
+from factory import LazyAttribute, LazyFunction, SubFactory
 from test_plus.test import TestCase
 
 from adminsec.constants import TIER_USER_HOME
@@ -300,7 +300,7 @@ class HistoryTesterMixin:
             data.update(supplementaries)
 
         for k, v in data.items():
-            if not isinstance(v, SubFactory) and not isinstance(v, LazyAttribute):
+            if not isinstance(v, SubFactory) and not isinstance(v, LazyAttribute) and not isinstance(v, LazyFunction):
                 setattr(obj, k, v)
 
         obj.save()
@@ -524,7 +524,7 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
 
     def test_save_new(self):
         supplementaries = {
-            "primary_group": HpcGroupFactory(),
+            "primary_group_gid": HpcGroupFactory().gid,
             "username": "user_" + settings.INSTITUTE_USERNAME_SUFFIX,
         }
         self._test_save_new(**supplementaries)
@@ -571,20 +571,20 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertFalse(user.is_pi)
 
     def test_is_pi_true(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(owner=user)
+        user = self.factory(primary_group_gid=0)
+        user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertTrue(user.is_pi)
 
     def test_role_pi(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(owner=user)
+        user = self.factory(primary_group_gid=0)
+        user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertEqual(user.role, "PI")
 
     def test_role_delegate(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(delegate=user)
+        user = self.factory(primary_group_gid=0)
+        user.primary_group_gid = HpcGroupFactory(delegate=user).gid
         user.save()
         self.assertEqual(user.role, "Delegate")
 
@@ -593,7 +593,7 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertEqual(user.role, "Member")
 
     def test_role_alumni(self):
-        user = self.factory(primary_group=None)
+        user = self.factory(primary_group_gid=0)
         self.assertEqual(user.role, "Alumni")
 
     def test_has_pending_delete_request(self):
