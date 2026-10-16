@@ -1684,7 +1684,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
         user_delegate = self.make_user("delegate")
         user_delegate.email = "delegate@example.com"
         user_delegate.save()
-        self.hpc_delegate = HpcUserFactory(user=user_delegate, primary_group=self.hpc_group)
+        self.hpc_delegate = HpcUserFactory(user=user_delegate, primary_group_gid=self.hpc_group.gid)
         self.obj = HpcProjectCreateRequestFactory(
             requester=self.user_owner,
             group=self.hpc_group,
@@ -1975,7 +1975,7 @@ class TestHpcProjectChangeRequestApproveView(TestViewBase):
         user_delegate = self.make_user("delegate")
         user_delegate.email = "delegate@example.com"
         user_delegate.save()
-        self.hpc_delegate = HpcUserFactory(user=user_delegate, primary_group=self.hpc_group)
+        self.hpc_delegate = HpcUserFactory(user=user_delegate, primary_group_gid=self.hpc_group.gid)
         self.obj = HpcProjectChangeRequestFactory(
             requester=self.user_owner,
             project=self.hpc_project,

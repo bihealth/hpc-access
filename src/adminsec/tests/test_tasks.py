@@ -93,8 +93,8 @@ class TestSyncLdap(TestCase):
         self.user2.save()
 
         # Prevent additional users from being created; they are not required here
-        self.hpcuser1 = HpcUserFactory(user=self.user1, primary_group=None, creator=None)
-        self.hpcuser2 = HpcUserFactory(user=self.user2, primary_group=None, creator=None)
+        self.hpcuser1 = HpcUserFactory(user=self.user1, primary_group_gid=0, creator=None)
+        self.hpcuser2 = HpcUserFactory(user=self.user2, primary_group_gid=0, creator=None)
 
         def setup_test_data_server1(connection):
             connection.strategy.add_entry(
@@ -301,7 +301,7 @@ class TestSendQuotaEmail(TestCase):
         )
         self.hpc_owner = HpcUserFactory(
             user=self.user_owner,
-            primary_group=self.hpc_group,
+            primary_group_gid=self.hpc_group.gid,
             creator=self.user_hpcadmin,
             resources_requested={TIER_USER_HOME: 20},
             resources_used={TIER_USER_HOME: 20},  # 100% used
@@ -316,7 +316,7 @@ class TestSendQuotaEmail(TestCase):
 
         self.hpc_member = HpcUserFactory(
             user=self.user_member,
-            primary_group=self.hpc_group,
+            primary_group_gid=self.hpc_group.gid,
             creator=self.user_hpcadmin,
             resources_requested={TIER_USER_HOME: 20},
             resources_used={TIER_USER_HOME: 18},  # 90% used
@@ -456,7 +456,7 @@ class DisableUsersWithoutConsent(TestCase):
 
         self.hpc_user1 = HpcUserFactory(
             user=self.user1,
-            primary_group=None,
+            primary_group_gid=0,
             creator=self.user_hpcadmin,
             status=OBJECT_STATUS_ACTIVE,
         )
@@ -534,7 +534,7 @@ class CleanDbOfHpcObjects(TestCase):
 
         self.hpc_group = HpcGroupFactory(creator=self.user_hpcadmin)
         self.hpc_owner = HpcUserFactory(
-            user=self.user_owner, primary_group=self.hpc_group, creator=self.user_hpcadmin
+            user=self.user_owner, primary_group_gid=self.hpc_group.gid, creator=self.user_hpcadmin
         )
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
@@ -545,7 +545,7 @@ class CleanDbOfHpcObjects(TestCase):
         self.user_member.save()
 
         self.hpc_member = HpcUserFactory(
-            user=self.user_member, primary_group=self.hpc_group, creator=self.user_hpcadmin
+            user=self.user_member, primary_group_gid=self.hpc_group.gid, creator=self.user_hpcadmin
         )
 
         # Create project
