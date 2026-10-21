@@ -14,11 +14,12 @@ class TestAnonymizeCommand(TestCase):
     def setUp(self):
         super().setUp()
         self.user, _ = User.objects.get_or_create(
-            username="user",
+            consented_to_terms=True,
             email="maxmustermann@bih.de",
-            phone="123-456-789",
             first_name="Max",
             last_name="Mustermann",
+            phone="123-456-789",
+            username="user",
         )
         self.command = "anonymize"
 
@@ -37,15 +38,15 @@ class TestAnonymizeCommand(TestCase):
 
     def test_user_not_found(self):
         err = StringIO()
-        _, err = call_command(self.command, "no such user", stderr=err)
+        call_command(self.command, "no such user", stderr=err)
         self.user.refresh_from_db()
         self.assertEqual(self.user.is_active, True)
-        self.assertEqual(err, 'User "no such user" does not exist.')
+        self.assertIn('User "no such user" does not exist.', err.getvalue())
 
     def test_interactive_mode(self):
         out = StringIO()
         with mock.patch("builtins.input", return_value="n"):
-            out, _ = call_command(self.command, self.user, "--interactive", stdout=out)
+            call_command(self.command, self.user, "--interactive", stdout=out)
         self.user.refresh_from_db()
         self.assertEqual(self.user.is_active, True)
         self.assertEqual(self.user.consented_to_terms, True)
@@ -53,4 +54,4 @@ class TestAnonymizeCommand(TestCase):
         self.assertEqual(self.user.last_name, "Mustermann")
         self.assertEqual(self.user.email, "maxmustermann@bih.de")
         self.assertEqual(self.user.phone, "123-456-789")
-        self.assertIn("Do you want to proceed? [Y/n]", out)
+        self.assertIn("Operation aborted, bye for now", out.getvalue())

@@ -36,7 +36,7 @@ class Command(BaseCommand):
             user = User.objects.get(username=options["username"])
         except User.DoesNotExist:
             self.stderr.write(f'User "{options["username"]}" does not exist.')
-            return 1
+            return
 
         if options["interactive"]:
             self.stderr.write(
