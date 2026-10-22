@@ -571,19 +571,19 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertFalse(user.is_pi)
 
     def test_is_pi_true(self):
-        user = self.factory(primary_group_gid=0)
+        user = self.factory(primary_group_gid=None)
         user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertTrue(user.is_pi)
 
     def test_role_pi(self):
-        user = self.factory(primary_group_gid=0)
+        user = self.factory(primary_group_gid=None)
         user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertEqual(user.role, "PI")
 
     def test_role_delegate(self):
-        user = self.factory(primary_group_gid=0)
+        user = self.factory(primary_group_gid=None)
         user.primary_group_gid = HpcGroupFactory(delegate=user).gid
         user.save()
         self.assertEqual(user.role, "Delegate")
@@ -593,7 +593,7 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertEqual(user.role, "Member")
 
     def test_role_alumni(self):
-        user = self.factory(primary_group_gid=0)
+        user = self.factory(primary_group_gid=None)
         self.assertEqual(user.role, "Alumni")
 
     def test_has_pending_delete_request(self):
