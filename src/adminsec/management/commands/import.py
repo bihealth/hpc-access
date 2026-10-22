@@ -5,11 +5,10 @@ import traceback
 from datetime import datetime
 
 from django.contrib import auth
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Count
 
-from adminsec.management.commands.anonymize import anonymize_user
 from adminsec.models import HpcaccessState
 from usersec.models import OBJECT_STATUS_DELETED, HpcGroup, HpcProject, HpcUser
 
@@ -29,7 +28,7 @@ class Command(BaseCommand):
         """Read and normalize the json file from hpc-access-cli"""
         with open(cluster_state, "r") as jsonfile:
             hpc_state = HpcaccessState(**json.load(jsonfile))
-        for _uuid, data in hpc_state.hpc_users.items():
+        for data in hpc_state.hpc_users.values():
             ldap_user, suffix = data["username"].split("_")
             data["login_name"] = f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
             data["first_name"] = data["first_name"].strip() if data["first_name"] else ""
@@ -37,30 +36,73 @@ class Command(BaseCommand):
             data["name"] = data["full_name"].strip() if data["full_name"] else ""
             data["display_name"] = data["display_name"].strip() if data["display_name"] else ""
             data["phone"] = data["phone_number"]
+            if primary_group := data["primary_group"]:
+                if not (
+                    primary_group in hpc_state.hpc_groups or primary_group in hpc_state.hpc_projects
+                ):
+                    raise CommandError(
+                        "Malformed input: missing primary_group reference "
+                        f"({data['primary_group']}) for user {data['username']}"
+                    )
+        all_gids = set()
+        for data in hpc_state.hpc_groups.values():
+            if data["owner"] not in hpc_state.hpc_users:
+                raise CommandError(
+                    "Malformed input: missing owner reference "
+                    f"({data['owner']}) for group {data['name']}"
+                )
+            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+                raise CommandError(
+                    "Malformed input: missing delegate reference "
+                    f"({data['delegate']}) for group {data['name']}"
+                )
+            if data["gid"] in all_gids:
+                raise CommandError(f"Duplicate gid detected: {data['gid']}")
+            all_gids.add(data["gid"])
+        for data in hpc_state.hpc_projects.values():
+            if data["group"] not in hpc_state.hpc_groups:
+                raise CommandError(
+                    "Malformed input: missing group reference "
+                    f"({data['group']}) for project {data['name']}"
+                )
+            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+                raise CommandError(
+                    "Malformed input: missing delegate reference "
+                    f"({data['delegate']}) for project {data['name']}"
+                )
+            for member_uuid in data["members"]:
+                if member_uuid not in hpc_state.hpc_users:
+                    raise CommandError(
+                        "Malformed input: missing member reference "
+                        f"({member_uuid}) for project {data['name']}"
+                    )
+            if data["gid"] in all_gids:
+                raise CommandError(f"Duplicate gid detected: {data['gid']}")
+            all_gids.add(data["gid"])
+
         return hpc_state
 
     def _users_update_plan(self, cli_import):
         usernames = {data["login_name"] for data in cli_import.hpc_users.values()}
         all = {obj.username: obj for obj in User.objects.filter(username__in=usernames)}
-        existing = (
-            User.objects.exclude(is_active=False)
-            .exclude(is_staff=True)
-            .annotate(hpcuser_count=Count("hpcuser_user"))
-            .exclude(hpcuser_count=0)
+        existing = User.objects.annotate(hpcuser_count=Count("hpcuser_user")).exclude(
+            hpcuser_count=0
         )
         update = {
             # new objects
             "added": [],
             # tuple of (old, updated_fields) objects
             "changed": [],
-            # queryset of old objects to be removed
-            "removed": existing.exclude(username__in=usernames),
+            # queryset of old objects that are missing from the imported file
+            "missing": existing.exclude(username__in=usernames),
             # count of existing and active objects
             "count": existing.count(),
         }
         for _uuid, data in cli_import.hpc_users.items():
             old = all.get(data["login_name"])
             if not old:
+                # XXX: how are new users created right now? and how is their password chosen?
+                # Does it make sense to create them here?
                 new = User(
                     first_name=data["first_name"],
                     last_name=data["last_name"],
@@ -85,7 +127,7 @@ class Command(BaseCommand):
             if changes:
                 if not old.is_active:
                     self.stderr.write(
-                        f'Warning: user "{old.username}" is not active, but its data have changed.'
+                        f'Warning: user "{old.username}" is not active, but their data changed.'
                     )
                 update["changed"].append((old, changes))
         return all, update
@@ -97,16 +139,14 @@ class Command(BaseCommand):
         update = {
             "added": [],
             "changed": [],
-            "removed": existing.exclude(username__in=usernames),
+            "missing": existing.exclude(username__in=usernames),
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_users.items():
             fk_user = users.get(data["login_name"])
             if not fk_user:
                 self.stderr.write(
-                    f'Error: HpcUser "{data["username"]}" does not have an associated '
-                    "User account. If the account was just anonymized, this HpcUser "
-                    "should not be in the state json file."
+                    f'Error: HpcUser "{data["username"]}" does not have an associated User account.'
                 )
                 raise KeyError(data["login_name"])
             if data["primary_group"]:
@@ -115,11 +155,13 @@ class Command(BaseCommand):
                 elif data["primary_group"] in cli_import.hpc_projects:
                     primary_group_gid = int(cli_import.hpc_projects[data["primary_group"]]["gid"])
                 else:
+                    # This should never happen because we check for missing references
+                    # in _read_hpcaccess_state()
                     self.stderr.write(
-                        f"Primary group {data['primary_group']} not found "
+                        f"Error: Primary group {data['primary_group']} not found "
                         f"for user {data['username']}"
                     )
-                    continue
+                    raise KeyError(data["primary_group"])
             else:
                 primary_group_gid = None
             old = all.get(data["username"])
@@ -157,6 +199,11 @@ class Command(BaseCommand):
                 if (new_field := data[field]) != getattr(old, field):
                     changes[field] = new_field
             if changes:
+                if not old.user.is_active:
+                    self.stderr.write(
+                        f'Warning: the user associated with "{old.username}" is not active, '
+                        "but their Hpc data changed."
+                    )
                 update["changed"].append((old, changes))
         return all, update
 
@@ -166,8 +213,9 @@ class Command(BaseCommand):
         existing = HpcGroup.objects.exclude(status=OBJECT_STATUS_DELETED)
         update = {
             "added": [],
+            # tuple of (old, changed_fields, members)
             "changed": [],
-            "removed": existing.exclude(gid__in=gids),
+            "missing": existing.exclude(gid__in=gids),
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
@@ -231,7 +279,7 @@ class Command(BaseCommand):
         update = {
             "added": [],
             "changed": [],
-            "removed": existing.exclude(name__in=names),
+            "missing": existing.exclude(name__in=names),
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_projects.items():
@@ -295,10 +343,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("state_json_file", type=str)
         parser.add_argument(
-            "-f",
-            "--force",
+            "-no-input",
+            "--noinput",
             action="store_true",
-            help="Write the changes immediately, without asking for confirmation",
+            help="Do NOT prompt for confirmation, write the changes immediately.",
         )
 
     def handle(self, *args, **options):
@@ -313,6 +361,7 @@ class Command(BaseCommand):
             )
 
             percent_change = 0
+            missing_entries = 0
             for title, update in [
                 ("User", users_update),
                 ("HpcUser", hpc_users_update),
@@ -321,31 +370,40 @@ class Command(BaseCommand):
             ]:
                 if update["count"] > 0:
                     percent_change += (
-                        (len(update["added"]) + len(update["changed"]) + len(update["removed"]))
+                        (len(update["added"]) + len(update["changed"]) + len(update["missing"]))
                         / update["count"]
                         * 100
                     )
+                missing_entries += len(update["missing"])
                 self.stdout.write(
                     f"--- {title} updates ---\n"
                     f" * {update['count']} initial objects\n"
                     f" * {len(update['added'])} added\n"
-                    f" * {len(update['removed'])} removed\n"
+                    f" * {len(update['missing'])} missing\n"
                     f" * {len(update['changed'])} changed\n\n"
                 )
             self.stdout.write(f"{round(percent_change)}% of the database has changed.")
+            self.stdout.write(f"{missing_entries} records are missing from the state json file.")
+            # XXX: should we print more information? e.g. the usernames that are added/missing?
 
-            if not options["force"]:
-                ans = input("Do you want to proceed? [Y/n]: ")
-                if ans and not ans.lower().startswith("y"):
+            if not options["noinput"]:
+                ans = input("Do you want to proceed? [y/N]: ")
+                if not ans or not ans.lower().startswith("y"):
                     self.stdout.write("The database was not changed, bye for now.")
                     return
+            elif missing_entries:
+                self.stderr.write(
+                    "Some entries were missing from the state json file. "
+                    "--force cannot be used under these circumstance. Aborting..."
+                )
+                raise CommandError("Missing entries")
             # XXX Do we want this guardrail? If so, what threshold?
             elif percent_change >= 20:
                 self.stderr.write(
                     "The fraction of changed objects exceeds 20%, which seems odd. "
                     "--force cannot be used under these circumstance. Aborting..."
                 )
-                raise RuntimeError("Too many changes")
+                raise CommandError("Too many changes")
 
             try:
                 self.stdout.write("Applying changes to the database, please be patient...")
@@ -363,16 +421,6 @@ class Command(BaseCommand):
                     for field, value in changes.items():
                         setattr(old, field, value)
                     old.save()
-
-                for old in users_update["removed"]:
-                    anonymize_user(old)
-
-                for old in (
-                    list(hpc_users_update["removed"])
-                    + list(hpc_groups_update["removed"])
-                    + list(hpc_projects_update["removed"])
-                ):
-                    old.soft_delete()
 
                 for new, members in hpc_projects_update["added"]:
                     new.save()
