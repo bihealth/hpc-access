@@ -1417,6 +1417,8 @@ class TestHpcUserDeleteRequestApproveView(TestViewBase):
             self.obj.refresh_from_db()
             self.assertEqual(self.obj.status, REQUEST_STATUS_APPROVED)
 
+            self.assertIsNone(self.obj.user.primary_group_gid)
+
             self.assertEqual(len(mail.outbox), 1)
 
 
