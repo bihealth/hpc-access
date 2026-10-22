@@ -68,6 +68,14 @@ def _sync_ldap(write=False, verbose=False, ldapcon=None):
             if userAccountControl:
                 disabled = bool(int(userinfo.userAccountControl.value) & 2)
 
+            if user.anonymized_at is not None:
+                if not disabled:
+                    logger.warn(
+                        f"User {user.username} was anonymized at {user.anonymized_at}, "
+                        "but its LDAP record is still enabled. Data will not be synced."
+                    )
+                continue
+
             if last_name:
                 user.last_name = last_name[0].strip()
 
