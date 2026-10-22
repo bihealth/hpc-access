@@ -1122,7 +1122,7 @@ class HpcUserDeleteRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                # obj.user.primary_group = None
+                obj.user.primary_group_gid = None
                 obj.user.soft_delete()
 
         except Exception as e:

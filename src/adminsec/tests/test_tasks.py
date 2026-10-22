@@ -92,8 +92,8 @@ class TestSyncLdap(TestCase):
         self.user2.save()
 
         # Prevent additional users from being created; they are not required here
-        self.hpcuser1 = HpcUserFactory(user=self.user1, primary_group_gid=0, creator=None)
-        self.hpcuser2 = HpcUserFactory(user=self.user2, primary_group_gid=0, creator=None)
+        self.hpcuser1 = HpcUserFactory(user=self.user1, primary_group_gid=None, creator=None)
+        self.hpcuser2 = HpcUserFactory(user=self.user2, primary_group_gid=None, creator=None)
 
         def setup_test_data_server1(connection):
             connection.strategy.add_entry(
@@ -434,7 +434,7 @@ class DisableUsersWithoutConsent(TestCase):
 
         self.hpc_user1 = HpcUserFactory(
             user=self.user1,
-            primary_group_gid=0,
+            primary_group_gid=None,
             creator=self.user_hpcadmin,
             status=OBJECT_STATUS_ACTIVE,
         )

@@ -639,10 +639,10 @@ class HpcUser(
         if gid is None:
             return None
         try:
-            return HpcGroup.objects.get(gid=gid)
+            return HpcGroup.objects.exclude(status=OBJECT_STATUS_DELETED).get(gid=gid)
         except HpcGroup.DoesNotExist:
             try:
-                return HpcProject.objects.get(gid=gid)
+                return HpcProject.objects.exclude(status=OBJECT_STATUS_DELETED).get(gid=gid)
             except HpcProject.DoesNotExist:
                 return None
 
@@ -659,6 +659,9 @@ class HpcUser(
     @property
     def is_pi(self):
         if self.primary_group is None:
+            return False
+
+        if not isinstance(self.primary_group, HpcGroup):
             return False
 
         return self.primary_group.owner == self
