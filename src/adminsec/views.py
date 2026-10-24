@@ -382,7 +382,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         # Create HpcUser object
         hpcuser = HpcUser.objects.create(
             user=obj.requester,
-            primary_group=hpcgroup,
+            primary_group_gid=hpcgroup.gid,
             resources_requested=DEFAULT_USER_RESOURCES,
             creator=self.request.user,
             description="PI, created together with accepting the group request.",
@@ -1122,7 +1122,7 @@ class HpcUserDeleteRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                obj.user.primary_group = None
+                obj.user.primary_group_gid = None
                 obj.user.soft_delete()
 
         except Exception as e:

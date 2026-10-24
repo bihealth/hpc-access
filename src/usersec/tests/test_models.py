@@ -524,7 +524,7 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
 
     def test_save_new(self):
         supplementaries = {
-            "primary_group": HpcGroupFactory(),
+            "primary_group_gid": HpcGroupFactory().gid,
             "username": "user_" + settings.INSTITUTE_USERNAME_SUFFIX,
         }
         self._test_save_new(**supplementaries)
@@ -571,20 +571,20 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertFalse(user.is_pi)
 
     def test_is_pi_true(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(owner=user)
+        user = self.factory(primary_group_gid=None)
+        user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertTrue(user.is_pi)
 
     def test_role_pi(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(owner=user)
+        user = self.factory(primary_group_gid=None)
+        user.primary_group_gid = HpcGroupFactory(owner=user).gid
         user.save()
         self.assertEqual(user.role, "PI")
 
     def test_role_delegate(self):
-        user = self.factory(primary_group=None)
-        user.primary_group = HpcGroupFactory(delegate=user)
+        user = self.factory(primary_group_gid=None)
+        user.primary_group_gid = HpcGroupFactory(delegate=user).gid
         user.save()
         self.assertEqual(user.role, "Delegate")
 
@@ -593,7 +593,7 @@ class TestHpcUser(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self.assertEqual(user.role, "Member")
 
     def test_role_alumni(self):
-        user = self.factory(primary_group=None)
+        user = self.factory(primary_group_gid=None)
         self.assertEqual(user.role, "Alumni")
 
     def test_has_pending_delete_request(self):
@@ -781,7 +781,7 @@ class TestHpcGroup(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
         self._test_create_two_records_one_event_each()
 
     def test_save_new(self):
-        supplementaries = {"name": "hpc-group"}
+        supplementaries = {"name": "hpc-group", "gid": get_next_hpcgroup_gid()}
         self._test_save_new(**supplementaries)
 
     def test_save_existing(self):
@@ -1074,6 +1074,7 @@ class TestHpcProject(HistoryTesterMixin, PendingRequestTesterMixin, TestCase):
     def test_save_new(self):
         supplementaries = {
             "group": HpcGroupFactory(),
+            "gid": get_next_hpcproject_gid(),
             "name": "hpc-project",
         }
         self._test_save_new(**supplementaries)
