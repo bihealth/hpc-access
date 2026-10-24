@@ -69,6 +69,10 @@ class SecondaryLDAPBackend(LDAPBackend):
 def _ldap_auth_handler(user, ldap_user, **kwargs):
     """Signal for LDAP login handling"""
 
+    # Inactive users cannot log in, so we don't sync their data
+    if not user.is_active:
+        return
+
     phone = ldap_user.attrs.get("telephoneNumber")
     uid = ldap_user.attrs.get("uidNumber")
     first_name = ldap_user.attrs.get("givenName")

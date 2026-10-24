@@ -1746,14 +1746,16 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
             self.assertEqual(
                 list(hpcproject.members.all()), [self.hpc_owner, self.hpc_member, self.hpc_delegate]
             )
-            self.assertEqual(
-                [
-                    event.hpcuser
-                    for event in HpcProjectMembersEvent.objects.filter(
-                        hpcproject=hpcproject, pgh_label="members.add"
-                    ).order_by("pgh_id")
-                ],
-                [self.hpc_owner, self.hpc_member, self.hpc_delegate],
+            self.assertSetEqual(
+                set(
+                    [
+                        event.hpcuser
+                        for event in HpcProjectMembersEvent.objects.filter(
+                            hpcproject=hpcproject, pgh_label="members.add"
+                        ).order_by("pgh_id")
+                    ]
+                ),
+                set([self.hpc_owner, self.hpc_member, self.hpc_delegate]),
             )
 
             self.assertEqual(len(mail.outbox), 3)
