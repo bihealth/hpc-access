@@ -79,7 +79,7 @@ class TestViewBase(TestCase):
 
         self.hpc_group = HpcGroupFactory()
         self.hpc_owner = HpcUserFactory(
-            user=self.user_owner, primary_group_gid=self.hpc_group.gid, creator=self.user_hpcadmin
+            user=self.user_owner, primary_group=self.hpc_group, creator=self.user_hpcadmin
         )
         self.hpc_group.owner = self.hpc_owner
         self.hpc_group.save()
@@ -90,7 +90,7 @@ class TestViewBase(TestCase):
         self.user_member.save()
 
         self.hpc_member = HpcUserFactory(
-            user=self.user_member, primary_group_gid=self.hpc_group.gid, creator=self.user_hpcadmin
+            user=self.user_member, primary_group=self.hpc_group, creator=self.user_hpcadmin
         )
 
         # Create project
@@ -117,7 +117,7 @@ class TestHomeView(TestViewBase):
             self.assertRedirects(response, reverse("usersec:orphan-user"))
 
     def test_get_cluster_user(self):
-        HpcUserFactory(user=self.user, primary_group_gid=self.hpc_group.gid)
+        HpcUserFactory(user=self.user, primary_group=self.hpc_group)
         with self.login(self.user):
             response = self.client.get(reverse("home"))
             self.assertNoMessages(response)
