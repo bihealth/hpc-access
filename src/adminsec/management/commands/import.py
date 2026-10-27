@@ -351,8 +351,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("state_json_file", type=str)
         parser.add_argument(
-            "--no-input",
             "--noinput",
+            "--no-input",
             action="store_true",
             help="Do NOT prompt for confirmation, write the changes immediately.",
         )
