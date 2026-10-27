@@ -2,12 +2,7 @@ import rules
 from django.conf import settings
 
 from adminsec.rules import is_hpcadmin
-from usersec.models import (
-    INVITATION_STATUS_PENDING,
-    REQUEST_STATUS_ACTIVE,
-    HpcGroup,
-    HpcGroupInvitation,
-)
+from usersec.models import INVITATION_STATUS_PENDING, REQUEST_STATUS_ACTIVE, HpcGroupInvitation
 
 # ------------------------------------------------------------------------------
 # Predicates
@@ -70,9 +65,6 @@ def _is_pi_of_hpcuser(user, hpcuser):
     if hpcuser.primary_group is None:
         raise ValueError("HpcUser has no primary group")
 
-    if not isinstance(hpcuser.primary_group, HpcGroup):
-        raise ValueError("HpcUser's primary group is not an HpcGroup")
-
     if hpcuser.primary_group.owner is None:
         raise ValueError("Primary group of HpcUser has no owner")
 
@@ -80,8 +72,6 @@ def _is_pi_of_hpcuser(user, hpcuser):
 
     if owner:
         return owner.user == user
-
-    return False
 
 
 @rules.predicate
@@ -336,9 +326,6 @@ def _is_group_owner_by_hpcuserchangerequest(user, hpcuserchangerequest):
     if hpcuserchangerequest is None:
         raise ValueError("HpcUserChangeRequest is None")
 
-    if not isinstance(hpcuserchangerequest.user.primary_group, HpcGroup):
-        return False
-
     owner = hpcuserchangerequest.user.primary_group.owner
 
     if owner:
@@ -383,9 +370,6 @@ can_manage_hpcuserchangerequest = (
 def _is_group_owner_by_hpcuserdeleterequest(user, hpcuserdeleterequest):
     if hpcuserdeleterequest is None:
         raise ValueError("HpcUserDeleteRequest is None")
-
-    if not isinstance(hpcuserdeleterequest.user.primary_group, HpcGroup):
-        return False
 
     owner = hpcuserdeleterequest.user.primary_group.owner
 

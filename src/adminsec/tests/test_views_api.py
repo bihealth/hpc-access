@@ -26,7 +26,7 @@ class ApiTestCase(TestCase):
         super().setUp()
         # Create usersec.models records.
         self.hpcuser_group = HpcGroupFactory()
-        self.hpcuser_user = HpcUserFactory(primary_group_gid=self.hpcuser_group.gid)
+        self.hpcuser_user = HpcUserFactory(primary_group=self.hpcuser_group)
         self.hpcuser_project = HpcProjectFactory(group=self.hpcuser_group)
         # Create Django users.
         self.user_user = self.make_user("user")
