@@ -37,9 +37,12 @@ class Command(BaseCommand):
             data["display_name"] = data["display_name"].strip() if data["display_name"] else ""
             data["phone"] = data["phone_number"]
             if primary_group := data["primary_group"]:
-                if not (
-                    primary_group in hpc_state.hpc_groups or primary_group in hpc_state.hpc_projects
-                ):
+                if primary_group in hpc_state.hpc_projects:
+                    self.stderr.write(
+                        f"Warning: primary_group {primary_group} for user {data['name']} "
+                        "is a project and will be set to NULL."
+                    )
+                elif primary_group not in hpc_state.hpc_groups:
                     raise CommandError(
                         "Malformed input: missing primary_group reference "
                         f"({data['primary_group']}) for user {data['username']}"
@@ -151,9 +154,9 @@ class Command(BaseCommand):
                 raise KeyError(data["login_name"])
             if data["primary_group"]:
                 if data["primary_group"] in cli_import.hpc_groups:
-                    primary_group_gid = int(cli_import.hpc_groups[data["primary_group"]]["gid"])
+                    primary_group_name = cli_import.hpc_groups[data["primary_group"]]["name"]
                 elif data["primary_group"] in cli_import.hpc_projects:
-                    primary_group_gid = int(cli_import.hpc_projects[data["primary_group"]]["gid"])
+                    primary_group_name = cli_import.hpc_projects[data["primary_group"]]["name"]
                 else:
                     # This should never happen because we check for missing references
                     # in _read_hpcaccess_state()
@@ -163,7 +166,7 @@ class Command(BaseCommand):
                     )
                     raise KeyError(data["primary_group"])
             else:
-                primary_group_gid = None
+                primary_group_name = None
             old = all.get(data["username"])
             if not old:
                 new = HpcUser(
@@ -174,7 +177,7 @@ class Command(BaseCommand):
                     creator=self.worker_user,
                     status=data["status"],
                     home_directory=data["home_directory"],
-                    primary_group_gid=primary_group_gid,
+                    primary_group=HpcGroup(name=primary_group_name),
                     expiration=datetime.fromisoformat(data["expiration"]),
                     login_shell=data["login_shell"],
                     username=data["username"],
@@ -186,8 +189,13 @@ class Command(BaseCommand):
             changes = {}
             if data["login_name"] != old.user.username:
                 changes["user"] = fk_user
-            if old.primary_group_gid != primary_group_gid:
-                changes["primary_group_gid"] = primary_group_gid
+            if (
+                old.primary_group
+                and old.primary_group.name != primary_group_name
+                or not old.primary_group
+                and primary_group_name
+            ):
+                changes["primary_group"] = primary_group_name
             for field in (
                 "resources_requested",
                 "resources_used",
@@ -208,14 +216,14 @@ class Command(BaseCommand):
         return all, update
 
     def _hpc_groups_update_plan(self, cli_import, hpc_users):
-        gids = {data["gid"] for data in cli_import.hpc_groups.values()}
-        all = {obj.gid: obj for obj in HpcGroup.objects.filter(gid__in=gids)}
+        names = {data["name"] for data in cli_import.hpc_groups.values()}
+        all = {obj.name: obj for obj in HpcGroup.objects.filter(name__in=names)}
         existing = HpcGroup.objects.exclude(status=OBJECT_STATUS_DELETED)
         update = {
             "added": [],
             # tuple of (old, changed_fields, members)
             "changed": [],
-            "missing": existing.exclude(gid__in=gids),
+            "missing": existing.exclude(name__in=names),
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
@@ -226,7 +234,7 @@ class Command(BaseCommand):
                 fk_delegate = hpc_users[delegate_username]
             else:
                 fk_delegate = None
-            old = all.get(data["gid"])
+            old = all.get(data["name"])
             if not old:
                 new = HpcGroup(
                     uuid=uuid,
@@ -242,7 +250,7 @@ class Command(BaseCommand):
                     resources_used=data["resources_used"],
                     expiration=datetime.fromisoformat(data["expiration"]),
                 )
-                all[new.gid] = new
+                all[new.name] = new
                 update["added"].append(new)
                 continue
             changes = {}
@@ -259,7 +267,7 @@ class Command(BaseCommand):
             ):
                 changes["delegate"] = fk_delegate
             for field in (
-                "name",
+                "gid",
                 "description",
                 "status",
                 "folders",
@@ -283,8 +291,8 @@ class Command(BaseCommand):
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_projects.items():
-            group_gid = cli_import.hpc_groups[data["group"]]["gid"]
-            fk_group = hpc_groups[group_gid]
+            group_name = cli_import.hpc_groups[data["group"]]["name"]
+            fk_group = hpc_groups[group_name]
             if data["delegate"]:
                 delegate_username = cli_import.hpc_users[data["delegate"]]["username"]
                 fk_delegate = hpc_users[delegate_username]
@@ -313,7 +321,7 @@ class Command(BaseCommand):
                 update["added"].append((new, members))
                 continue
             changes = {}
-            if fk_group.gid != old.group.gid:
+            if fk_group.name != old.group.name:
                 changes["group"] = fk_group
             if (
                 fk_delegate is not None
@@ -343,7 +351,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("state_json_file", type=str)
         parser.add_argument(
-            "-no-input",
+            "--no-input",
             "--noinput",
             action="store_true",
             help="Do NOT prompt for confirmation, write the changes immediately.",
@@ -360,7 +368,6 @@ class Command(BaseCommand):
                 cli_import, hpc_users, hpc_groups
             )
 
-            percent_change = 0
             missing_entries = 0
             for title, update in [
                 ("User", users_update),
@@ -368,12 +375,6 @@ class Command(BaseCommand):
                 ("HpcGroup", hpc_groups_update),
                 ("HpcProject", hpc_projects_update),
             ]:
-                if update["count"] > 0:
-                    percent_change += (
-                        (len(update["added"]) + len(update["changed"]) + len(update["missing"]))
-                        / update["count"]
-                        * 100
-                    )
                 missing_entries += len(update["missing"])
                 self.stdout.write(
                     f"--- {title} updates ---\n"
@@ -382,7 +383,6 @@ class Command(BaseCommand):
                     f" * {len(update['missing'])} missing\n"
                     f" * {len(update['changed'])} changed\n\n"
                 )
-            self.stdout.write(f"{round(percent_change)}% of the database has changed.")
             self.stdout.write(f"{missing_entries} records are missing from the state json file.")
             # XXX: should we print more information? e.g. the usernames that are added/missing?
 
@@ -394,23 +394,28 @@ class Command(BaseCommand):
             elif missing_entries:
                 self.stderr.write(
                     "Some entries were missing from the state json file. "
-                    "--force cannot be used under these circumstance. Aborting..."
+                    "--no-input cannot be used under these circumstance. Aborting..."
                 )
                 raise CommandError("Missing entries")
-            # XXX Do we want this guardrail? If so, what threshold?
-            elif percent_change >= 20:
-                self.stderr.write(
-                    "The fraction of changed objects exceeds 20%, which seems odd. "
-                    "--force cannot be used under these circumstance. Aborting..."
-                )
-                raise CommandError("Too many changes")
 
             try:
                 self.stdout.write("Applying changes to the database, please be patient...")
 
-                for new in (
-                    users_update["added"] + hpc_users_update["added"] + hpc_groups_update["added"]
-                ):
+                for new in users_update["added"]:
+                    new.save()
+
+                for new in hpc_users_update["added"]:
+                    pg = new.primary_group
+                    new.primary_group = None
+                    new.save()
+                    new.primary_group = pg
+
+                for new in hpc_groups_update["added"]:
+                    new.save()
+
+                # Save the hpc_users again now that the primary_group objects exist
+                for new in hpc_users_update["added"]:
+                    new.primary_group = hpc_groups.get(new.primary_group.name)
                     new.save()
 
                 for old, changes in (
@@ -419,6 +424,8 @@ class Command(BaseCommand):
                     + hpc_groups_update["changed"]
                 ):
                     for field, value in changes.items():
+                        if field == "primary_group":
+                            value = hpc_groups.get(value)
                         setattr(old, field, value)
                     old.save()
 
