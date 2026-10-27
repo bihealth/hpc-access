@@ -24,6 +24,19 @@ SUFFIX_MAPPING = {
 class Command(BaseCommand):
     help = "Import HPC objects from a json file."
 
+    def _save_changes(self, obj, changes):
+        """Apply ``changes`` to ``obj`` and write only those columns.
+
+        The objects were loaded when the update plan was built, so a full ``save()`` would
+        overwrite columns the import does not manage (e.g. ``consented_to_terms`` or
+        ``expiration``) with stale values if they were modified in the meantime.
+        """
+        if not changes:
+            return
+        for field, value in changes.items():
+            setattr(obj, field, value)
+        obj.save(update_fields=sorted(set(changes)))
+
     def _read_hpcaccess_state(self, cluster_state):
         """Read and normalize the json file from hpc-access-cli"""
         with open(cluster_state, "r") as jsonfile:
@@ -423,11 +436,9 @@ class Command(BaseCommand):
                     + hpc_users_update["changed"]
                     + hpc_groups_update["changed"]
                 ):
-                    for field, value in changes.items():
-                        if field == "primary_group":
-                            value = hpc_groups.get(value)
-                        setattr(old, field, value)
-                    old.save()
+                    if "primary_group" in changes:
+                        changes["primary_group"] = hpc_groups.get(changes["primary_group"])
+                    self._save_changes(old, changes)
 
                 for new, members in hpc_projects_update["added"]:
                     new.save()
@@ -435,9 +446,7 @@ class Command(BaseCommand):
                         new.members.add(member)
 
                 for old, changes, members in hpc_projects_update["changed"]:
-                    for field, value in changes.items():
-                        setattr(old, field, value)
-                    old.save()
+                    self._save_changes(old, changes)
                     old.members.set(members)
 
                 self.stdout.write("Done.")
