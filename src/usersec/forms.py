@@ -120,7 +120,7 @@ class HpcGroupChangeRequestForm(forms.ModelForm):
         self.fields["description"].initial = group.description
         self.fields["delegate"].initial = group.delegate
         self.fields["delegate"].queryset = HpcUser.objects.filter(
-            primary_group_gid=group.gid, status="ACTIVE"
+            primary_group=group, status="ACTIVE"
         ).exclude(id=group.owner.id)
 
         # Add fields for storage. Will be merged into resources_requested field.

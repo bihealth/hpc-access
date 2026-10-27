@@ -169,7 +169,7 @@ class HpcGroupFactory(HpcObjectFactoryBase):
     }
     description = "this is a group"
     creator = factory.SubFactory(UserFactory)  # User
-    gid = factory.Sequence(lambda n: 5000 + n)
+    gid = 5000
     name = factory.Sequence(lambda n: f"group{n}")
     folders = {
         "tier1_scratch": "/data/scratch/group",
@@ -229,7 +229,7 @@ class HpcUserFactory(HpcObjectFactoryBase):
         model = HpcUser
 
     user = factory.SubFactory(UserFactory)  # User
-    primary_group_gid = factory.LazyFunction(lambda: HpcGroupFactory().gid)
+    primary_group = factory.SubFactory(HpcGroupFactory)
     resources_requested = {"tier1_home": 1.0}
     resources_used = {"tier1_home": 0.5}
     creator = factory.SubFactory(UserFactory)  # User
@@ -303,7 +303,7 @@ class HpcProjectFactory(HpcObjectFactoryBase):
     creator = factory.SubFactory(UserFactory)  # User
     delegate = None  # HpcUser
     description = "this is a project"
-    gid = factory.Sequence(lambda n: 6000 + n)
+    gid = 6000
     name = factory.Sequence(lambda n: f"hpc-project{n}")
     folders = {
         "tier1_scratch": "/data/scratch/project",
