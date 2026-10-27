@@ -169,10 +169,14 @@ class ImportCommandTestBase(TestCase):
         super().setUp()
         self.worker, _ = User.objects.get_or_create(username="hpc-worker")
 
-    def run_import(self, state, *args, noinput=False, answer="y", stdout=None, stderr=None):
+    def run_import(
+        self, state, *args, noinput=False, answer="y", stdout=None, stderr=None, on_prompt=None
+    ):
         """Confirm ordinary imports; use ``noinput`` explicitly to test its guardrails.
 
-        Caller-supplied streams remain available when the command raises.
+        Caller-supplied streams remain available when the command raises. ``on_prompt`` is
+        called when the confirmation prompt is shown, i.e. after the update plan was built
+        and before anything is written: use it to simulate concurrent modifications.
         """
         doc = state.to_dict() if isinstance(state, State) else state
         out = stdout if stdout is not None else StringIO()
@@ -181,7 +185,13 @@ class ImportCommandTestBase(TestCase):
             json.dump(doc, fp)
             fp.flush()
             extra = ["--noinput"] if noinput else []
-            with mock.patch("builtins.input", return_value=answer) as prompt:
+
+            def prompt_answer(*_args):
+                if on_prompt:
+                    on_prompt()
+                return answer
+
+            with mock.patch("builtins.input", side_effect=prompt_answer) as prompt:
                 try:
                     call_command(COMMAND, fp.name, *extra, *args, stdout=out, stderr=err)
                 finally:
@@ -351,6 +361,59 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(bob.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(bob.events.count(), events_before)
         self.assertTrue(User.objects.get(username="bob@CHARITE").consented_to_terms)
+
+    def test_concurrent_changes_to_unmanaged_fields_survive_the_import(self):
+        """Only the changed columns are written, so values the file cannot provide (consent,
+        expiration) that were modified after the plan was built are not reverted."""
+        s = baseline()
+        s.users["bob"].update(email="new@example.com", uid=9999)
+        s.groups["g1"]["description"] = "new"
+        s.projects["p1"]["status"] = "EXPIRED"
+
+        def concurrent_edit():
+            User.objects.filter(username="bob@CHARITE").update(consented_to_terms=True)
+            HpcUser.objects.filter(username="bob_c").update(expiration="2099-12-31T00:00:00Z")
+            HpcGroup.objects.filter(name="grp-g1").update(expiration="2099-12-31T00:00:00Z")
+            HpcProject.objects.filter(name="proj1").update(expiration="2099-12-31T00:00:00Z")
+
+        self.run_import(s, on_prompt=concurrent_edit)
+
+        expiration = parse_datetime("2099-12-31T00:00:00Z")
+        user = User.objects.get(username="bob@CHARITE")
+        self.assertEqual(user.email, "new@example.com")  # the import did apply its changes
+        self.assertTrue(user.consented_to_terms)
+        hpc_user = HpcUser.objects.get(username="bob_c")
+        self.assertEqual(hpc_user.uid, 9999)
+        self.assertEqual(hpc_user.expiration, expiration)
+        group = HpcGroup.objects.get(name="grp-g1")
+        self.assertEqual(group.description, "new")
+        self.assertEqual(group.expiration, expiration)
+        project = HpcProject.objects.get(name="proj1")
+        self.assertEqual(project.status, "EXPIRED")
+        self.assertEqual(project.expiration, expiration)
+
+    def test_save_only_writes_changed_columns(self):
+        s = baseline()
+        s.users["bob"]["email"] = "new@example.com"
+        s.groups["g1"]["description"] = "new"
+        with (
+            mock.patch.object(User, "save", autospec=True, side_effect=User.save) as user_save,
+            mock.patch.object(HpcGroup, "save", autospec=True, side_effect=HpcGroup.save) as gsave,
+        ):
+            self.run_import(s)
+        user_save.assert_called_once()
+        self.assertEqual(user_save.call_args.kwargs["update_fields"], ["email"])
+        gsave.assert_called_once()
+        self.assertEqual(gsave.call_args.kwargs["update_fields"], ["description"])
+
+    def test_membership_only_project_change_does_not_save_the_project(self):
+        s = baseline()
+        s.projects["p1"]["members"] = ["alice"]
+        with mock.patch.object(HpcProject, "save", autospec=True) as project_save:
+            self.run_import(s)
+        project_save.assert_not_called()
+        members = HpcProject.objects.get(name="proj1").members.all()
+        self.assertEqual([m.username for m in members], ["alice_c"])
 
     def test_django_user_fields_updated(self):
         s = baseline()
