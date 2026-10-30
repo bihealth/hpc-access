@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "hpc-access API",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "description": "API for hpc-access HPC cluster management"
   },
   "paths": {
@@ -1944,22 +1944,22 @@
           "tier1_work": {
             "type": "number",
             "format": "double",
-            "default": 0.0
+            "default": 0
           },
           "tier1_scratch": {
             "type": "number",
             "format": "double",
-            "default": 0.0
+            "default": 0
           },
           "tier2_mirrored": {
             "type": "number",
             "format": "double",
-            "default": 0.0
+            "default": 0
           },
           "tier2_unmirrored": {
             "type": "number",
             "format": "double",
-            "default": 0.0
+            "default": 0
           }
         }
       },
@@ -1970,7 +1970,7 @@
           "tier1_home": {
             "type": "number",
             "format": "double",
-            "default": 0.0
+            "default": 0
           }
         }
       },
