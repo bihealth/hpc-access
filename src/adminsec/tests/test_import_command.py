@@ -20,6 +20,7 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 
@@ -344,15 +345,12 @@ class TestIdempotencyAndKeys(ImportCommandTestBase):
         out, _ = self.run_import(s)
         self.assertEqual(summary(out)["HpcProject"]["changed"], 0)
 
-    def test_existing_account_without_hpc_user_is_reused(self):
-        account = User.objects.create(
+    def test_existing_account_without_hpc_user_cannot_be_reused(self):
+        User.objects.create(
             username="alice@CHARITE", email="old@example.com", consented_to_terms=True
         )
-        self.run_import(baseline())
-        account.refresh_from_db()
-        self.assertEqual(account.email, "alice@example.com")
-        self.assertTrue(account.consented_to_terms)
-        self.assertEqual(HpcUser.objects.get(username="alice_c").user_id, account.pk)
+        with self.assertRaises(IntegrityError):
+            self.run_import(baseline())
 
 
 class TestUpdates(ImportCommandTestBase):
