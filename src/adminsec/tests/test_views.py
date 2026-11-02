@@ -1751,7 +1751,7 @@ class TestHpcProjectCreateRequestApproveView(TestViewBase):
                     event.hpcuser
                     for event in HpcProjectMembersEvent.objects.filter(
                         hpcproject=hpcproject, pgh_label="members.add"
-                    ).order_by("pgh_id")
+                    ).order_by("hpcuser__id")
                 ],
                 [self.hpc_owner, self.hpc_member, self.hpc_delegate],
             )
