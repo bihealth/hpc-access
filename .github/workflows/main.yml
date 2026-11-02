@@ -45,7 +45,7 @@ jobs:
               libldap2-dev libsasl2-dev
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: true
 
@@ -55,7 +55,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install project dependencies
         run: uv sync --group dev --extra ldap
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: true
 
@@ -86,7 +86,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Check that uv.lock is up to date
         run: uv lock --check
@@ -115,7 +115,7 @@ jobs:
           sudo apt-get install -y build-essential libpq-dev libldap2-dev libsasl2-dev
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.HPCACCESS_RELEASE_PLEASE_TOKEN }}
           lfs: true
@@ -126,7 +126,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install project dependencies
         run: uv sync --group dev --extra ldap
