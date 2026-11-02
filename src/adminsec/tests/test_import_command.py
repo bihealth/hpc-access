@@ -1,8 +1,9 @@
 """Database tests for the ``import`` management command.
 
 The command never deletes or deactivates anything: records that are absent from
-the json file are only *reported* as "missing" (and block ``--noinput`` runs).
-The tests below pin that behaviour.
+the json file are only *reported* as "missing" (without blocking writes).
+The tests below pin that behaviour. Imports are dry-run by default; the helper
+passes --write unless write=False.
 
 Run with ``./manage.py test -v2 adminsec.tests.test_import_command``. Requires
 the project's normal test database, including django-pghistory triggers.
@@ -12,7 +13,6 @@ import importlib
 import json
 import re
 import tempfile
-import unittest
 import uuid
 from io import StringIO
 from unittest import mock
@@ -170,36 +170,61 @@ class ImportCommandTestBase(TestCase):
         self.worker, _ = User.objects.get_or_create(username="hpc-worker")
 
     def run_import(
-        self, state, *args, noinput=False, answer="y", stdout=None, stderr=None, on_prompt=None
+        self,
+        state,
+        *args,
+        write=True,
+        stdout=None,
+        stderr=None,
+        before_execute=None,
+        verbosity=1,
     ):
-        """Confirm ordinary imports; use ``noinput`` explicitly to test its guardrails.
+        """Most fixtures explicitly write; pass write=False to test the CLI default.
 
-        Caller-supplied streams remain available when the command raises. ``on_prompt`` is
-        called when the confirmation prompt is shown, i.e. after the update plan was built
-        and before anything is written: use it to simulate concurrent modifications.
+        before_execute simulates an intervening edit in the same transaction. It
+        tests stale-column protection, not cross-connection locking.
         """
         doc = state.to_dict() if isinstance(state, State) else state
         out = stdout if stdout is not None else StringIO()
         err = stderr if stderr is not None else StringIO()
+        execute = COMMAND_MODULE.Command._execute_plan
+
+        def wrapped_execute(command, objects, updates):
+            if before_execute:
+                before_execute()
+            return execute(command, objects, updates)
+
         with tempfile.NamedTemporaryFile("w", suffix=".json") as fp:
             json.dump(doc, fp)
             fp.flush()
-            extra = ["--noinput"] if noinput else []
-
-            def prompt_answer(*_args):
-                if on_prompt:
-                    on_prompt()
-                return answer
-
-            with mock.patch("builtins.input", side_effect=prompt_answer) as prompt:
-                try:
-                    call_command(COMMAND, fp.name, *extra, *args, stdout=out, stderr=err)
-                finally:
-                    if noinput:
-                        prompt.assert_not_called()
-            if not noinput:
-                prompt.assert_called_once()
+            extra = ["--write"] if write else []
+            with (
+                mock.patch(
+                    "builtins.input", side_effect=AssertionError("Unexpected prompt")
+                ) as prompt,
+                mock.patch.object(COMMAND_MODULE.Command, "_execute_plan", wrapped_execute),
+            ):
+                call_command(
+                    COMMAND,
+                    fp.name,
+                    *extra,
+                    *args,
+                    stdout=out,
+                    stderr=err,
+                    verbosity=verbosity,
+                )
+                prompt.assert_not_called()
         return out.getvalue(), err.getvalue()
+
+    def read_state(self, state):
+        """Exercise normalization directly without database constraints masking it."""
+        err = StringIO()
+        command = COMMAND_MODULE.Command(stderr=err)
+        with tempfile.NamedTemporaryFile("w", suffix=".json") as fp:
+            json.dump(state.to_dict(), fp)
+            fp.flush()
+            result = command._read_hpcaccess_state(fp.name)
+        return result, err.getvalue()
 
     def db_snapshot(self):
         """Capture all concrete fields and memberships, including soft deletes."""
@@ -276,12 +301,13 @@ class TestInitialImport(ImportCommandTestBase):
         self.assertEqual((u.first_name, u.last_name), ("Carol", ""))
         self.assertEqual((u.name, u.display_name), ("Carol X", ""))
 
-    def test_primary_group_pointing_to_project_is_set_to_null_with_warning(self):
+    def test_user_with_project_as_primary_group_is_skipped(self):
         s = baseline()
         s.users["carol"]["primary_group"] = "p1"
         _, err = self.run_import(s)
-        self.assertIsNone(HpcUser.objects.get(username="carol_m").primary_group)
-        self.assertIn("is a project and will be set to NULL", err)
+        self.assertFalse(HpcUser.objects.filter(username="carol_m").exists())
+        self.assertFalse(User.objects.filter(username="carol@MDC-BERLIN").exists())
+        self.assertIn("is a project. This user will be skipped.", err)
 
 
 class TestIdempotencyAndKeys(ImportCommandTestBase):
@@ -315,7 +341,7 @@ class TestIdempotencyAndKeys(ImportCommandTestBase):
         self.run_import(baseline())
         s = baseline()
         s.projects["p1"]["members"].reverse()
-        out, _ = self.run_import(s, noinput=True)
+        out, _ = self.run_import(s)
         self.assertEqual(summary(out)["HpcProject"]["changed"], 0)
 
     def test_existing_account_without_hpc_user_is_reused(self):
@@ -357,12 +383,12 @@ class TestUpdates(ImportCommandTestBase):
             (9999, "EXPIRED", "/usr/bin/zsh", "/new/home"),
         )
         self.assertEqual(bob.resources_requested, {"tier1_home": 7})
-        self.assertEqual(bob.resources_used, {"tier1_home": 3})
+        self.assertEqual(bob.resources_used, {"tier1_home": 0})
         self.assertEqual(bob.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(bob.events.count(), events_before)
         self.assertTrue(User.objects.get(username="bob@CHARITE").consented_to_terms)
 
-    def test_concurrent_changes_to_unmanaged_fields_survive_the_import(self):
+    def test_intervening_changes_to_unmanaged_fields_survive_the_import(self):
         """Only the changed columns are written, so values the file cannot provide (consent,
         expiration) that were modified after the plan was built are not reverted."""
         s = baseline()
@@ -376,7 +402,7 @@ class TestUpdates(ImportCommandTestBase):
             HpcGroup.objects.filter(name="grp-g1").update(expiration="2099-12-31T00:00:00Z")
             HpcProject.objects.filter(name="proj1").update(expiration="2099-12-31T00:00:00Z")
 
-        self.run_import(s, on_prompt=concurrent_edit)
+        self.run_import(s, before_execute=concurrent_edit)
 
         expiration = parse_datetime("2099-12-31T00:00:00Z")
         user = User.objects.get(username="bob@CHARITE")
@@ -439,22 +465,24 @@ class TestUpdates(ImportCommandTestBase):
         bob = User.objects.get(username="bob@CHARITE")
         self.assertFalse(bob.is_active)
         self.assertEqual(bob.email, "new@example.com")
-        self.assertIn('Warning: user "bob@CHARITE" is not active', err)
+        self.assertIn('Warning: User "bob@CHARITE" is not active', err)
 
-    def test_primary_group_moved_to_project_is_set_to_null_with_warning(self):
+    def test_existing_user_with_project_primary_group_is_left_untouched(self):
         s = baseline()
-        s.users["dave"]["primary_group"] = "p1"
-        _, err = self.run_import(s)
-        self.assertIsNone(HpcUser.objects.get(username="dave_c").primary_group)
-        self.assertIn("is a project and will be set to NULL", err)
-
-    def test_missing_primary_group_reference_is_rejected_without_changes(self):
-        s = baseline()
-        s.users["dave"].update(primary_group="missing", uid=9999)
+        s.users["carol"].update(primary_group="p1", uid=9999)
         before = self.db_snapshot()
-        with self.assertRaisesMessage(CommandError, "missing primary_group reference"):
-            self.run_import(s)
+        out, err = self.run_import(s)
         self.assertEqual(self.db_snapshot(), before)
+        self.assertEqual(summary(out)["HpcUser"]["missing"], 1)
+        self.assertIn("This user will be skipped.", err)
+
+    def test_missing_primary_group_reference_skips_user_without_changes(self):
+        s = baseline()
+        s.users["carol"].update(primary_group="missing", uid=9999)
+        before = self.db_snapshot()
+        _, err = self.run_import(s)
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertIn("missing primary_group reference", err)
 
     def test_primary_group_moves_between_groups(self):
         s = baseline()
@@ -493,7 +521,7 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual((g1.description, g1.status, g1.gid), ("new", "EXPIRED", 1999))
         self.assertEqual(g1.folders, {"tier1_work": "/new/group"})
         self.assertEqual(g1.resources_requested, {"tier1_work": 20})
-        self.assertEqual(g1.resources_used, {"tier1_work": 4})
+        self.assertEqual(g1.resources_used, {"tier1_work": 1})
         self.assertEqual(g1.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(g1.events.count(), events_before)
 
@@ -528,7 +556,7 @@ class TestUpdates(ImportCommandTestBase):
         self.assertEqual(p1.gid, 2999)
         self.assertEqual(p1.folders, {"tier1_work": "/new/project"})
         self.assertEqual(p1.resources_requested, {"tier1_work": 12})
-        self.assertEqual(p1.resources_used, {"tier1_work": 3})
+        self.assertEqual(p1.resources_used, {"tier1_work": 1})
         self.assertEqual(p1.expiration, parse_datetime("2099-12-31T00:00:00Z"))
         self.assertGreater(p1.events.count(), events_before)
 
@@ -567,7 +595,7 @@ class TestUpdates(ImportCommandTestBase):
             for data in collection.values():
                 data["expiration"] = "2001-01-01T00:00:00+00:00"
         before = self.db_snapshot()
-        out, _ = self.run_import(s, noinput=True)
+        out, _ = self.run_import(s)
         self.assertEqual(self.db_snapshot(), before)
         for counts in summary(out).values():
             self.assertEqual(counts["changed"], 0)
@@ -674,12 +702,11 @@ class TestMissingRecords(ImportCommandTestBase):
         s = baseline()
         s.users["dave"]["primary_group"] = "p1"
         del s.groups["g2"]
-        _, err = self.run_import(s)
-        dave = HpcUser.objects.get(username="dave_c")
-        self.assertEqual(dave.status, OBJECT_STATUS_ACTIVE)
-        self.assertIsNone(dave.primary_group)  # projects cannot be primary groups
-        self.assertIn("is a project and will be set to NULL", err)
-        self.assertEqual(HpcGroup.objects.get(gid=1002).status, OBJECT_STATUS_ACTIVE)
+        before = self.db_snapshot()
+        out, err = self.run_import(s)
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertEqual(summary(out)["HpcUser"]["missing"], 1)
+        self.assertIn("This user will be skipped.", err)
 
     def test_missing_user_is_reported_and_account_is_not_touched(self):
         s = baseline()
@@ -714,7 +741,7 @@ class TestMissingRecords(ImportCommandTestBase):
         self.assertEqual(summary(out)["User"]["missing"], 0)
         self.assertEqual(summary(out)["User"]["initial"], 4)
 
-    def test_objects_already_marked_deleted_are_not_reported_missing(self):
+    def test_deleted_objects_are_reported_missing_and_left_untouched(self):
         HpcUser.objects.filter(username="dave_c").update(status=OBJECT_STATUS_DELETED)
         HpcGroup.objects.filter(gid=1002).update(status=OBJECT_STATUS_DELETED)
         HpcProject.objects.filter(name="proj1").update(status=OBJECT_STATUS_DELETED)
@@ -723,116 +750,163 @@ class TestMissingRecords(ImportCommandTestBase):
         del s.groups["g2"]
         del s.users["dave"]
         before = self.db_snapshot()
-        out, _ = self.run_import(s)
+        out, err = self.run_import(s)
         counts = summary(out)
-        for model in ("HpcUser", "HpcGroup", "HpcProject"):
-            self.assertEqual(counts[model]["missing"], 0, model)
-        self.assertEqual(counts["HpcUser"]["initial"], 3)
-        self.assertEqual(counts["HpcGroup"]["initial"], 1)
-        self.assertEqual(counts["HpcProject"]["initial"], 0)
+        for model, initial in (("User", 4), ("HpcUser", 4), ("HpcGroup", 2), ("HpcProject", 1)):
+            self.assertEqual(counts[model]["initial"], initial, model)
+            self.assertEqual(counts[model]["missing"], 1, model)
+            self.assertEqual(counts[model]["added"], 0, model)
+            self.assertEqual(counts[model]["changed"], 0, model)
+        self.assertIn("4 records are missing from the state json file.", err)
         self.assertEqual(self.db_snapshot(), before)
 
-    @unittest.expectedFailure
-    def test_user_of_a_deleted_hpc_user_is_not_reported_missing(self):
-        """Known inconsistency in import.py (see audit): ``_users_update_plan`` does not
-        exclude Users whose HpcUsers are all DELETED, unlike the other three plans, so
-        such a user is reported missing forever and permanently blocks ``--noinput``."""
+    def test_account_and_deleted_hpc_user_are_both_reported_missing(self):
         HpcUser.objects.filter(username="dave_c").update(status=OBJECT_STATUS_DELETED)
+        account = User.objects.get(username="dave@CHARITE")
+        hpc_user = HpcUser.objects.get(username="dave_c")
         s = baseline()
         del s.users["dave"]
         s.groups["g2"]["owner"] = "alice"
-        out, _ = self.run_import(s)
-        self.assertEqual(summary(out)["User"]["missing"], 0)
+        out, err = self.run_import(s)
+        counts = summary(out)
+        self.assertEqual(counts["User"]["missing"], 1)
+        self.assertEqual(counts["HpcUser"]["missing"], 1)
+        self.assertEqual(counts["User"]["initial"], 4)
+        self.assertEqual(counts["HpcUser"]["initial"], 4)
+        self.assertIn("2 records are missing from the state json file.", err)
+        self.assertEqual(User.objects.get(pk=account.pk).is_active, account.is_active)
+        hpc_user.refresh_from_db()
+        self.assertEqual(hpc_user.status, OBJECT_STATUS_DELETED)
+        self.assertEqual(hpc_user.user_id, account.pk)
+        self.assertEqual(HpcGroup.objects.get(name="grp-g2").owner.username, "alice_c")
 
-    def test_deleted_group_and_project_are_reactivated_when_they_reappear(self):
-        group = HpcGroup.objects.get(gid=1002)
-        project = HpcProject.objects.get(name="proj1")
-        HpcGroup.objects.filter(pk=group.pk).update(status=OBJECT_STATUS_DELETED)
-        HpcProject.objects.filter(pk=project.pk).update(status=OBJECT_STATUS_DELETED)
-        out, _ = self.run_import(baseline("fresh-export"))
-        for model, obj in ((HpcGroup, group), (HpcProject, project)):
-            obj.refresh_from_db()
-            self.assertEqual(obj.status, OBJECT_STATUS_ACTIVE)
+    def test_deleted_objects_are_reactivated_in_place_when_they_reappear(self):
+        models = (HpcUser, HpcGroup, HpcProject)
+        identities = {
+            model: dict(model.objects.values_list("username" if model is HpcUser else "name", "pk"))
+            for model in models
+        }
+        for model in models:
+            model.objects.update(status=OBJECT_STATUS_DELETED)
+        before = self.db_snapshot()
+        candidate = baseline("fresh-export")
+
+        # A dry-run plans updates to retained rows without changing their status.
+        out, _ = self.run_import(candidate, write=False)
+        self.assertEqual(self.db_snapshot(), before)
+        for name, count in (("HpcUser", 4), ("HpcGroup", 2), ("HpcProject", 1)):
+            self.assertEqual(summary(out)[name]["added"], 0)
+            self.assertEqual(summary(out)[name]["changed"], count)
+            self.assertEqual(summary(out)[name]["missing"], 0)
+
+        out, _ = self.run_import(candidate)
+        for model in models:
+            key = "username" if model is HpcUser else "name"
+            self.assertEqual(dict(model.objects.values_list(key, "pk")), identities[model])
+            self.assertFalse(model.objects.exclude(status=OBJECT_STATUS_ACTIVE).exists())
             self.assertEqual(summary(out)[model.__name__]["added"], 0)
-            self.assertEqual(summary(out)[model.__name__]["changed"], 1)
-        self.assertEqual(HpcProject.objects.get(name="proj1").members.count(), 2)
+            self.assertEqual(summary(out)[model.__name__]["changed"], len(identities[model]))
+
+        alice = HpcUser.objects.get(username="alice_c")
+        group = HpcGroup.objects.get(name="grp-g1")
+        project = HpcProject.objects.get(name="proj1")
+        self.assertEqual(alice.primary_group, group)
+        self.assertEqual(group.owner, alice)
+        self.assertEqual(group.delegate.username, "bob_c")
+        self.assertEqual(project.group, group)
+        self.assertEqual(project.delegate.username, "bob_c")
+        self.assertEqual(
+            set(project.members.values_list("username", flat=True)), {"alice_c", "bob_c"}
+        )
 
 
 class TestMalformedInput(ImportCommandTestBase):
-    def test_dangling_references_and_duplicate_gids_are_rejected(self):
-        def ghost_owner(s):
-            s.groups["g2"]["owner"] = "ghost"
-
-        def ghost_group_delegate(s):
-            s.groups["g2"]["delegate"] = "ghost"
-
-        def duplicate_group_gid(s):
-            s.groups["g2"]["gid"] = 1001
-
-        def project_gid_clashes_with_group(s):
-            s.projects["p1"]["gid"] = 1002
-
-        def ghost_project_group(s):
-            s.projects["p1"]["group"] = "ghost"
-
-        def ghost_project_delegate(s):
-            s.projects["p1"]["delegate"] = "ghost"
-
-        def ghost_member(s):
-            s.projects["p1"]["members"].append("ghost")
-
-        def ghost_primary_group(s):
-            s.users["carol"]["primary_group"] = "ghost"
-
-        cases = [
-            (ghost_owner, "missing owner reference"),
-            (ghost_group_delegate, "missing delegate reference"),
-            (duplicate_group_gid, "Duplicate gid detected: 1001"),
-            (project_gid_clashes_with_group, "Duplicate gid detected: 1002"),
-            (ghost_project_group, "missing group reference"),
-            (ghost_project_delegate, "missing delegate reference"),
-            (ghost_member, "missing member reference"),
-            (ghost_primary_group, "missing primary_group reference"),
-        ]
-        for mutate, message in cases:
-            with self.subTest(case=mutate.__name__):
+    def test_invalid_group_references_skip_group_and_dependent_project(self):
+        for field in ("owner", "delegate"):
+            with self.subTest(field=field):
                 s = baseline()
-                mutate(s)
-                with self.assertRaisesMessage(CommandError, message):
-                    self.run_import(s)
-                self.assertFalse(HpcUser.objects.exists())
-                self.assertFalse(User.objects.filter(username="alice@CHARITE").exists())
+                # Keep all users independent of the group being skipped.
+                s.users["alice"]["primary_group"] = None
+                s.users["bob"]["primary_group"] = None
+                s.groups["g1"][field] = "ghost"
+                normalized, err = self.read_state(s)
+                self.assertNotIn(s._id("g1"), normalized.hpc_groups)
+                self.assertNotIn(s._id("p1"), normalized.hpc_projects)
+                self.assertIn(f"missing {field} reference", err)
+                self.assertIn("missing group reference", err)
+
+    def test_invalid_project_references_skip_project_and_import_valid_objects(self):
+        for field, value, message in (
+            ("group", "ghost", "missing group reference"),
+            ("delegate", "ghost", "missing delegate reference"),
+            ("members", ["alice", "ghost"], "missing member reference"),
+        ):
+            with self.subTest(field=field):
+                s = baseline()
+                s.projects["p1"][field] = value
+                _, err = self.run_import(s)
+                self.assertFalse(HpcProject.objects.exists())
+                self.assertEqual(HpcUser.objects.count(), 4)
+                self.assertEqual(HpcGroup.objects.count(), 2)
+                self.assertIn(message, err)
+
+    def test_duplicate_gids_warn_but_are_retained_in_normalized_input(self):
+        # Avoid assuming whether database constraints permit duplicates.
+        for collection, key in (("groups", "g2"), ("projects", "p1")):
+            with self.subTest(collection=collection):
+                s = baseline()
+                getattr(s, collection)[key]["gid"] = 1001
+                normalized, err = self.read_state(s)
+                self.assertEqual(len(normalized.hpc_groups), 2)
+                self.assertEqual(len(normalized.hpc_projects), 1)
+                self.assertIn("Duplicate gid detected: 1001", err)
+
+    def test_multiple_missing_members_skip_project_without_crashing(self):
+        """BUG: continue targets the member loop, deleting the project twice."""
+        s = baseline()
+        s.projects["p1"]["members"] = ["ghost1", "ghost2"]
+        normalized, err = self.read_state(s)
+        self.assertNotIn(s._id("p1"), normalized.hpc_projects)
+        self.assertIn("missing member reference", err)
+
+    def test_skipped_group_does_not_leave_dangling_primary_groups(self):
+        """BUG: user references are checked before invalid groups are removed."""
+        s = baseline()
+        s.groups["g2"]["owner"] = "ghost"
+        normalized, _ = self.read_state(s)
+        self.assertNotIn(s._id("g2"), normalized.hpc_groups)
+        for user in normalized.hpc_users.values():
+            if user["primary_group"]:
+                self.assertIn(user["primary_group"], normalized.hpc_groups)
 
 
 class TestCommandBehaviour(ImportCommandTestBase):
-    def test_confirmation_declined_leaves_database_untouched(self):
+    def test_default_dry_run_leaves_database_untouched(self):
         before = self.db_snapshot()
-        out, _ = self.run_import(baseline(), answer="n")
+        out, _ = self.run_import(baseline(), write=False)
         self.assertEqual(self.db_snapshot(), before)
-        self.assertIn("The database was not changed", out)
-        self.assertFalse(HpcUser.objects.exists())
-        self.assertFalse(User.objects.filter(username="alice@CHARITE").exists())
+        self.assertEqual(summary(out)["HpcUser"]["added"], 4)
+        self.assertIn("This was a dry-run.", out)
+        self.assertNotIn("Applying changes", out)
+        self.assertNotIn("Done.", out)
 
-    def test_confirmation_accepted_applies_changes(self):
-        for index, answer in enumerate(("y", "Y", "yes")):
-            with self.subTest(answer=answer):
-                s = baseline()
-                s.users["alice"]["email"] = f"alice{index}@example.com"
-                self.run_import(s, answer=answer)
-                self.assertEqual(HpcUser.objects.count(), 4)
-                self.assertEqual(
-                    User.objects.get(username="alice@CHARITE").email,
-                    f"alice{index}@example.com",
-                )
+    def test_write_applies_changes_without_prompting(self):
+        out, _ = self.run_import(baseline())
+        self.assertEqual(HpcUser.objects.count(), 4)
+        self.assertIn("Done.", out)
+        self.assertNotIn("This was a dry-run.", out)
 
-    def test_anything_but_yes_declines_including_the_empty_default(self):
-        for answer in ("", "n", "no", "x"):
-            with self.subTest(answer=answer):
-                before = self.db_snapshot()
-                out, _ = self.run_import(baseline(), answer=answer)
-                self.assertIn("The database was not changed", out)
-                self.assertNotIn("Done.", out)
-                self.assertEqual(self.db_snapshot(), before)
+    def test_dry_run_reports_updates_and_missing_records_without_writing(self):
+        self.run_import(baseline())
+        before = self.db_snapshot()
+        s = baseline()
+        s.users["bob"]["email"] = "new@example.com"
+        del s.users["carol"]
+        out, err = self.run_import(s, write=False)
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertEqual(summary(out)["User"]["changed"], 1)
+        self.assertEqual(summary(out)["HpcUser"]["missing"], 1)
+        self.assertIn("2 records are missing", err)
 
     def test_report_is_printed_before_writing(self):
         out = StringIO()
@@ -901,58 +975,31 @@ class TestCommandBehaviour(ImportCommandTestBase):
         self.assertEqual(self.db_snapshot(), before)
 
 
-class TestNoinputGuardrail(ImportCommandTestBase):
-    """``--noinput`` skips the prompt, but refuses to run if any record is missing."""
-
-    def test_noinput_allows_initial_import_with_no_existing_objects(self):
-        out, _ = self.run_import(baseline(), noinput=True)
-        self.assertEqual(HpcUser.objects.count(), 4)
-        self.assertIn("0 records are missing from the state json file.", out)
-        self.assertIn("Done.", out)
-
-    def test_noinput_applies_changes_when_nothing_is_missing(self):
+class TestWriteBehaviour(ImportCommandTestBase):
+    def test_missing_records_warn_but_do_not_block_changes(self):
         self.run_import(baseline())
         s = baseline()
-        s.users["bob"].update(email="new@example.com", uid=9999)
-        out, err = self.run_import(s, noinput=True)
+        del s.users["carol"]
+        s.users["bob"]["email"] = "new@example.com"
+        out, err = self.run_import(s)
         self.assertEqual(User.objects.get(username="bob@CHARITE").email, "new@example.com")
-        self.assertEqual(HpcUser.objects.get(username="bob_c").uid, 9999)
+        self.assertTrue(HpcUser.objects.filter(username="carol_m").exists())
+        self.assertIn("2 records are missing from the state json file.", err)
+        self.assertNotIn("records are missing", out)
         self.assertIn("Done.", out)
-        self.assertEqual(err, "")
 
-    def test_noinput_has_no_limit_on_the_amount_of_changes(self):
-        """There is no percentage threshold: even changing every account is applied."""
+    def test_resources_used_only_changes_are_ignored(self):
         self.run_import(baseline())
-        s = baseline()
-        for key, data in s.users.items():
-            data["email"] = f"new-{key}@example.com"
-            data["uid"] += 1000
-        out, _ = self.run_import(s, noinput=True)
-        counts = summary(out)
-        self.assertEqual((counts["User"]["changed"], counts["HpcUser"]["changed"]), (4, 4))
-        self.assertNotIn("Too many changes", out)
-        self.assertEqual(
-            User.objects.get(username="carol@MDC-BERLIN").email, "new-carol@example.com"
-        )
-
-    def test_noinput_allows_additions(self):
-        self.run_import(baseline())
-        candidate = baseline()
-        candidate.user("erin", "erin_m").user("frank", "frank_c")
-        out, _ = self.run_import(candidate, noinput=True)
-        self.assertEqual(summary(out)["HpcUser"]["added"], 2)
-        self.assertEqual(HpcUser.objects.count(), 6)
-
-    def test_noinput_refuses_any_missing_record(self):
-        self.run_import(baseline())
-        candidate = baseline()
-        del candidate.users["carol"]
         before = self.db_snapshot()
-        out, err = StringIO(), StringIO()
-        with self.assertRaisesMessage(CommandError, "Missing entries"):
-            self.run_import(candidate, noinput=True, stdout=out, stderr=err)
-        # carol is missing as a User and as an HpcUser
-        self.assertIn("2 records are missing from the state json file.", out.getvalue())
-        self.assertIn("cannot be used", err.getvalue())
-        self.assertNotIn("Applying changes", out.getvalue())
+        s = baseline()
+        for collection in (s.users, s.groups, s.projects):
+            for data in collection.values():
+                data["resources_used"] = {key: 999 for key in data["resources_used"]}
+        out, _ = self.run_import(s)
         self.assertEqual(self.db_snapshot(), before)
+        for counts in summary(out).values():
+            self.assertEqual(counts["changed"], 0)
+
+    def test_removed_noinput_option_is_rejected(self):
+        with self.assertRaises(CommandError):
+            self.run_import(baseline(), "--noinput", write=False)
