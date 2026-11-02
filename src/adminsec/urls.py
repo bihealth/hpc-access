@@ -270,6 +270,14 @@ urlpatterns_ui = [
         view=views.TermsAndConditionsPublishView.as_view(),
         name="termsandconditions-publish",
     ),
+    # ------------------------------------------------------------------------------
+    # Storage related
+    # ------------------------------------------------------------------------------
+    path(
+        "storage/hpcgroup",
+        view=views.StorageByHpcGroupView.as_view(),
+        name="storage-hpcgroup",
+    ),
 ]
 
 urlpatterns_api = [
@@ -317,6 +325,12 @@ urlpatterns_api = [
         "api/hpcprojectcreaterequest/<uuid:hpcprojectcreaterequest>/",
         view=views_api.HpcProjectCreateRequestRetrieveUpdateApiView.as_view(),
         name="api-hpcprojectcreaterequest-retrieveupdate",
+    ),
+    # API endpoints for HpcaccessState
+    path(
+        "api/hpcaccessstate/",
+        view=views_api.HpcaccessStateApiView.as_view(),
+        name="api-hpcaccess-state",
     ),
 ]
 

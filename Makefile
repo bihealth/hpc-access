@@ -21,12 +21,12 @@ celery:
 
 .PHONY: test
 test:
-	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test
+	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test src -v2 --settings=config.settings.test
 
 
 .PHONY: test-keepdb
 test-keepdb:
-	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test -v2 --settings=config.settings.test --keepdb
+	ENABLE_LDAP=0 ENABLE_LDAP_SECONDARY=0 $(manage) test src -v2 --settings=config.settings.test --keepdb
 
 
 .PHONY: _test-snap
@@ -66,13 +66,13 @@ migrate: _migrate format
 
 .PHONY: test-coverage
 test-coverage:
-	uv run coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test -v2 --settings=config.settings.test
+	uv run coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test src -v2 --settings=config.settings.test
 	uv run coverage report
 	uv run coverage html
 
 
 .PHONY: test-coverage-keepdb
 test-coverage-keepdb:
-	uv run coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test -v2 --settings=config.settings.test --keepdb
+	uv run coverage run --source=adminsec,usersec --omit={adminsec,usersec}/migrations/*,*.html manage.py test src -v2 --settings=config.settings.test --keepdb
 	uv run coverage report
 	uv run coverage html

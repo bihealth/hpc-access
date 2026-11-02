@@ -9,6 +9,7 @@ from django.urls import include, path
 from django.views import defaults as default_views
 from django.views.generic import RedirectView
 from django.views.generic.base import TemplateView
+from drf_spectacular.views import SpectacularAPIView
 from sentry_sdk import last_event_id
 
 from usersec import views
@@ -53,6 +54,7 @@ urlpatterns = [
         ),
         name="admin-landing",
     ),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("favicon.ico", RedirectView.as_view(url="/static/images/favicons/favicon.ico")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -45,7 +45,7 @@ jobs:
               libldap2-dev libsasl2-dev
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: true
 
@@ -55,7 +55,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install project dependencies
         run: uv sync --group dev --extra ldap
@@ -68,7 +68,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run coverage run manage.py test -v 2 --settings=config.settings.test
+          uv run coverage run manage.py test src -v 2 --settings=config.settings.test
           uv run coverage xml
           uv run coverage report
 
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           lfs: true
 
@@ -86,7 +86,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
+
+      - name: Check that uv.lock is up to date
+        run: uv lock --check
 
       - name: Install project dependencies
         run: uv sync --group dev
@@ -95,3 +98,53 @@ jobs:
         run: |
           uv run ruff check
           uv run ruff format --check
+
+  Generate-Schema:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      CELERY_BROKER_URL: redis://0.0.0.0:6379/0
+      DATABASE_URL: 'postgres://hpcaccess:hpcaccess@0.0.0.0/hpcaccess'
+    steps:
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libpq-dev libldap2-dev libsasl2-dev
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.HPCACCESS_RELEASE_PLEASE_TOKEN }}
+          lfs: true
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install project dependencies
+        run: uv sync --group dev --extra ldap
+
+      - name: Download icons
+        run: uv run python manage.py geticons
+
+      - name: Run collectstatic
+        run: uv run python manage.py collectstatic --noinput
+
+      - name: Generate OpenAPI schema
+        run: uv run python manage.py export_openapi_schema src/hpc_access/openapi-schema.json
+
+      - name: Create pull request for the new schema (if changed)
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.HPCACCESS_RELEASE_PLEASE_TOKEN }}
+          add-paths: |
+            src/hpc_access/openapi-schema.json
+          commit-message: 'chore: update OpenAPI schema'
+          title: 'chore: update OpenAPI schema'

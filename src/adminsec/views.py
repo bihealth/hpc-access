@@ -27,6 +27,7 @@ from adminsec.constants import (
     DEFAULT_GROUP_DIRECTORY_TIER1_WORK,
     DEFAULT_GROUP_DIRECTORY_TIER2_MIRRORED,
     DEFAULT_GROUP_DIRECTORY_TIER2_UNMIRRORED,
+    DEFAULT_GROUP_RESOURCES,
     DEFAULT_HOME_DIRECTORY,
     DEFAULT_PROJECT_DIRECTORY_TIER1_SCRATCH,
     DEFAULT_PROJECT_DIRECTORY_TIER1_WORK,
@@ -63,7 +64,6 @@ from usersec.models import (
     HpcGroupChangeRequest,
     HpcGroupCreateRequest,
     HpcGroupInvitation,
-    HpcGroupVersion,
     HpcProject,
     HpcProjectChangeRequest,
     HpcProjectCreateRequest,
@@ -289,7 +289,7 @@ class HpcGroupCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(
@@ -367,7 +367,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
 
         # Create HpcGroup object
-        hpcgroup = HpcGroup.objects.create_with_version(
+        hpcgroup = HpcGroup.objects.create(
             resources_requested=obj.resources_requested,
             description=obj.description,
             creator=self.request.user,
@@ -380,7 +380,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         username = django_to_hpc_username(obj.requester.username)
 
         # Create HpcUser object
-        hpcuser = HpcUser.objects.create_with_version(
+        hpcuser = HpcUser.objects.create(
             user=obj.requester,
             primary_group=hpcgroup,
             resources_requested=DEFAULT_USER_RESOURCES,
@@ -396,13 +396,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         # Set group owner
         hpcgroup.owner = hpcuser
         hpcgroup.status = OBJECT_STATUS_ACTIVE
-        hpcgroup.save()  # We do not need another version for this action.
-
-        # Set group owner in version object
-        hpcgroup_version = HpcGroupVersion.objects.get(belongs_to=hpcgroup)
-        hpcgroup_version.owner = hpcuser
-        hpcgroup.status = OBJECT_STATUS_ACTIVE
-        hpcgroup_version.save()
+        hpcgroup.save()
 
         if settings.SEND_EMAIL:
             send_notification_manager_group_created(obj, hpcgroup)
@@ -410,7 +404,7 @@ class HpcGroupCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         obj.comment = COMMENT_APPROVED
         obj.editor = self.request.user
-        obj.approve_with_version()
+        obj.approve()
 
         messages.success(self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_GROUP_CREATION))
         return HttpResponseRedirect(reverse("adminsec:overview"))
@@ -440,7 +434,7 @@ class HpcGroupCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -517,7 +511,7 @@ class HpcUserCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(
@@ -562,7 +556,7 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                invitation = HpcGroupInvitation.objects.create_with_version(
+                invitation = HpcGroupInvitation.objects.create(
                     hpcusercreaterequest=obj, username=django_username
                 )
 
@@ -580,7 +574,7 @@ class HpcUserCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         obj.comment = COMMENT_APPROVED
         obj.editor = self.request.user
-        obj.approve_with_version()
+        obj.approve()
 
         messages.success(self.request, "Request approved and invitation created.")
         return HttpResponseRedirect(reverse("adminsec:overview"))
@@ -610,7 +604,7 @@ class HpcUserCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -688,7 +682,7 @@ class HpcGroupChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(self.request, MSG_REQUEST_REVISION_FAILURE.format(MSG_PART_GROUP_UPDATE))
@@ -716,12 +710,11 @@ class HpcGroupChangeRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                obj.group.update_with_version(
-                    delegate=obj.delegate,
-                    expiration=obj.expiration,
-                    resources_requested=obj.resources_requested,
-                    description=obj.description,
-                )
+                obj.group.delegate = obj.delegate
+                obj.group.expiration = obj.expiration
+                obj.group.resources_requested = obj.resources_requested
+                obj.group.description = obj.description
+                obj.group.save()
 
         except Exception as e:
             messages.error(
@@ -741,7 +734,7 @@ class HpcGroupChangeRequestApproveView(HpcPermissionMixin, DeleteView):
         with transaction.atomic():
             obj.comment = COMMENT_APPROVED
             obj.editor = self.request.user
-            obj.approve_with_version()
+            obj.approve()
 
         messages.success(self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_GROUP_UPDATE))
         return HttpResponseRedirect(reverse("adminsec:overview"))
@@ -772,7 +765,7 @@ class HpcGroupChangeRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -874,7 +867,7 @@ class HpcProjectCreateRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(
@@ -956,7 +949,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
 
         try:
-            project = HpcProject.objects.create_with_version(
+            project = HpcProject.objects.create(
                 group=obj.group,
                 name=obj.name,
                 gid=get_next_hpcproject_gid(),
@@ -970,14 +963,13 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
             )
             members = list(obj.members.all())
             project.members.add(*members)
-            project.get_latest_version().members.add(*members)
 
             # Create invitations for users
             for member in members:
                 if member == obj.group.owner:
                     continue
 
-                invitation = HpcProjectInvitation.objects.create_with_version(
+                invitation = HpcProjectInvitation.objects.create(
                     project=project,
                     hpcprojectcreaterequest=obj,
                     user=member,
@@ -1005,7 +997,7 @@ class HpcProjectCreateRequestApproveView(HpcPermissionMixin, DeleteView):
 
         obj.comment = COMMENT_APPROVED
         obj.editor = self.request.user
-        obj.approve_with_version()
+        obj.approve()
 
         messages.success(
             self.request, MSG_REQUEST_APPROVED_SUCCESS.format(MSG_PART_PROJECT_CREATION)
@@ -1037,7 +1029,7 @@ class HpcProjectCreateRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             # TODO email to user: project denied.
@@ -1100,7 +1092,7 @@ class HpcUserDeleteRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(
@@ -1131,7 +1123,7 @@ class HpcUserDeleteRequestApproveView(HpcPermissionMixin, DeleteView):
         try:
             with transaction.atomic():
                 obj.user.primary_group = None
-                obj.user.delete_with_version()
+                obj.user.soft_delete()
 
         except Exception as e:
             messages.error(self.request, "Could not delete user: {}".format(e))
@@ -1145,7 +1137,7 @@ class HpcUserDeleteRequestApproveView(HpcPermissionMixin, DeleteView):
         with transaction.atomic():
             obj.comment = COMMENT_APPROVED
             obj.editor = self.request.user
-            obj.approve_with_version()
+            obj.approve()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_approved(obj)
@@ -1178,7 +1170,7 @@ class HpcUserDeleteRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -1240,7 +1232,7 @@ class HpcUserChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(self.request, MSG_REQUEST_REVISION_FAILURE.format(MSG_PART_USER_UPDATE))
@@ -1268,7 +1260,8 @@ class HpcUserChangeRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                obj.user.update_with_version(expiration=obj.expiration)
+                obj.user.expiration = obj.expiration
+                obj.user.save()
 
         except Exception as e:
             messages.error(self.request, "Could not update user: {}".format(e))
@@ -1282,7 +1275,7 @@ class HpcUserChangeRequestApproveView(HpcPermissionMixin, DeleteView):
         with transaction.atomic():
             obj.comment = COMMENT_APPROVED
             obj.editor = self.request.user
-            obj.approve_with_version()
+            obj.approve()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_approved(obj)
@@ -1315,7 +1308,7 @@ class HpcUserChangeRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -1393,7 +1386,7 @@ class HpcProjectChangeRequestRevisionView(HpcPermissionMixin, UpdateView):
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.editor = self.request.user
-        obj = obj.revision_with_version()
+        obj.request_revision()
 
         if not obj:
             messages.error(
@@ -1423,18 +1416,17 @@ class HpcProjectChangeRequestApproveView(HpcPermissionMixin, DeleteView):
 
         try:
             with transaction.atomic():
-                obj.project.update_with_version(
-                    delegate=obj.delegate,
-                    expiration=obj.expiration,
-                    resources_requested=obj.resources_requested,
-                    description=obj.description,
-                )
+                obj.project.delegate = obj.delegate
+                obj.project.expiration = obj.expiration
+                obj.project.resources_requested = obj.resources_requested
+                obj.project.description = obj.description
+                obj.project.save()
 
                 for member in obj.members.all():
                     if obj.project.members.filter(id=member.id).exists():
                         continue
 
-                    invitation = HpcProjectInvitation.objects.create_with_version(
+                    invitation = HpcProjectInvitation.objects.create(
                         project=obj.project,
                         hpcprojectchangerequest=obj,
                         user=member,
@@ -1445,7 +1437,6 @@ class HpcProjectChangeRequestApproveView(HpcPermissionMixin, DeleteView):
 
                 for member in obj.project.members.all():
                     if obj.members.filter(id=member.id).exists():
-                        obj.project.get_latest_version().members.add(member)
                         continue
 
                     obj.project.members.remove(member)
@@ -1465,7 +1456,7 @@ class HpcProjectChangeRequestApproveView(HpcPermissionMixin, DeleteView):
         with transaction.atomic():
             obj.comment = COMMENT_APPROVED
             obj.editor = self.request.user
-            obj.approve_with_version()
+            obj.approve()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_approved(obj)
@@ -1499,7 +1490,7 @@ class HpcProjectChangeRequestDenyView(HpcPermissionMixin, DeleteView):
         obj = self.get_object()
         obj.comment = self.request.POST.get("comment")
         obj.editor = self.request.user
-        obj.deny_with_version()
+        obj.deny()
 
         if settings.SEND_EMAIL:
             send_notification_manager_request_denied(obj)
@@ -1601,3 +1592,25 @@ class TermsAndConditionsPublishView(HpcPermissionMixin, FormMixin, View):
                 send_notification_user_consent(user)
 
         return HttpResponseRedirect(self.success_url)
+
+
+class StorageByHpcGroupView(HpcPermissionMixin, ListView):
+    """Storage by Hpc Group"""
+
+    permission_required = "adminsec.is_hpcadmin"
+    template_name = "adminsec/storage_by_hpc_group.html"
+    model = HpcGroup
+
+    def get_context_data(self, *args, **kwargs):
+        resource_keys = DEFAULT_GROUP_RESOURCES.keys()
+        for obj in self.object_list:
+            for k in resource_keys:
+                obj.resources_requested.setdefault(k, 0)
+                obj.resources_used.setdefault(k, 0)
+            for project in HpcProject.objects.filter(group=obj):
+                for k in resource_keys:
+                    obj.resources_requested[k] += project.resources_requested.get(k, 0)
+                    obj.resources_used[k] += project.resources_used.get(k, 0)
+        ctx = super().get_context_data(*args, **kwargs)
+        ctx["object_list"] = self.object_list
+        return ctx

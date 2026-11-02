@@ -42,7 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         make \
         xmlsec1
 
-COPY pyproject.toml uv.lock README.md ./
+# Copy source code
+COPY . .
 
 RUN uv sync \
         --frozen \
@@ -56,7 +57,7 @@ RUN uv sync \
 
 FROM base AS runtime
 
-COPY --from=deps /usr/src/app/.venv /usr/src/app/.venv
+COPY --from=deps /usr/src/app/ /usr/src/app/
 
 WORKDIR /usr/src/app
 
@@ -68,9 +69,6 @@ ENV CUSTOM_STATIC_DIR=/usr/src/app/local-static
 ENV DJANGO_SECRET_KEY=for-build-only \
     DJANGO_SETTINGS_MODULE=config.settings.production \
     DATABASE_URL=postgres://hpc-access:hpc-access@fake/hpc-access
-
-# Copy source code
-COPY . .
 
 # Download files from CDN.
 RUN mkdir -p local-static/local/css && \

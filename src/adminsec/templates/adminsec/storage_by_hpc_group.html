@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% load common %}
+
+{% block css %}
+  {{ block.super }}
+  <link href="https://cdn.datatables.net/v/dt/dt-3.0.0/datatables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/buttons/4.0.0/css/buttons.dataTables.min.css" rel="stylesheet">
+{% endblock css %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="https://cdn.datatables.net/v/dt/dt-3.0.0/datatables.min.js" ></script>
+  <script src="https://cdn.datatables.net/buttons/4.0.0/js/dataTables.buttons.min.js" ></script>
+{% endblock javascript %}
+
+{% block content %}
+<div class="container-fluid text-center">
+  <h2 class="mt-4">HPC Storage by Group</h2>
+
+  <table id="hpcaccess-storage-by-group" class="display" data-order='[[0, "asc"]]' data-page-length="50">
+    <caption>
+      This table shows the aggregate storage resources requested and used by each group. The values are the sum of the "normal" group storage and the combined storage used by all the projects of that group.
+    </caption>
+    <thead style="text-align: center;">
+      <tr>
+        <th class="dt-head-center" colspan="3" data-dt-order="disable"></th>
+        <th class="dt-head-center" colspan="2" data-dt-order="disable"><code>work [TiB]</code></th>
+        <th class="dt-head-center" colspan="2" data-dt-order="disable"><code>scratch [TiB]</code></th>
+        <th class="dt-head-center" colspan="2" data-dt-order="disable"><code>unmirrored [TiB]</code></th>
+        <th class="dt-head-center" colspan="2" data-dt-order="disable"><code>mirrored [TiB]</code></th>
+      </tr>
+      <tr>
+        <th>Group (gid)</th>
+        <th>Owner</th>
+        <th>Status</th>
+        <th>Requested</th>
+        <th>Used</th>
+        <th>Requested</th>
+        <th>Used</th>
+        <th>Requested</th>
+        <th>Used</th>
+        <th>Requested</th>
+        <th>Used</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for obj in object_list %}
+        <tr>
+          <td class="dt-body-left">{{ obj.name }} ({{ obj.gid }})</td>
+          <td class="dt-body-left">{{ obj.owner }}</td>
+          <td class="dt-body-left">{{ obj.status }}</td>
+          <td class="dt-body-right">{{ obj.resources_requested.tier1_work | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_used.tier1_work | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_requested.tier1_scratch | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_used.tier1_scratch | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_requested.tier2_unmirrored | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_used.tier2_unmirrored | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_requested.tier2_mirrored | floatformat }}</td>
+          <td class="dt-body-right">{{ obj.resources_used.tier2_mirrored | floatformat }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    const DT = new DataTable("#hpcaccess-storage-by-group", {
+      layout: {
+        topStart: 'pageLength',
+        topEnd: 'search',
+        bottomStart: 'info',
+        bottomEnd: 'paging',
+        bottom2: {
+          buttons: [
+            {
+              extend: 'copyHtml5',
+              text: 'Copy',
+              fieldSeparator: '\t',
+            },
+            {
+              extend: 'csvHtml5',
+              text: 'Export to TSV',
+              fieldSeparator: '\t',
+            },
+            {
+              extend: 'print',
+              text: 'Print'
+            },
+          ],
+        },
+      },
+    });
+  </script>
+</div>
+{% endblock content %}
+
