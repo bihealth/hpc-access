@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField, EmailField, IntegerField
+from django.db.models import BooleanField, CharField, DateTimeField, EmailField, IntegerField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -27,6 +27,7 @@ class User(AbstractUser):
         default=False,
         help_text=_("User has consented to the latest terms and conditions."),
     )
+    anonymized_at = DateTimeField(_("DateTime of anonymization"), null=True)
 
     def get_absolute_url(self):
         """Get url for user's detail view.

@@ -8,6 +8,7 @@ from test_plus import TestCase
 
 from adminsec.constants import TIER_USER_HOME
 from adminsec.ldap import LdapConnector
+from adminsec.management.commands.anonymize import anonymize_user
 from adminsec.tasks import (
     _generate_quota_reports,
     _send_quota_email,
@@ -167,7 +168,7 @@ class TestSyncLdap(TestCase):
         self.assertEqual(self.user1.uid, 101)
         self.assertEqual(self.user1.name, "Jane Joe")
         self.assertTrue(self.user1.is_active)
-        self.assertEqual(self.hpcuser1.status, "ACTIVE")
+        self.assertEqual(self.hpcuser1.status, OBJECT_STATUS_ACTIVE)
 
         self.assertEqual(self.user2.first_name, "John")
         self.assertEqual(self.user2.last_name, "Doe")
@@ -176,7 +177,28 @@ class TestSyncLdap(TestCase):
         self.assertEqual(self.user2.uid, 102)
         self.assertEqual(self.user2.name, "John Doe")
         self.assertTrue(self.user2.is_active)
-        self.assertEqual(self.hpcuser2.status, "ACTIVE")
+        self.assertEqual(self.hpcuser2.status, OBJECT_STATUS_ACTIVE)
+
+    @override_settings(**LDAP_DEFAULT_MOCKS)
+    def test__sync_ldap_ignore_anonymized_users(self):
+        self.user1.uid = 101
+        anonymize_user(self.user1)
+        exception_count = _sync_ldap(ldapcon=self.ldap, write=True)
+
+        self.assertEqual(exception_count, {})
+
+        self.user1.refresh_from_db()
+        self.hpcuser1.refresh_from_db()
+
+        self.assertEqual(self.user1.first_name, "")
+        self.assertEqual(self.user1.last_name, "Anonymous")
+        self.assertEqual(self.user1.email, "")
+        self.assertEqual(self.user1.phone, "")
+        self.assertEqual(self.user1.uid, 101)
+        self.assertNotEqual(self.user1.name, "Jane Joe")
+        self.assertNotEqual(self.user1.name, "")
+        self.assertFalse(self.user1.is_active)
+        self.assertEqual(self.hpcuser1.status, OBJECT_STATUS_EXPIRED)
 
     @override_settings(**LDAP_OTHER_DOMAIN_MOCK)
     def test__sync_ldap_invalid_domain(self):
