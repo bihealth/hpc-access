@@ -54,71 +54,64 @@ class Command(BaseCommand):
         with open(cluster_state, "r") as jsonfile:
             hpc_state = HpcaccessState(**json.load(jsonfile))
         # Validate internal references
-        changed = True
-        while changed:
-            changed = False
-            for hpc_user_key in list(hpc_state.hpc_users.keys()):
-                data = hpc_state.hpc_users[hpc_user_key]
-                if primary_group := data["primary_group"]:
-                    if primary_group in hpc_state.hpc_projects:
-                        self._warn(
-                            f"Primary_group {primary_group} for user {data['username']} "
-                            "is a project. This user will be skipped."
-                        )
-                        del hpc_state.hpc_users[hpc_user_key]
-                    elif primary_group not in hpc_state.hpc_groups:
-                        self._warn(
-                            "Malformed input: missing primary_group reference "
-                            f"({data['primary_group']}) for user {data['username']}"
-                            "This user will be skipped."
-                        )
-                        del hpc_state.hpc_users[hpc_user_key]
-            for hpc_group_key in list(hpc_state.hpc_groups.keys()):
-                data = hpc_state.hpc_groups[hpc_group_key]
-                if data["owner"] not in hpc_state.hpc_users:
+        for hpc_user_key in list(hpc_state.hpc_users.keys()):
+            data = hpc_state.hpc_users[hpc_user_key]
+            if primary_group := data["primary_group"]:
+                if primary_group in hpc_state.hpc_projects:
                     self._warn(
-                        "Malformed input: missing owner reference "
-                        f"({data['owner']}) for group {data['name']}. "
-                        "This group will be skipped."
+                        f"Primary_group {primary_group} for user {data['username']} "
+                        "is a project. This user will be skipped."
                     )
-                    del hpc_state.hpc_groups[hpc_group_key]
-                    changed = True
-                    continue
-                if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+                    del hpc_state.hpc_users[hpc_user_key]
+                elif primary_group not in hpc_state.hpc_groups:
                     self._warn(
-                        "Malformed input: missing delegate reference "
-                        f"({data['delegate']}) for group {data['name']}. "
-                        "This group will be skipped."
+                        "Malformed input: missing primary_group reference "
+                        f"({data['primary_group']}) for user {data['username']}. "
+                        "This user will be skipped."
                     )
-                    del hpc_state.hpc_groups[hpc_group_key]
-                    changed = True
-            for hpc_project_key in list(hpc_state.hpc_projects.keys()):
-                data = hpc_state.hpc_projects[hpc_project_key]
-                if data["group"] not in hpc_state.hpc_groups:
-                    self._warn(
-                        "Malformed input: missing group reference "
-                        f"({data['group']}) for project {data['name']}. "
-                        "This project will be skipped."
-                    )
-                    del hpc_state.hpc_projects[hpc_project_key]
-                    continue
-                if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
-                    self._warn(
-                        "Malformed input: missing delegate reference "
-                        f"({data['delegate']}) for project {data['name']}. "
-                        "This project will be skipped."
-                    )
-                    del hpc_state.hpc_projects[hpc_project_key]
-                    continue
-                for member_uuid in data["members"]:
-                    if member_uuid not in hpc_state.hpc_users:
-                        self._warn(
-                            "Malformed input: missing member reference "
-                            f"({member_uuid}) for project {data['name']}"
-                            "This project will be skipped."
-                        )
-                        del hpc_state.hpc_projects[hpc_project_key]
-                        break
+                    del hpc_state.hpc_users[hpc_user_key]
+        for hpc_group_key in list(hpc_state.hpc_groups.keys()):
+            data = hpc_state.hpc_groups[hpc_group_key]
+            if data["owner"] not in hpc_state.hpc_users:
+                self._warn(
+                    "Malformed input: missing owner reference "
+                    f"({data['owner']}) for group {data['name']}. "
+                    "This group will not have an owner."
+                )
+                data["owner"] = None
+            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+                self._warn(
+                    "Malformed input: missing delegate reference "
+                    f"({data['delegate']}) for group {data['name']}. "
+                    "This group will not have a delegate."
+                )
+                data["delegate"] = None
+        for hpc_project_key in list(hpc_state.hpc_projects.keys()):
+            data = hpc_state.hpc_projects[hpc_project_key]
+            if data["group"] not in hpc_state.hpc_groups:
+                self._warn(
+                    "Malformed input: missing group reference "
+                    f"({data['group']}) for project {data['name']}. "
+                    "This project will be skipped."
+                )
+                del hpc_state.hpc_projects[hpc_project_key]
+                continue
+            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+                self._warn(
+                    "Malformed input: missing delegate reference "
+                    f"({data['delegate']}) for project {data['name']}. "
+                    "This project will not have a delegate."
+                )
+                data["delegate"] = None
+            missing_members = [member_uuid for member_uuid in data["members"] if member_uuid not in hpc_state.hpc_users]
+            if missing_members:
+                self._warn(
+                    "Malformed input: missing member references "
+                    f"({missing_members}) for project {data['name']}. "
+                    "These members will be skipped."
+                )
+                for member_uuid in missing_members:
+                    data["members"].remove(member_uuid)
 
         # Sanitize fields
         for hpc_user_key in list(hpc_state.hpc_users.keys()):
@@ -149,7 +142,7 @@ class Command(BaseCommand):
         existing = User.objects.annotate(hpcuser_count=Count("hpcuser_user")).exclude(
             hpcuser_count=0
         )
-        all = {obj.username: obj for obj in existing.filter(username__in=usernames)}
+        all = {obj.username: obj for obj in User.objects.filter(username__in=usernames)}
         update = {
             # new objects
             "added": [],
@@ -163,8 +156,6 @@ class Command(BaseCommand):
         for _uuid, data in cli_import.hpc_users.items():
             old = all.get(data["login_name"])
             if not old:
-                # XXX: how are new users created right now? and how is their password chosen?
-                # Does it make sense to create them here?
                 new = User(
                     first_name=data["first_name"],
                     last_name=data["last_name"],
@@ -174,7 +165,6 @@ class Command(BaseCommand):
                     is_staff=False,
                     is_superuser=False,
                     is_hpcadmin=False,
-                    # XXX: this info is not in the imported file: what should the default be?
                     consented_to_terms=False,
                     phone=data["phone"],
                     username=data["login_name"],
@@ -283,8 +273,13 @@ class Command(BaseCommand):
             "count": existing.count(),
         }
         for uuid, data in cli_import.hpc_groups.items():
-            owner_username = cli_import.hpc_users[data["owner"]]["username"]
-            fk_owner = hpc_users.get(owner_username)
+            # The owner is None if its reference was invalid or its user was skipped
+            # (see _read_hpcaccess_state()). The group is still imported.
+            if data["owner"]:
+                owner_username = cli_import.hpc_users[data["owner"]]["username"]
+                fk_owner = hpc_users[owner_username]
+            else:
+                fk_owner = None
             if data["delegate"]:
                 delegate_username = cli_import.hpc_users[data["delegate"]]["username"]
                 fk_delegate = hpc_users[delegate_username]
@@ -310,7 +305,10 @@ class Command(BaseCommand):
                 update["added"].append(new)
                 continue
             changes = {}
-            if old.owner is None or fk_owner.username != old.owner.username:
+            # Without an owner in the file, keep the existing one.
+            if fk_owner is not None and (
+                old.owner is None or fk_owner.username != old.owner.username
+            ):
                 changes["owner"] = fk_owner
             if (
                 fk_delegate is not None

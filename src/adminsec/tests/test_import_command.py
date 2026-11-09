@@ -20,7 +20,6 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 
@@ -345,12 +344,39 @@ class TestIdempotencyAndKeys(ImportCommandTestBase):
         out, _ = self.run_import(s)
         self.assertEqual(summary(out)["HpcProject"]["changed"], 0)
 
-    def test_existing_account_without_hpc_user_cannot_be_reused(self):
-        User.objects.create(
+    def test_existing_account_without_hpc_user_is_reused(self):
+        """Someone logged in before their LDAP account existed: the User is adopted."""
+        account = User.objects.create(
             username="alice@CHARITE", email="old@example.com", consented_to_terms=True
         )
-        with self.assertRaises(IntegrityError):
-            self.run_import(baseline())
+        out, _ = self.run_import(baseline())
+
+        self.assertEqual(User.objects.filter(username="alice@CHARITE").count(), 1)
+        alice = HpcUser.objects.get(username="alice_c")
+        self.assertEqual(alice.user_id, account.pk)
+        account.refresh_from_db()
+        self.assertTrue(account.consented_to_terms)  # not reset by the import
+        self.assertEqual(account.email, "alice@example.com")  # but synced from the file
+        counts = summary(out)["User"]
+        # it had no HpcUser, so it is neither an initial object nor a new one
+        self.assertEqual(
+            (counts["initial"], counts["added"], counts["changed"], counts["missing"]),
+            (0, 3, 1, 0),
+        )
+
+    def test_existing_account_without_hpc_user_is_reused_in_dry_run(self):
+        User.objects.create(username="alice@CHARITE", email="old@example.com")
+        before = self.db_snapshot()
+        out, _ = self.run_import(baseline(), write=False)
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertEqual(summary(out)["User"]["added"], 3)
+        self.assertEqual(summary(out)["HpcUser"]["added"], 4)
+
+    def test_existing_account_without_hpc_user_stays_inactive(self):
+        """The import adopts the account but never changes who may log in."""
+        User.objects.create(username="alice@CHARITE", is_active=False)
+        self.run_import(baseline())
+        self.assertFalse(User.objects.get(username="alice@CHARITE").is_active)
 
 
 class TestUpdates(ImportCommandTestBase):
@@ -819,21 +845,194 @@ class TestMissingRecords(ImportCommandTestBase):
 
 
 class TestMalformedInput(ImportCommandTestBase):
-    def test_invalid_group_references_skip_group_and_dependent_project(self):
+    """Bad references are cleared where they occur; skips never cascade.
+
+    Only a user without a usable primary group (a project, or unknown) and a project
+    without a group are skipped. A missing owner or delegate becomes None, a missing
+    member is dropped.
+    """
+
+    def test_missing_group_owner_or_delegate_is_cleared_and_group_is_kept(self):
         for field in ("owner", "delegate"):
             with self.subTest(field=field):
                 s = baseline()
-                # Keep all users independent of the group being skipped.
-                s.users["alice"]["primary_group"] = None
-                s.users["bob"]["primary_group"] = None
                 s.groups["g1"][field] = "ghost"
                 normalized, err = self.read_state(s)
-                self.assertNotIn(s._id("g1"), normalized.hpc_groups)
-                self.assertNotIn(s._id("p1"), normalized.hpc_projects)
+                self.assertIn(s._id("g1"), normalized.hpc_groups)
+                self.assertIsNone(normalized.hpc_groups[s._id("g1")][field])
+                self.assertIn(s._id("p1"), normalized.hpc_projects)
                 self.assertIn(f"missing {field} reference", err)
-                self.assertIn("missing group reference", err)
+                self.assertNotIn("will be skipped", err)
 
-    def test_invalid_project_references_skip_project_and_import_valid_objects(self):
+    def test_missing_project_delegate_is_cleared_and_project_is_kept(self):
+        s = baseline()
+        s.projects["p1"]["delegate"] = "ghost"
+        normalized, err = self.read_state(s)
+        project = normalized.hpc_projects[s._id("p1")]
+        self.assertIsNone(project["delegate"])
+        self.assertEqual(len(project["members"]), 2)
+        self.assertIn("missing delegate reference", err)
+
+    def test_missing_project_members_are_dropped_and_project_is_kept(self):
+        s = baseline()
+        s.projects["p1"]["members"] = ["alice", "ghost1", "ghost2"]
+        normalized, err = self.read_state(s)
+        self.assertEqual(normalized.hpc_projects[s._id("p1")]["members"], [s._id("alice")])
+        self.assertIn("missing member reference", err)
+        self.assertEqual(err.count("missing member reference"), 1)
+
+    def test_project_with_only_missing_members_is_kept_without_members(self):
+        s = baseline()
+        s.projects["p1"]["members"] = ["ghost1", "ghost2"]
+        normalized, err = self.read_state(s)
+        self.assertEqual(normalized.hpc_projects[s._id("p1")]["members"], [])
+        self.assertIn("missing member reference", err)
+
+    def test_project_without_group_is_skipped_without_further_warnings(self):
+        s = baseline()
+        s.projects["p1"].update(group="ghost", delegate="ghost", members=["ghost"])
+        normalized, err = self.read_state(s)
+        self.assertNotIn(s._id("p1"), normalized.hpc_projects)
+        self.assertIn("missing group reference", err)
+        self.assertEqual(len(normalized.hpc_groups), 2)
+        # nothing else is reported for a project that is gone anyway
+        self.assertNotIn("delegate reference", err)
+        self.assertNotIn("member reference", err)
+
+    def test_skipped_user_is_cleared_from_references_without_cascading(self):
+        """alice owns g1 and is a member of p1; skipping her removes only those references."""
+        s = baseline()
+        s.users["alice"]["primary_group"] = "ghost"
+        normalized, err = self.read_state(s)
+
+        self.assertNotIn(s._id("alice"), normalized.hpc_users)
+        self.assertEqual(len(normalized.hpc_users), 3)
+        g1 = normalized.hpc_groups[s._id("g1")]
+        self.assertIsNone(g1["owner"])
+        self.assertEqual(g1["delegate"], s._id("bob"))
+        self.assertEqual(len(normalized.hpc_groups), 2)
+        p1 = normalized.hpc_projects[s._id("p1")]
+        self.assertEqual(p1["members"], [s._id("bob")])
+        self.assertEqual(p1["delegate"], s._id("bob"))
+        self.assertIn("missing primary_group reference", err)
+        self.assertIn("missing owner reference", err)
+
+    def test_skipped_delegate_is_cleared_without_cascading(self):
+        s = baseline()
+        s.users["bob"]["primary_group"] = "p1"  # a project is not a usable primary group
+        normalized, _ = self.read_state(s)
+        self.assertNotIn(s._id("bob"), normalized.hpc_users)
+        self.assertIsNone(normalized.hpc_groups[s._id("g1")]["delegate"])
+        self.assertEqual(normalized.hpc_groups[s._id("g1")]["owner"], s._id("alice"))
+        p1 = normalized.hpc_projects[s._id("p1")]
+        self.assertIsNone(p1["delegate"])
+        self.assertEqual(p1["members"], [s._id("alice")])
+
+    def test_normalized_state_has_no_dangling_references(self):
+        s = baseline()
+        s.users["alice"]["primary_group"] = "ghost"  # skipped user (owner + member)
+        s.users["carol"]["primary_group"] = "p1"  # skipped user
+        s.groups["g2"]["delegate"] = "ghost"
+        s.projects["p1"]["members"] = ["alice", "bob", "carol", "ghost"]
+        s.project("p2", "proj2", gid=2002, group="ghost")  # skipped project
+        normalized, _ = self.read_state(s)
+        users, groups = normalized.hpc_users, normalized.hpc_groups
+        for user in users.values():
+            self.assertTrue(user["primary_group"] is None or user["primary_group"] in groups)
+        for group in groups.values():
+            for role in ("owner", "delegate"):
+                self.assertTrue(group[role] is None or group[role] in users)
+        for project in normalized.hpc_projects.values():
+            self.assertIn(project["group"], groups)
+            self.assertTrue(project["delegate"] is None or project["delegate"] in users)
+            self.assertTrue(all(member in users for member in project["members"]))
+
+    def test_group_with_missing_owner_is_imported_without_owner(self):
+        s = baseline()
+        s.groups["g1"]["owner"] = "ghost"
+        out, err = self.run_import(s)
+        g1 = HpcGroup.objects.get(gid=1001)
+        self.assertIsNone(g1.owner)
+        self.assertEqual(g1.delegate.username, "bob_c")
+        self.assertEqual(HpcUser.objects.count(), 4)
+        self.assertEqual(HpcGroup.objects.count(), 2)
+        self.assertEqual(HpcProject.objects.get(name="proj1").group, g1)
+        self.assertEqual(summary(out)["HpcGroup"]["added"], 2)
+        self.assertIn("missing owner reference", err)
+
+    def test_group_owned_by_skipped_user_is_imported_without_owner(self):
+        s = baseline()
+        s.users["alice"]["primary_group"] = "ghost"
+        self.run_import(s)
+        self.assertFalse(HpcUser.objects.filter(username="alice_c").exists())
+        self.assertIsNone(HpcGroup.objects.get(gid=1001).owner)
+        self.assertEqual(HpcProject.objects.get(name="proj1").members.count(), 1)
+        self.assertEqual(HpcUser.objects.get(username="bob_c").primary_group.gid, 1001)
+
+    def test_existing_group_keeps_its_owner_when_the_file_owner_is_missing(self):
+        self.run_import(baseline())
+        before = self.db_snapshot()
+        s = baseline()
+        s.groups["g1"]["owner"] = "ghost"
+        out, _ = self.run_import(s)
+        self.assertEqual(self.db_snapshot(), before)
+        self.assertEqual(summary(out)["HpcGroup"]["changed"], 0)
+        self.assertEqual(HpcGroup.objects.get(gid=1001).owner.username, "alice_c")
+
+    def test_existing_group_with_missing_owner_still_updates_other_fields(self):
+        self.run_import(baseline())
+        s = baseline()
+        s.groups["g1"].update(owner="ghost", description="new", delegate=None)
+        out, _ = self.run_import(s)
+        g1 = HpcGroup.objects.get(gid=1001)
+        self.assertEqual(summary(out)["HpcGroup"]["changed"], 1)
+        self.assertEqual(g1.description, "new")
+        self.assertEqual(g1.owner.username, "alice_c")  # kept
+        self.assertIsNone(g1.delegate)  # the file says there is none
+        self.assertEqual(g1.status, OBJECT_STATUS_ACTIVE)
+
+    def test_skipped_owner_does_not_stop_existing_objects_from_updating(self):
+        """alice (owner of g1, member of p1) has a malformed primary group in the file."""
+        self.run_import(baseline())
+        s = baseline()
+        s.users["alice"]["primary_group"] = "ghost"
+        s.users["bob"]["email"] = "new@example.com"
+        s.groups["g1"]["description"] = "new"
+        s.projects["p1"]["status"] = "EXPIRED"
+        out, err = self.run_import(s)
+
+        counts = summary(out)
+        self.assertIn("missing primary_group reference", err)
+        self.assertEqual(User.objects.get(username="bob@CHARITE").email, "new@example.com")
+        g1 = HpcGroup.objects.get(gid=1001)
+        self.assertEqual(g1.description, "new")
+        self.assertEqual(g1.owner.username, "alice_c")  # existing owner is kept
+        self.assertEqual(g1.delegate.username, "bob_c")
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertEqual(p1.status, "EXPIRED")
+        self.assertEqual(p1.delegate.username, "bob_c")
+        self.assertEqual({m.username for m in p1.members.all()}, {"bob_c"})  # alice dropped
+        # Only alice is reported missing; her group and project are neither missing nor added.
+        self.assertEqual(counts["HpcUser"]["missing"], 1)
+        self.assertEqual((counts["HpcGroup"]["missing"], counts["HpcGroup"]["added"]), (0, 0))
+        self.assertEqual((counts["HpcProject"]["missing"], counts["HpcProject"]["added"]), (0, 0))
+        self.assertEqual(HpcUser.objects.get(username="alice_c").status, OBJECT_STATUS_ACTIVE)
+
+    def test_skipped_delegate_is_removed_from_existing_objects_only(self):
+        self.run_import(baseline())
+        s = baseline()
+        s.users["bob"]["primary_group"] = "p1"
+        self.run_import(s)
+        g1 = HpcGroup.objects.get(gid=1001)
+        self.assertEqual(g1.owner.username, "alice_c")
+        self.assertIsNone(g1.delegate)
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertIsNone(p1.delegate)
+        self.assertEqual([m.username for m in p1.members.all()], ["alice_c"])
+        self.assertEqual(HpcUser.objects.get(username="bob_c").status, OBJECT_STATUS_ACTIVE)
+
+    def test_invalid_project_references(self):
+        """group -> project skipped; delegate -> cleared; members -> dropped."""
         for field, value, message in (
             ("group", "ghost", "missing group reference"),
             ("delegate", "ghost", "missing delegate reference"),
@@ -843,10 +1042,21 @@ class TestMalformedInput(ImportCommandTestBase):
                 s = baseline()
                 s.projects["p1"][field] = value
                 _, err = self.run_import(s)
-                self.assertFalse(HpcProject.objects.exists())
                 self.assertEqual(HpcUser.objects.count(), 4)
                 self.assertEqual(HpcGroup.objects.count(), 2)
                 self.assertIn(message, err)
+                if field == "group":
+                    self.assertFalse(HpcProject.objects.exists())
+                    continue
+                project = HpcProject.objects.get(name="proj1")
+                if field == "delegate":
+                    self.assertIsNone(project.delegate)
+                    self.assertEqual(project.members.count(), 2)
+                else:
+                    self.assertEqual(project.delegate.username, "bob_c")
+                    self.assertEqual([m.username for m in project.members.all()], ["alice_c"])
+                # reset for the next sub-test
+                HpcProject.objects.all().delete()
 
     def test_duplicate_gids_warn_but_are_retained_in_normalized_input(self):
         # Avoid assuming whether database constraints permit duplicates.
@@ -858,24 +1068,6 @@ class TestMalformedInput(ImportCommandTestBase):
                 self.assertEqual(len(normalized.hpc_groups), 2)
                 self.assertEqual(len(normalized.hpc_projects), 1)
                 self.assertIn("Duplicate gid detected: 1001", err)
-
-    def test_multiple_missing_members_skip_project_without_crashing(self):
-        """BUG: continue targets the member loop, deleting the project twice."""
-        s = baseline()
-        s.projects["p1"]["members"] = ["ghost1", "ghost2"]
-        normalized, err = self.read_state(s)
-        self.assertNotIn(s._id("p1"), normalized.hpc_projects)
-        self.assertIn("missing member reference", err)
-
-    def test_skipped_group_does_not_leave_dangling_primary_groups(self):
-        """BUG: user references are checked before invalid groups are removed."""
-        s = baseline()
-        s.groups["g2"]["owner"] = "ghost"
-        normalized, _ = self.read_state(s)
-        self.assertNotIn(s._id("g2"), normalized.hpc_groups)
-        for user in normalized.hpc_users.values():
-            if user["primary_group"]:
-                self.assertIn(user["primary_group"], normalized.hpc_groups)
 
 
 class TestCommandBehaviour(ImportCommandTestBase):
