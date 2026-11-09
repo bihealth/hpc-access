@@ -448,7 +448,9 @@ class DisableUsersWithoutConsent(TestCase):
 
         disable_users_without_consent()
 
-        self.assertEqual(User.objects.filter(is_active=False).count(), 2)
+        # Users without consent are kept active so that they can still login
+        # and give their consent
+        self.assertEqual(User.objects.filter(is_active=False).count(), 0)
         self.hpc_user1.refresh_from_db()
         self.assertEqual(self.hpc_user1.status, OBJECT_STATUS_EXPIRED)
         self.assertEqual(self.hpc_user1.login_shell, "/usr/sbin/nologin")

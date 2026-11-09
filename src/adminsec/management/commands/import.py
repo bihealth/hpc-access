@@ -103,7 +103,11 @@ class Command(BaseCommand):
                     "This project will not have a delegate."
                 )
                 data["delegate"] = None
-            missing_members = [member_uuid for member_uuid in data["members"] if member_uuid not in hpc_state.hpc_users]
+            missing_members = [
+                member_uuid
+                for member_uuid in data["members"]
+                if member_uuid not in hpc_state.hpc_users
+            ]
             if missing_members:
                 self._warn(
                     "Malformed input: missing member references "
