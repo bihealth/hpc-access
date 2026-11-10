@@ -14,22 +14,28 @@ import json
 import re
 import tempfile
 import uuid
+from datetime import timedelta
 from io import StringIO
 from unittest import mock
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from adminsec.tasks import disable_users_without_consent
 from usersec.models import (
     OBJECT_STATUS_ACTIVE,
     OBJECT_STATUS_DELETED,
     HpcGroup,
     HpcProject,
+    HpcProjectMembers,
     HpcUser,
 )
+from usersec.tests.factories import TermsAndConditionsFactory
 
 User = get_user_model()
 
@@ -454,7 +460,10 @@ class TestUpdates(ImportCommandTestBase):
         user_save.assert_called_once()
         self.assertEqual(user_save.call_args.kwargs["update_fields"], ["email"])
         gsave.assert_called_once()
-        self.assertEqual(gsave.call_args.kwargs["update_fields"], ["description"])
+        # date_modified is bookkeeping, see test_changed_rows_get_a_new_date_modified
+        self.assertEqual(
+            set(gsave.call_args.kwargs["update_fields"]) - {"date_modified"}, {"description"}
+        )
 
     def test_membership_only_project_change_does_not_save_the_project(self):
         s = baseline()
@@ -847,9 +856,10 @@ class TestMissingRecords(ImportCommandTestBase):
 class TestMalformedInput(ImportCommandTestBase):
     """Bad references are cleared where they occur; skips never cascade.
 
-    Only a user without a usable primary group (a project, or unknown) and a project
-    without a group are skipped. A missing owner or delegate becomes None, a missing
-    member is dropped.
+    Skipped are users without a usable primary group (a project, or unknown) or without a
+    mappable username, and projects without a group. A missing owner or delegate becomes
+    None, a missing member is dropped. Existing objects keep their references to a skipped
+    user, the same rule as for owners. The import adds no new references to a skipped user.
     """
 
     def test_missing_group_owner_or_delegate_is_cleared_and_group_is_kept(self):
@@ -1011,25 +1021,107 @@ class TestMalformedInput(ImportCommandTestBase):
         p1 = HpcProject.objects.get(name="proj1")
         self.assertEqual(p1.status, "EXPIRED")
         self.assertEqual(p1.delegate.username, "bob_c")
-        self.assertEqual({m.username for m in p1.members.all()}, {"bob_c"})  # alice dropped
+        self.assertEqual({m.username for m in p1.members.all()}, {"alice_c", "bob_c"})  # kept
         # Only alice is reported missing; her group and project are neither missing nor added.
         self.assertEqual(counts["HpcUser"]["missing"], 1)
         self.assertEqual((counts["HpcGroup"]["missing"], counts["HpcGroup"]["added"]), (0, 0))
         self.assertEqual((counts["HpcProject"]["missing"], counts["HpcProject"]["added"]), (0, 0))
         self.assertEqual(HpcUser.objects.get(username="alice_c").status, OBJECT_STATUS_ACTIVE)
 
-    def test_skipped_delegate_is_removed_from_existing_objects_only(self):
+    def test_existing_references_to_a_skipped_user_are_kept(self):
+        """bob's primary group is a project, so he is skipped. The file still lists him as
+        delegate of g1 and p1 and as member of p1, so the database keeps all three."""
         self.run_import(baseline())
         s = baseline()
         s.users["bob"]["primary_group"] = "p1"
-        self.run_import(s)
+        out, _ = self.run_import(s)
+
         g1 = HpcGroup.objects.get(gid=1001)
         self.assertEqual(g1.owner.username, "alice_c")
-        self.assertIsNone(g1.delegate)
+        self.assertEqual(
+            getattr(g1.delegate, "username", None), "bob_c", "group delegate was cleared"
+        )
         p1 = HpcProject.objects.get(name="proj1")
-        self.assertIsNone(p1.delegate)
-        self.assertEqual([m.username for m in p1.members.all()], ["alice_c"])
+        self.assertEqual(
+            getattr(p1.delegate, "username", None), "bob_c", "project delegate was cleared"
+        )
+        self.assertEqual(
+            {m.username for m in p1.members.all()},
+            {"alice_c", "bob_c"},
+            "skipped user was removed from the project",
+        )
+        counts = summary(out)
+        self.assertEqual((counts["HpcGroup"]["changed"], counts["HpcProject"]["changed"]), (0, 0))
         self.assertEqual(HpcUser.objects.get(username="bob_c").status, OBJECT_STATUS_ACTIVE)
+
+    def test_kept_references_to_a_skipped_user_do_not_block_other_changes(self):
+        self.run_import(baseline())
+        s = baseline()
+        s.users["bob"]["primary_group"] = "p1"
+        s.groups["g1"]["description"] = "new"
+        s.projects["p1"]["members"] = ["alice", "bob", "carol"]
+        self.run_import(s)
+
+        g1 = HpcGroup.objects.get(gid=1001)
+        self.assertEqual(g1.description, "new")
+        self.assertEqual(
+            getattr(g1.delegate, "username", None), "bob_c", "group delegate was cleared"
+        )
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertEqual(
+            {m.username for m in p1.members.all()},
+            {"alice_c", "bob_c", "carol_m"},
+            "members must be the file's members, with the skipped user kept",
+        )
+
+    def test_skipped_user_loses_references_the_file_no_longer_has(self):
+        """Only references *to* a skipped user are unknown. Where the file drops bob, the
+        database follows."""
+        self.run_import(baseline())
+        s = baseline()
+        s.users["bob"]["primary_group"] = "p1"
+        s.groups["g1"]["delegate"] = None
+        s.projects["p1"].update(delegate="carol", members=["alice"])
+        self.run_import(s)
+
+        self.assertIsNone(HpcGroup.objects.get(gid=1001).delegate)
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertEqual(p1.delegate.username, "carol_m")
+        self.assertEqual([m.username for m in p1.members.all()], ["alice_c"])
+
+    def test_no_new_references_to_a_skipped_user(self):
+        """carol exists in the database but is skipped. The file makes her delegate of g2 and
+        of the new project p2, and member of p1 and p2. None of that is imported."""
+        self.run_import(baseline())
+        s = baseline()
+        s.users["carol"]["primary_group"] = "p1"
+        s.groups["g2"]["delegate"] = "carol"
+        s.projects["p1"]["members"] = ["alice", "bob", "carol"]
+        s.project("p2", "proj2", gid=2002, group="g2", members=["dave", "carol"], delegate="carol")
+        self.run_import(s)
+
+        self.assertIsNone(HpcGroup.objects.get(gid=1002).delegate)
+        p1 = HpcProject.objects.get(name="proj1")
+        self.assertEqual({m.username for m in p1.members.all()}, {"alice_c", "bob_c"})
+        p2 = HpcProject.objects.get(name="proj2")
+        self.assertIsNone(p2.delegate)
+        self.assertEqual([m.username for m in p2.members.all()], ["dave_c"])
+
+    def test_unmappable_username_skips_the_user_instead_of_aborting(self):
+        """No username aborts the import. One that does not map to a login (no suffix, or an
+        unknown one) is skipped with a warning, like other malformed users."""
+        for bad in ("nosuffix", "alice_x", "too_many_parts_c"):
+            with self.subTest(username=bad):
+                s = baseline()
+                s.users["alice"]["username"] = bad
+                try:
+                    _, err = self.run_import(s)
+                except (KeyError, ValueError) as exc:
+                    self.fail(f"import aborted on username {bad!r}: {exc!r}")
+                usernames = set(HpcUser.objects.values_list("username", flat=True))
+                self.assertLessEqual({"bob_c", "carol_m", "dave_c"}, usernames)
+                if bad not in usernames:
+                    self.assertIn(bad, err, "skipped username is not named in a warning")
 
     def test_invalid_project_references(self):
         """group -> project skipped; delegate -> cleared; members -> dropped."""
@@ -1116,16 +1208,6 @@ class TestCommandBehaviour(ImportCommandTestBase):
             self.run_import(baseline())
         self.assertFalse(HpcUser.objects.exists())
 
-    def test_unmappable_username_aborts_without_changes(self):
-        for bad in ("nosuffix", "too_many_parts_c", "alice_x"):
-            with self.subTest(username=bad):
-                s = baseline()
-                s.users["alice"]["username"] = bad
-                with self.assertRaises((KeyError, ValueError)):
-                    self.run_import(s)
-                self.assertFalse(HpcUser.objects.exists())
-                self.assertFalse(User.objects.filter(username__startswith="bob").exists())
-
     def test_failure_while_writing_rolls_back_and_reraises_original_error(self):
         self.run_import(baseline())
         before = self.db_snapshot()
@@ -1193,3 +1275,90 @@ class TestWriteBehaviour(ImportCommandTestBase):
     def test_removed_noinput_option_is_rejected(self):
         with self.assertRaises(CommandError):
             self.run_import(baseline(), "--noinput", write=False)
+
+    def test_history_events_of_the_import_are_attributed_to_it(self):
+        """Every event the import writes carries a pghistory context with source "import", so
+        the history tells import writes apart from edits in the web UI."""
+        self.run_import(baseline())
+        s = baseline()
+        s.users["bob"]["login_shell"] = "/usr/bin/zsh"
+        s.projects["p1"]["members"] = ["alice"]
+        self.run_import(s)
+
+        for model in (HpcUser, HpcGroup, HpcProject, HpcProjectMembers):
+            with self.subTest(model=model.__name__):
+                events = list(model.pgh_event_model.objects.select_related("pgh_context"))
+                self.assertTrue(events)
+                unattributed = [
+                    event
+                    for event in events
+                    if event.pgh_context is None
+                    or event.pgh_context.metadata.get("source") != "import"
+                ]
+                self.assertEqual(
+                    len(unattributed),
+                    0,
+                    f"{len(unattributed)} of {len(events)} events have no import context",
+                )
+
+    def test_changed_rows_get_a_new_date_modified(self):
+        """Rows the import changes get a new date_modified, unchanged rows keep theirs.
+        save(update_fields=...) skips auto_now fields that are not listed."""
+        self.run_import(baseline())
+
+        def stamps():
+            return {
+                "alice_c": HpcUser.objects.get(username="alice_c").date_modified,
+                "dave_c": HpcUser.objects.get(username="dave_c").date_modified,
+                "grp-g1": HpcGroup.objects.get(name="grp-g1").date_modified,
+                "proj1": HpcProject.objects.get(name="proj1").date_modified,
+            }
+
+        before = stamps()
+        s = baseline()
+        s.users["alice"]["login_shell"] = "/usr/bin/zsh"
+        s.groups["g1"]["description"] = "new"
+        s.projects["p1"]["status"] = "EXPIRED"
+        self.run_import(s)
+        after = stamps()
+
+        for name in ("alice_c", "grp-g1", "proj1"):
+            with self.subTest(row=name):
+                self.assertGreater(after[name], before[name], "changed, but date_modified not")
+        self.assertEqual(after["dave_c"], before["dave_c"])
+
+
+class TestNightlyConsentCycle(ImportCommandTestBase):
+    """Every night the consent job runs before the import. After the first night, a night
+    with an unchanged dump must change nothing, also for users who have not consented."""
+
+    def setUp(self):
+        super().setUp()
+        self.run_import(baseline())
+        TermsAndConditionsFactory(
+            date_published=timezone.now() - timedelta(days=settings.CONSENT_GRACE_PERIOD + 1)
+        )
+        self.night("first")
+
+    def night(self, salt):
+        disable_users_without_consent()
+        out, _ = self.run_import(baseline(salt))
+        return summary(out)
+
+    def test_unchanged_dump_reports_no_changes(self):
+        counts = self.night("second")
+        self.assertEqual(
+            counts["HpcUser"]["changed"],
+            0,
+            "the consent job and the import undo each other's status and login shell",
+        )
+
+    def test_unchanged_dump_writes_no_history_events(self):
+        events = HpcUser.pgh_event_model.objects
+        before = events.count()
+        self.night("second")
+        self.assertEqual(
+            events.count() - before,
+            0,
+            "the consent job and the import add HpcUser events every night",
+        )
