@@ -173,8 +173,6 @@ def disable_users_without_consent(_self):
         .exclude(is_staff=True)
     )
     for user in users:
-        user.is_active = False
-        user.save()
         try:
             hpcuser = HpcUser.objects.get(user=user)
             hpcuser.status = OBJECT_STATUS_EXPIRED
