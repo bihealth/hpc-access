@@ -4,6 +4,7 @@ import json
 import traceback
 from datetime import datetime
 
+import pghistory
 from django.contrib import auth
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -19,6 +20,14 @@ SUFFIX_MAPPING = {
     "c": "@CHARITE",
     "m": "@MDC-BERLIN",
 }
+
+
+def login_name(username):
+    """Map an HPC username such as ``alice_c`` to its Django username, or None if unknown."""
+    ldap_user, _, suffix = username.rpartition("_")
+    if ldap_user and suffix in SUFFIX_MAPPING:
+        return f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
+    return None
 
 
 class Command(BaseCommand):
@@ -47,29 +56,43 @@ class Command(BaseCommand):
             return
         for field, value in changes.items():
             setattr(obj, field, value)
-        obj.save(update_fields=sorted(set(changes)))
+        update_fields = set(changes)
+        if hasattr(obj, "date_modified"):
+            # auto_now only sets fields that are listed in update_fields
+            update_fields.add("date_modified")
+        obj.save(update_fields=sorted(update_fields))
 
     def _read_hpcaccess_state(self, cluster_state):
         """Read and normalize the json file from hpc-access-cli"""
         with open(cluster_state, "r") as jsonfile:
             hpc_state = HpcaccessState(**json.load(jsonfile))
-        # Validate internal references
+        # Validate internal references. Delegate and member references to a skipped user
+        # are kept aside as "skipped_delegate" and "skipped_members", so that existing
+        # objects keep them (see the update plans).
+        skipped = {}
         for hpc_user_key in list(hpc_state.hpc_users.keys()):
             data = hpc_state.hpc_users[hpc_user_key]
-            if primary_group := data["primary_group"]:
-                if primary_group in hpc_state.hpc_projects:
-                    self._warn(
-                        f"Primary_group {primary_group} for user {data['username']} "
-                        "is a project. This user will be skipped."
-                    )
-                    del hpc_state.hpc_users[hpc_user_key]
-                elif primary_group not in hpc_state.hpc_groups:
-                    self._warn(
-                        "Malformed input: missing primary_group reference "
-                        f"({data['primary_group']}) for user {data['username']}. "
-                        "This user will be skipped."
-                    )
-                    del hpc_state.hpc_users[hpc_user_key]
+            primary_group = data["primary_group"]
+            if primary_group in hpc_state.hpc_projects:
+                self._warn(
+                    f"Primary_group {primary_group} for user {data['username']} "
+                    "is a project. This user will be skipped."
+                )
+            elif primary_group and primary_group not in hpc_state.hpc_groups:
+                self._warn(
+                    "Malformed input: missing primary_group reference "
+                    f"({data['primary_group']}) for user {data['username']}. "
+                    "This user will be skipped."
+                )
+            elif not login_name(data["username"]):
+                self._warn(
+                    f"Malformed input: username {data['username']} does not end in a known "
+                    f"suffix ({', '.join(SUFFIX_MAPPING)}). This user will be skipped."
+                )
+            else:
+                continue
+            skipped[hpc_user_key] = data["username"]
+            del hpc_state.hpc_users[hpc_user_key]
         for hpc_group_key in list(hpc_state.hpc_groups.keys()):
             data = hpc_state.hpc_groups[hpc_group_key]
             if data["owner"] not in hpc_state.hpc_users:
@@ -79,7 +102,14 @@ class Command(BaseCommand):
                     "This group will not have an owner."
                 )
                 data["owner"] = None
-            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+            data["skipped_delegate"] = skipped.get(data["delegate"])
+            if data["skipped_delegate"]:
+                self._warn(
+                    f"Skipped user {data['skipped_delegate']} is the delegate of group "
+                    f"{data['name']}. The group keeps its current delegate."
+                )
+                data["delegate"] = None
+            elif data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
                 self._warn(
                     "Malformed input: missing delegate reference "
                     f"({data['delegate']}) for group {data['name']}. "
@@ -96,17 +126,32 @@ class Command(BaseCommand):
                 )
                 del hpc_state.hpc_projects[hpc_project_key]
                 continue
-            if data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
+            data["skipped_delegate"] = skipped.get(data["delegate"])
+            if data["skipped_delegate"]:
+                self._warn(
+                    f"Skipped user {data['skipped_delegate']} is the delegate of project "
+                    f"{data['name']}. The project keeps its current delegate."
+                )
+                data["delegate"] = None
+            elif data["delegate"] and data["delegate"] not in hpc_state.hpc_users:
                 self._warn(
                     "Malformed input: missing delegate reference "
                     f"({data['delegate']}) for project {data['name']}. "
                     "This project will not have a delegate."
                 )
                 data["delegate"] = None
+            data["skipped_members"] = [
+                skipped[member_uuid] for member_uuid in data["members"] if member_uuid in skipped
+            ]
+            if data["skipped_members"]:
+                self._warn(
+                    f"Skipped users {data['skipped_members']} are members of project "
+                    f"{data['name']}. Existing memberships are kept, new ones are not added."
+                )
             missing_members = [
                 member_uuid
                 for member_uuid in data["members"]
-                if member_uuid not in hpc_state.hpc_users
+                if member_uuid not in hpc_state.hpc_users and member_uuid not in skipped
             ]
             if missing_members:
                 self._warn(
@@ -114,14 +159,14 @@ class Command(BaseCommand):
                     f"({missing_members}) for project {data['name']}. "
                     "These members will be skipped."
                 )
-                for member_uuid in missing_members:
-                    data["members"].remove(member_uuid)
+            data["members"] = [
+                member_uuid for member_uuid in data["members"] if member_uuid in hpc_state.hpc_users
+            ]
 
         # Sanitize fields
         for hpc_user_key in list(hpc_state.hpc_users.keys()):
             data = hpc_state.hpc_users[hpc_user_key]
-            ldap_user, suffix = data["username"].split("_")
-            data["login_name"] = f"{ldap_user}{SUFFIX_MAPPING[suffix]}"
+            data["login_name"] = login_name(data["username"])
             data["first_name"] = data["first_name"].strip() if data["first_name"] else ""
             data["last_name"] = data["last_name"].strip() if data["last_name"] else ""
             data["name"] = data["full_name"].strip() if data["full_name"] else ""
@@ -314,7 +359,8 @@ class Command(BaseCommand):
                 old.owner is None or fk_owner.username != old.owner.username
             ):
                 changes["owner"] = fk_owner
-            if (
+            # If the file's delegate is a skipped user, keep the existing one.
+            if not data["skipped_delegate"] and (
                 fk_delegate is not None
                 and old.delegate is None
                 or fk_delegate is None
@@ -383,7 +429,8 @@ class Command(BaseCommand):
             changes = {}
             if fk_group.name != old.group.name:
                 changes["group"] = fk_group
-            if (
+            # If the file's delegate is a skipped user, keep the existing one.
+            if not data["skipped_delegate"] and (
                 fk_delegate is not None
                 and old.delegate is None
                 or fk_delegate is None
@@ -401,9 +448,12 @@ class Command(BaseCommand):
             ):
                 if (new_field := data[field]) != getattr(old, field):
                     changes[field] = new_field
-            old_members = {member.username for member in old.members.all()}
-            new_members = {member.username for member in members}
-            if changes or old_members ^ new_members:
+            old_members = list(old.members.all())
+            # Skipped users stay members where they already are.
+            members += [m for m in old_members if m.username in data["skipped_members"]]
+            old_usernames = {member.username for member in old_members}
+            new_usernames = {member.username for member in members}
+            if changes or old_usernames ^ new_usernames:
                 update["changed"].append((old, changes, members))
         return all, update
 
@@ -503,5 +553,6 @@ class Command(BaseCommand):
                 )
                 return
             self.stdout.write("\nApplying changes to the database, please be patient...")
-            self._execute_plan(objects, updates)
+            with pghistory.context(source="import"):
+                self._execute_plan(objects, updates)
             self.stdout.write("Done.")
