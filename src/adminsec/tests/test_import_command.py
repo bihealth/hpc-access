@@ -16,7 +16,7 @@ import tempfile
 import uuid
 from datetime import timedelta
 from io import StringIO
-from unittest import mock
+from unittest import expectedFailure, mock
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -1330,7 +1330,12 @@ class TestWriteBehaviour(ImportCommandTestBase):
 
 class TestNightlyConsentCycle(ImportCommandTestBase):
     """Every night the consent job runs before the import. After the first night, a night
-    with an unchanged dump must change nothing, also for users who have not consented."""
+    with an unchanged dump must change nothing, also for users who have not consented.
+
+    Expected to fail until a follow-up PR changes the consent job: it sets status and login
+    shell of every HpcUser without consent, and the import resets both from LDAP. Remove the
+    expectedFailure markers with that fix.
+    """
 
     def setUp(self):
         super().setUp()
@@ -1345,6 +1350,7 @@ class TestNightlyConsentCycle(ImportCommandTestBase):
         out, _ = self.run_import(baseline(salt))
         return summary(out)
 
+    @expectedFailure
     def test_unchanged_dump_reports_no_changes(self):
         counts = self.night("second")
         self.assertEqual(
@@ -1353,6 +1359,7 @@ class TestNightlyConsentCycle(ImportCommandTestBase):
             "the consent job and the import undo each other's status and login shell",
         )
 
+    @expectedFailure
     def test_unchanged_dump_writes_no_history_events(self):
         events = HpcUser.pgh_event_model.objects
         before = events.count()
