@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/bihealth/hpc-access/compare/v1.1.0...v2.0.0) (2026-11-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* do not wipe the database when importing data ([#459](https://github.com/bihealth/hpc-access/issues/459))
+* replace version models with django-pghistory ([#464](https://github.com/bihealth/hpc-access/issues/464))
+
+### Features
+
+* do not wipe the database when importing data ([#459](https://github.com/bihealth/hpc-access/issues/459)) ([26b87ef](https://github.com/bihealth/hpc-access/commit/26b87ef160be5a37ed9b4b211d7b4e074cc90f05))
+
+
+### Code Refactoring
+
+* replace version models with django-pghistory ([#464](https://github.com/bihealth/hpc-access/issues/464)) ([2049e6c](https://github.com/bihealth/hpc-access/commit/2049e6c970734b156bf7f2e245f592889e5e527d))
+
 ## [1.1.0](https://github.com/bihealth/hpc-access/compare/v1.0.0...v1.1.0) (2026-08-07)
 
 
